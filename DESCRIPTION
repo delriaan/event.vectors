@@ -1,10 +1,9 @@
 Type: Package
 Package: EVSpace
 Title: Event Vector Space: Analysis of event relations
-Version: 2.3.15
-Author: Chionesu George <cgeorge@alliancehealthplan.org> [aut, cre]
-Maintainer: Alliance Health Data Science Department
-    <DScience@alliancehealthplan.org>
+Version: 3.0.0
+Author: Chionesu George <sapienti.Dei@outlook.com> [aut, cre]
+Maintainer: Chionesu George <sapienti.Dei@outlook.com>
 License: Unicorn Overlords
 Depends: 
     data.table,
