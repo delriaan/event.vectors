@@ -25,4 +25,4 @@ inspect <-map(test.evs$q_graph[1:2], ~{ g = .x
 	}
 }) %>% purrr::compact() %>% reduce(rbind)
 
-inspect$src.pair %>% unique()
+local({ x = V(g)[name == ..1]$data; k = is.data.table(x); while(!k){ x <- x[[1]]; k <- is.data.table(x) }; x})

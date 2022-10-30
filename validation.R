@@ -9,6 +9,7 @@ library(furrr)
 
 library(tictoc);
 library(book.of.workflow)
+
 library(future.callr)
 plan(callr)
 
@@ -74,12 +75,13 @@ test.evs <- event.vector.space$new();
 # debug(test.evs$configure)
 test.evs$
 	configure(
-		src.names			= "BLAH$" %s+% ls(pattern = "^test_data", envir = BLAH)
-		, contexts		= "Data." %s+% 1:length(ls(pattern = "^test_data", envir = BLAH))
-		, map.fields	= purrr::map(sequence(length(ls(pattern = "^test_data", envir = BLAH))), ~c("jk", "date.start", "date.end"))
+		src.names			= paste0("BLAH$", ls(pattern = "^test_data", envir = BLAH))
+		, contexts		= paste0("Data.", 1:length(ls(pattern = "^test_data", envir = BLAH)))
+		, map.fields	= purrr::map(sequence(length(ls(pattern = "^test_data", envir = BLAH)))
+															, ~c("jk", "date.start", "date.end"))
 		, row.filters	= purrr::map(sequence(length(ls(pattern = "^test_data", envir = BLAH))), ~rlang::expr(1==1))
-		, src.mix = "combn"
-		, chatty	= TRUE
+		, src.mix 		= "combn"
+		, chatty			= TRUE
 		, exclude.mix = { c(
 				evs_exclude.blender("Data.6", c("Data.4", "Data.7"))
 				, evs_exclude.blender("Data.3", c("Data.1", "Data.5"))

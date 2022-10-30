@@ -1,19 +1,20 @@
 Type: Package
 Package: EVSpace
 Title: Event Vector Space: Analysis of event relations
-Version: 3.0.0
+Version: 3.0.5
 Author: Chionesu George <sapienti.Dei@outlook.com> [aut, cre]
 Maintainer: Chionesu George <sapienti.Dei@outlook.com>
 License: Unicorn Overlords
 Depends: 
+    R (>= 4.0.1),
     data.table,
-    furrr,
     igraph,
-    magrittr,
-    purrr,
-    R (>= 4.0.1)
+    furrr,
+    magrittr
 Imports: 
-    lubridate
+    lubridate,
+    stringi, 
+    purrr
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.2.0
