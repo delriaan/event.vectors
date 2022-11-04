@@ -1,18 +1,18 @@
 # ~Initialization ====
 # library(EVSpace);
-library(data.table)
+# library(data.table)
+#
+# library(igraph, exclude = c("compose", "simplify", "union", "%->%", "%<-%"))
+# library(magrittr)
+# library(furrr)
 
-library(igraph, exclude = c("compose", "simplify", "union", "%->%", "%<-%"))
-library(magrittr)
+# library(book.of.workflow)
+
 library(purrr)
-library(furrr)
-
 library(tictoc);
-library(book.of.workflow)
-
-library(future.callr)
-plan(callr)
-
+library(future);
+# plan(tweak(multisession, workers = 5))
+plan(future.callr::callr)
 #
 make.test_data <- function(j = 5, n = 5, m = 5, dest = globalenv(), .debug = FALSE){
 #' Make Test Data for Validation
@@ -31,7 +31,7 @@ make.test_data <- function(j = 5, n = 5, m = 5, dest = globalenv(), .debug = FAL
 	m = max(c(3, abs(as.integer(m)))); ifelse(m > 15, 15, m);
 
 	sequence(n) %>%
-	purrr::set_names("test_data." %s+% stringi::stri_pad_left(., width = 2, pad = "0")) %>%
+	purrr::set_names(paste0("test_data.", stringi::stri_pad_left(., width = 2, pad = "0"))) %>%
 	purrr::map(~{
 		set.seed(sample(1:10000, 1));
 		.src = LETTERS[[.x]];
@@ -76,7 +76,7 @@ test.evs <- event.vector.space$new();
 test.evs$
 	configure(
 		src.names			= paste0("BLAH$", ls(pattern = "^test_data", envir = BLAH))
-		, contexts		= paste0("Data.", 1:length(ls(pattern = "^test_data", envir = BLAH)))
+		, contexts		= paste0("Src", 1:length(ls(pattern = "^test_data", envir = BLAH)))
 		, map.fields	= purrr::map(sequence(length(ls(pattern = "^test_data", envir = BLAH)))
 															, ~c("jk", "date.start", "date.end"))
 		, row.filters	= purrr::map(sequence(length(ls(pattern = "^test_data", envir = BLAH))), ~rlang::expr(1==1))
@@ -91,7 +91,7 @@ test.evs$
 # undebug(test.evs$configure)
 
 test.evs$config %>% attributes()
-test.evs$.__enclos_env__$private$q_matrix
+test.evs$.__enclos_env__$private$q_table
 
 # debug(test.evs$set.q_graphs)
 test.evs$set.q_graphs(chatty = TRUE)
@@ -124,12 +124,12 @@ toc(log = TRUE);
 
 test.evs$space[, .(jk, from.coord, to.coord, src.pair, mSt, mGap, mEd, epsilon = as.character(epsilon))] %>% summarytools::dfSummary()
 
-vertex.attributes(test.evs$evt_graphs$`1`)
+igraph::vertex.attributes(test.evs$evt_graphs$`1`)
 #
 # ~ Validation #3 ====
 event_graph <- test.evs$evt_graphs %>% sample(1) %>% .[[1]] %>% print();
 
-f2ab <- list(theta = 0.1, gravitationalConstant = -500, centralGravity = 0.0,  avoidOverlap = 1, damping = 0.7);
+f2ab <- list(theta = 0.1, gravitationalConstant = -5000, centralGravity = 0.0,  avoidOverlap = 1, damping = 0.7);
 
 event_graph %>%
 	visNetwork::visIgraph(physics = TRUE, type = "full") %>%
@@ -139,7 +139,21 @@ event_graph %>%
 	# visNetwork::visEdges(length = 100) %>%
 	htmltools::html_print(viewer = browseURL)
 
+igraph::vertex_attr(event_graph)$start
+igraph::vertex_attr(event_graph)$end
+igraph::vertex_attr(event_graph)$source
+igraph::vertex_attr(event_graph)$order
+igraph::V(event_graph)[source %in% c("Src1", "Src4") & order %in% c(1, 4)] %>% map(igraph::neighborhood, graph = event_graph)
+igraph::subgraph.edges(graph = event_graph, eids = igraph::E(event_graph)[mGap >= 20])
+igraph::subgraph.edges(graph = event_graph, eids = igraph::E(event_graph)[mGap >= 20]) %>% {
+	g = .
+	igraph::V(g)[source %in% c("Src1", "Src4") & order %in% c(1, 4)] %>%
+	.[igraph::neighborhood.size(graph = g, order = 1, nodes = .) > 20] %>%
+	map(igraph::neighborhood, graph = g)
+}
 rm(BLAH, make.test_data)
+
+
 
 # ~ Cleanup ====
 plan(sequential);

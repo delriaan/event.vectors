@@ -2,48 +2,34 @@
 % Please edit documentation in R/2. EVSpace.R
 \name{event.vector.space}
 \alias{event.vector.space}
-\title{Event Vector Space}
+\title{Event Vector Space: A relational vector space of events}
 \description{
-\code{event.vector.space} is an \code{\link{R6Class}} that creates a temporally-compared space of \emph{event vectors}, each comprised of a 'from' and 'to' date.  The time between these events is the focus of derivation: properly, the event vector is a complex number that encodes the relationship between the boundaries of the events, thus allowing one to describe this relationship in a concise manner.
+`event.vector.space` is an R6 class object that creates a temporally-compared space of "\emph{event vectors}", each comprised of a 'from' and 'to' date.
+
+The time between these events is the focus of derivation: properly, the event vector is a complex number that encodes the relationship between the boundaries of the events, thus allowing one to describe this relationship in a concise manner.
 
 \cr
-}
-\details{
-A relational vector space of events
 }
 \section{Execution Workflow}{
 
 The initial execution order should look something like the following ...
 \cr
-\code{ obj <- event.vector.space$new(...)$configure(...)$set.data(...)$set.q_graphs(...) \%>\% make.evs_universe(...) }.  The ability to execute the preceding workflow out of order exists, but it is best to adhere to the provided flow the first time around.
+\code{ event.vector.space$new(...)$configure(...)$set.data(...)$set.q_graphs(...) \%>\% make.evs_universe(...) }.  The ability to execute the preceding workflow out of order exists, but it is best to adhere to the provided flow the first time around.
 \cr
 \cr
 }
 
 \section{Class Member "Space"}{
 
-\code{$space} is a \code{\link{data.table}} that is populated upon execution of \code{\link{make.evs_universe}}:
+\code{$space} is a \code{\link[data.table]{data.table}} that is populated upon execution of \code{\link{make.evs_universe}()}:
    \describe{
-     \item{\code{jk: }}{Values of the "join key"}
-     \item{\code{mGap: }}{Metrics describing the difference between the following temporal boundaries: TO.start, FROM.end}
-     \item{\code{mSt: }}{Metrics describing the difference between the following temporal boundaries: TO.start, FROM.start}
-     \item{\code{mEd: }}{Metrics describing the difference between the following temporal boundaries: TO.end, FROM.end}
-     \item{\code{from.len: }}{The duration of time of each "from" event: units are one the scale of the smallest increment of time represented (e.g., calendar dates in days will have lengths expressed in days)}
-     \item{\code{to.len: }}{The duration of time of each "to" event: units are one the scale of the smallest increment of time represented (e.g., calendar dates in days will have lengths expressed in days)}
-     \item{\code{epsilon: }}{A complex number (e.g., \code{1337 + 0.90210i}) describing the relational changes from one event to another with interpretation based on whether or not the real and imaginary parts are \code{> 0}, \code{< 0}, or \code{ == 0}:
-     	\tabular{lll}{
-     	  Re \tab Im \tab Desc \cr
-     	  {> 0} \tab {== 0} \tab Disjoint \cr
-     	  {== 0} \tab {> 0} \tab Concurrency \cr
-     	  {> 0} \tab {> 0} \tab Full Concurrency \cr
-     	  {== 0} \tab {== 0} \tab Continuity \cr
-     	}}
-     \item{\code{epsilon.desc: }}{A plain-language description of \code{epsilon}}
-     \item{\code{fr_*: }}{The temporal ranges of each "from" event}
-     \item{\code{to_*: }}{The temporal ranges of each "to" event}
-     \item{\code{src.pair: }}{Values of the "from-to" pairings of events given by the contexts provided: FROM:TO}
-     \item{\code{from.coord: }}{String representation of temporal boundaries expressed as concatenated integers}
-     \item{\code{to.coord: }}{String representation of temporal boundaries expressed as concatenated integers}
+     \item{`jk`}{Values of the "join key"}
+     \item{"crossed" time output}{ See \code{\link{cross.time}()}}
+     \item{`fr_*`}{The temporal ranges of each "from" event}
+     \item{`to_*`}{The temporal ranges of each "to" event}
+     \item{`src.pair`}{Values of the "from-to" pairings of events given by the contexts provided: FROM:TO}
+     \item{`from.coord`}{String representation of temporal boundaries expressed as concatenated integers}
+     \item{`to.coord`}{String representation of temporal boundaries expressed as concatenated integers}
    }
 \cr
 }

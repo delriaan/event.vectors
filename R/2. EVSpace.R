@@ -1,40 +1,27 @@
-#' Event Vector Space
-#'
-#' A relational vector space of events
+#' Event Vector Space: A relational vector space of events
 #'
 #' @description
-#' \code{event.vector.space} is an \code{\link{R6Class}} that creates a temporally-compared space of \emph{event vectors}, each comprised of a 'from' and 'to' date.  The time between these events is the focus of derivation: properly, the event vector is a complex number that encodes the relationship between the boundaries of the events, thus allowing one to describe this relationship in a concise manner.
+#' `event.vector.space` is an R6 class object that creates a temporally-compared space of "\emph{event vectors}", each comprised of a 'from' and 'to' date.
+#'
+#' The time between these events is the focus of derivation: properly, the event vector is a complex number that encodes the relationship between the boundaries of the events, thus allowing one to describe this relationship in a concise manner.
 #'
 #' \cr
 #' @section Execution Workflow:
 #' The initial execution order should look something like the following ...
 #' \cr
-#' \code{ obj <- event.vector.space$new(...)$configure(...)$set.data(...)$set.q_graphs(...) \%>\% make.evs_universe(...) }.  The ability to execute the preceding workflow out of order exists, but it is best to adhere to the provided flow the first time around.
+#' \code{ event.vector.space$new(...)$configure(...)$set.data(...)$set.q_graphs(...) \%>\% make.evs_universe(...) }.  The ability to execute the preceding workflow out of order exists, but it is best to adhere to the provided flow the first time around.
 #' \cr
 #' \cr
 #' @section Class Member "Space":
-#' \code{$space} is a \code{\link{data.table}} that is populated upon execution of \code{\link{make.evs_universe}}:
+#' \code{$space} is a \code{\link[data.table]{data.table}} that is populated upon execution of \code{\link{make.evs_universe}()}:
 #'    \describe{
-#'      \item{\code{jk: }}{Values of the "join key"}
-#'      \item{\code{mGap: }}{Metrics describing the difference between the following temporal boundaries: TO.start, FROM.end}
-#'      \item{\code{mSt: }}{Metrics describing the difference between the following temporal boundaries: TO.start, FROM.start}
-#'      \item{\code{mEd: }}{Metrics describing the difference between the following temporal boundaries: TO.end, FROM.end}
-#'      \item{\code{from.len: }}{The duration of time of each "from" event: units are one the scale of the smallest increment of time represented (e.g., calendar dates in days will have lengths expressed in days)}
-#'      \item{\code{to.len: }}{The duration of time of each "to" event: units are one the scale of the smallest increment of time represented (e.g., calendar dates in days will have lengths expressed in days)}
-#'      \item{\code{epsilon: }}{A complex number (e.g., \code{1337 + 0.90210i}) describing the relational changes from one event to another with interpretation based on whether or not the real and imaginary parts are \code{> 0}, \code{< 0}, or \code{ == 0}:
-#'      	\tabular{lll}{
-#'      	  Re \tab Im \tab Desc \cr
-#'      	  {> 0} \tab {== 0} \tab Disjoint \cr
-#'      	  {== 0} \tab {> 0} \tab Concurrency \cr
-#'      	  {> 0} \tab {> 0} \tab Full Concurrency \cr
-#'      	  {== 0} \tab {== 0} \tab Continuity \cr
-#'      	}}
-#'      \item{\code{epsilon.desc: }}{A plain-language description of \code{epsilon}}
-#'      \item{\code{fr_*: }}{The temporal ranges of each "from" event}
-#'      \item{\code{to_*: }}{The temporal ranges of each "to" event}
-#'      \item{\code{src.pair: }}{Values of the "from-to" pairings of events given by the contexts provided: FROM:TO}
-#'      \item{\code{from.coord: }}{String representation of temporal boundaries expressed as concatenated integers}
-#'      \item{\code{to.coord: }}{String representation of temporal boundaries expressed as concatenated integers}
+#'      \item{`jk`}{Values of the "join key"}
+#'      \item{"crossed" time output}{ See \code{\link{cross.time}()}}
+#'      \item{`fr_*`}{The temporal ranges of each "from" event}
+#'      \item{`to_*`}{The temporal ranges of each "to" event}
+#'      \item{`src.pair`}{Values of the "from-to" pairings of events given by the contexts provided: FROM:TO}
+#'      \item{`from.coord`}{String representation of temporal boundaries expressed as concatenated integers}
+#'      \item{`to.coord`}{String representation of temporal boundaries expressed as concatenated integers}
 #'    }
 #' \cr
 #'
@@ -165,8 +152,8 @@ event.vector.space <- { R6::R6Class(
 							}
 					});
 
-				# @def q_matrix sets the allowable comparisons before any calculations are done
-				private$q_matrix <- {
+				# @def q_table sets the allowable comparisons before any calculations are done
+				private$q_table <- {
 					# .temp will be a matrix at this point
 					.temp = private$.params$config$contexts %>% utils::combn(m = 2) %>% cbind(apply(., 2, rev)) %>% t()
 
@@ -239,18 +226,23 @@ event.vector.space <- { R6::R6Class(
 		 		self$q_graph <- { purrr::map(attr(private$.params$config, "jk"), ~{
 			 			# :: Select events for which the current value of jk has data
 			 			this.jk = .x;
+
 			 			.evts = private$.params$config[
 			 				(purrr::map_lgl(jk.vec, ~this.jk %in% .x)), !"jk.vec"
-							][, map.fields := if (is.list(map.fields)){ purrr::map_chr(map.fields, paste, collapse = "|") } else map.fields ] %>% unique();
+							][
+							, map.fields := if (is.list(map.fields)){
+									purrr::map_chr(map.fields, paste, collapse = "|")
+								} else map.fields
+							] %>% unique();
 
 			 			# :: Create a configuration graph from the current value of jk and it's associated events
-			 			g = cbind(private$q_matrix[c(and(from %in% .evts$contexts, to %in% .evts$contexts))], jk = this.jk);
+			 			g = cbind(private$q_table[c(and(from %in% .evts$contexts, to %in% .evts$contexts))], jk = this.jk);
 
 			 			if (nrow(g) == 0){ NULL } else {
-			 				g = graph_from_data_frame(g);
+			 				g = igraph::graph_from_data_frame(g);
 
 				 			# :: Retrieve the map fields, which include time, from the source events
-				 			V(g)$data <- purrr::map(V(g), ~{
+				 			igraph::V(g)$data <- purrr::map(igraph::V(g), ~{
 					 				v_name = stringi::stri_replace_first_regex(.x$name, "[:][0-9]+", "");
 					 				.logi_vec = which(purrr::map_lgl(.evts$contexts, ~v_name %ilike% .x));
 
@@ -260,7 +252,7 @@ event.vector.space <- { R6::R6Class(
 						 				.evts[(.logi_vec), sprintf("%s[(jk == %s) & (%s)]", src.names, this.jk, row.filters)] %>%
 					 						purrr::map(~str2lang(.x) %>% eval(envir = globalenv()))
 					 				}
-						 		});
+						 		}) %>% purrr::flatten();
 
 				 			# :: Return the graph
 				 			g
@@ -288,234 +280,7 @@ event.vector.space <- { R6::R6Class(
 , private = { list(
 		# _____ PRIVATE CLASS MEMBERS _____
 		.params = { list(config = NULL, events.ascending	= NULL)}
-		, q_matrix = NULL
+		, q_table = NULL
 		# _____ PRIVATE METHODS _____
 		)}
 )}
-#
-evs_exclude.blender <- function(x, y){
-#' EVSpace Event-Pair Exclusions
-#'
-#' \code{evs_exclude.blender} is a wrapper for \code{\link[base]{expand.grid}} with some post-processing via \code{\link[data.table]{data.table}} and \code{\link[purrr]{map}}
-#'
-#' @param x See \code{\link[base]{expand.grid}}
-#' @param x See \code{\link[base]{expand.grid}}
-#'
-#' @return A vector of pairs of event labels to be excluded in the call to \code{$exclude.mix()}
-#'
-#' @export
-
-	expand.grid(x, y) %>% apply(1, cbind) %>% as.data.table %>% purrr::map(c) %>% unname()
-}
-#
-melt_time <- function(x, start.names, end.names, ...){
-#' Multiple Time Melter
-#'
-#' \code{melt_time} leverages data.table::melt to transform the input's temporal feature vector into a pair of features indicating temporal duration (i.e., start & stop).  It handles feature vectors of any length.  "Point-in-time" columns are duplicated before melting
-#'
-#' @param x (object) A data.frame, data.table, or coercible to data.table
-#' @param start.names (string or vector) The names of the "start" columns: parsed if given as a delimited string of pattern "[,;|][ ]?"
-#' @param end.names (same as `start.names`)
-#' @param ... (string list) Optional column names that are "point-in-time" columns.
-#'
-#' @return A "melted" data.table with temporal feature vector V(start_date, end_date)
-#'
-#' @export
-
-	# %>%  Function to parse delimited names
-	parse.delim = function(i) {
-			if (i %like% "[,;|][ ]?") {
-			stringi::stri_split_regex(i, "[,;|][ ]?", simplify = T, omit_empty = T) %>% c
-			} else { i }
-		}
-
-	# %>%  Check for class "data.table"
-	if (!is.data.table(x)) { as.data.table(x) }
-
-	# %>%  Check for additional column names that are understood to be "point-in-time" attributes: create duplicate columns if provided.
-	if (!is.null(c(...))) {
-		x[, c(paste("@", c(...), sep = "")) := .SD %>% pluck(c(...))]
-		}
-
-	start.names %<>% parse.delim %>% c(c(...));
-	end.names %<>% parse.delim %>% c(names(x) %>% keep(~.x %like% "@"));
-
-	# %>%  Return the "melted" data.table
-	melt(x, measure.vars = list(start.names, end.names)
-		, value.name	= c("start_date", "end_date")
-		)[, variable := NULL][!(is.na(start_date))];
-	}
-#
-make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.control = NULL, omit.na = FALSE, chatty = FALSE){
-#' Create the EVSpace Universe
-#'
-#' \code{make.evs_universe} supplies values to two class fields: \code{q_graph} and \code{space}, the latter being created from the former.
-#'
-#' @param evs An \code{EVSpace} object
-#' @param ... Logical expression that retain graph edges meeting the conditions
-#' @param time.control A 2-element list containing the minimum and maximum values allowed for total temporal span between two events
-#' @param graph.control An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph
-#' @param omit.na (logical | FALSE) \code{TRUE} removes rows from class member \code{space} that have \code{NA} values
-#' @param chatty (logical | FALSE) Verbosity flag
-#'
-#' @return Invisibly, the original object augmented with new member \code{space}
-#'
-#' @section Class Member \code{$space}:
-#' \code{$space} should have as many rows as the sum of all edge counts for graphs in \code{$q_graph}
-#'
-#' @section Parallelism:
-#' Parallelism over \code{$q_graph} is supported via \code{\link[furrr]{future_map}}.  The user is responsible for setting a \code{\link[future]{plan}}.
-#'
-#' @export
-
-  edge.filter <- if (...length() > 0){
-  	rlang::enquos(..., .named = FALSE, .ignore_empty = "all") %>%
-  		map_chr(~{ rlang::get_expr(.x) %>% deparse() %>% sprintf(fmt = "(%s)") }) %>%
-  		paste(collapse = " & ") %>% str2lang()
-  	} else { TRUE }
-
-  # :: Create self$space from self$q_graph via calls to 'cross.time()'
-  .furrr_opts <- furrr_options(
-  		scheduling = Inf
-  		, seed = TRUE
-  		, packages = c("data.table", "stringi", "igraph", "magrittr")
-  		, globals = c("evs_cache", "cross.time")
-  		);
-
-  self$space <- purrr::imap(self$q_graph, ~{
-  	# Capture the current value of 'jk'
-  	jk = as.integer(.y);
-
-  	# Capture the current graph
-  	g = .x;
-
-  	# Traverse each row of the 2D array created via ends()
-  	# Set event vector space metrics for each edge -> { cross.time() ~ from:to }
-  	# These are the configuration edges
-
-  	unravel_proto = function(z){
-  		k = is.data.table(z);
-  		while(!k){ z <- z[[1]]; k <- is.data.table(z); }
-	  	return(copy(z))
-  	}
-
-  	unravel = memoise::memoise(unravel_proto);
-
-		purrr::pmap( ends(graph = g, E(g)) %>% as.data.table(), ~{
-			fr_data = (unravel(V(g)[name == ..1]$data))[, .(jk, start_idx, end_idx, src)][, v_idx := .I] %>% setkey(jk)
-			to_data = (unravel(V(g)[name == ..2]$data))[, .(jk, start_idx, end_idx, src)][, v_idx := .I] %>% setkey(jk)
-
-			fr_data[to_data, allow.cartesian = TRUE] %>%
-				setcolorder(purrr::keep(names(.), ~.x %ilike% "start_idx|end_idx")) %$% {
-				.out = cbind(
-					from.coord = paste(jk, as.character(start_idx), as.character(end_idx), src, v_idx, sep = ":")
-					, to.coord = paste(jk, as.character(i.start_idx), as.character(i.end_idx), i.src, i.v_idx, sep = ":")
-					, src.pair = paste(src, i.src, sep = ":")
-					, cross.time(s0 = start_idx - start_idx
-											 , s1 = i.start_idx - start_idx
-											 , e0 = end_idx - start_idx
-											 , e1 = i.end_idx - start_idx
-											 , control = time.control
-											 , chatty = chatty)
-					, from_timeframe = purrr::map2(start_idx, end_idx, lubridate::interval)
-					, to_timeframe   = purrr::map2(i.start_idx, i.end_idx, lubridate::interval)
-					, jk = jk
-					) %>% as.data.table()
-
-				# NOTE: 'edge.filter' is evaluated here because after the mapping, 'purrr::compact()' will handle empty results
-				# Also, filtering on 'self$space' is done because the actual event graphs are created from it.
-				.out[!is.na(epsilon) & eval(edge.filter)]
-			}
-		}) %>% purrr::compact() %>% purrr::reduce(rbind)
-  }) %>%
-  	purrr::compact() %>%
-  	purrr::reduce(rbind)
-
-  if (omit.na){ self$space %<>% na.omit() }
-
-  # :: Create self$evt_graphs from self$space
-	if (!"package:igraph" %in% search()){ library("igraph") }
-
-  self$evt_graphs <- self$space %>% split(by = "jk") %>% purrr::map(graph_from_data_frame);
-
-  .furrr_opts$globals <- "graph.control"
-	message(sprintf("[%s] ... finalizing", Sys.time()));
-  # :: Process arguments 'graph.control' and 'omit.na'
-  self$evt_graphs <- future_map(self$evt_graphs, ~{
-  	g = .x;
-
-  	V(g)$size 	<- tryCatch({
-  		apply(
-  			X = (stringi::stri_split_fixed(V(g)$name, ":", simplify = TRUE))[, c(2, 3)]
-	  		, MARGIN = 1
-  			, FUN = purrr::as_mapper(~as.Date(.x) %>% diff() %>% as.numeric() %>% sqrt() %>% as.integer())
-  			)
-  		}, error = function(e){ 10 })
-  	V(g)$title	<- V(g)$name;
-  	V(g)$key		<- V(g)$name;
-  	V(g)$name		<- purrr::map(V(g)$name, stringi::stri_extract_last_regex, pattern = "Data.+")
-
-	  if (!is.null(graph.control)){ for (i in graph.control){ eval(i) }}
-  	g
-  }, .options = .furrr_opts) %>% purrr::compact()
-
-	attr(self$space, "contexts")	<- self$config$contexts;
-	message(sprintf("[%s] The vector space is ready for analysis", Sys.time()));
-
-	invisible(self);
-}
-#
-evs_retrace <- function(self, ...){
-#' Retrace Event Source Data
-#'
-#' \code{evs_retrace} creates vertex attribute \code{trace} and populates it with an expression that retrieves the source record when evaluated.
-#'
-#' @param self An R object of class "event.vector.space"
-#' @param ... Names of event graphs found in \code{self$evt_graphs}: 'dynamic-dots' are supported via \code{\link[rlang]{list2}}
-# @param chatty Verbosity flag
-#'
-#' @return Because of the reference semantics of R6 classes, for each name given in \code{...}, graph updates are in place: \code{self} is returned invisibly.
-#'
-#' @export
-
-	evt_gph = if (...length() == 0){
-		names(self$evt_graphs) %>% purrr::set_names()
-	} else {
-		purrr::modify_if(
-			.x = rlang::list2(...)
-			, .p = is.numeric
-			, .f = ~names(self$evt_graphs[.x])
-			, .else = ~as.character(.x)
-			) %>% purrr::set_names()
-	}
-
-	self$evt_graphs[names(evt_gph)] <- purrr::imap(evt_gph, ~{
-		g = self$evt_graphs[[.y]];
-		evs.cfg = self$config;
-		V(g)$name <- V(g)$title %>% stringi::stri_extract_first_regex("[A-Z]+[:][0-9]+");
-		V(g)$trace <- purrr::map(V(g)$title, ~{
-				evs.lkup = stringi::stri_split_fixed(.x, ":", simplify = TRUE) %>% as.list() %>%
-									purrr::set_names(c("jk", "start_idx", "end_idx", "context", "seq_idx"));
-
-				self$config[(contexts == evs.lkup$context), {
-					.map_fields = if (rlang::has_length(unlist(map.fields), 1)){
-						stringi::stri_split_regex(unlist(map.fields), "[,|:]", simplify = TRUE) %>% as.vector()
-						} else { unlist(map.fields) }
-
-					.map_fields %<>% purrr::set_names(c("who", "start", "end"))
-
-					sprintf(
-						"%s[(%s == %s) & (%s == as.Date('%s')) & (%s == as.Date('%s'))]"
-						, src.names
-						, .map_fields["who"]  , evs.lkup$jk %>% as.numeric()
-						, .map_fields["start"], evs.lkup$start_idx
-						, .map_fields["end"]  , evs.lkup$end_idx
-						) %>% str2lang()
-				}];
-			});
-		g;
-	})
-
-	invisible(self)
-}
-#
