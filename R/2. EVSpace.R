@@ -1,4 +1,4 @@
-#' Event Vector Space: A relational vector space of events
+#' Relational Temporal Vector Space
 #'
 #' @description
 #' `event.vector.space` is an R6 class object that creates a temporally-compared space of "\emph{event vectors}", each comprised of a 'from' and 'to' date.
