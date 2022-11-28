@@ -1,22 +1,19 @@
 .onLoad <- function(libname, packagename){ .evs_cache <<- cachem::cache_disk(dir = tempdir(), max_age = Inf, max_n = Inf, destroy_on_finalize = FALSE)	}
-.onUnload <- function(libpath){
-	.evs_cache$destroy()
-	gc()
-}
+.onUnload <- function(libpath){ .evs_cache$destroy(); gc() }
 
 #' Cross-Compare Temporal Boundaries
 #'
 #' @description
-#' Given a four-element vector of start and end coordinates of two events, `cross.time()` compares the distances among the upper and lower boundaries of pairs of event vectors. This includes "like" boundary comparison (e.g., start #2 - start#1) and contrary boundary comparison (e.g. start #2 - end #1).
+#' Given a four-element vector of start and end coordinates of two events, \code{cross.time()} compares the distances among the upper and lower boundaries of pairs of event vectors. This includes "like" boundary comparison (e.g., start #2 - start#1) and contrary boundary comparison (e.g. start #2 - end #1).
 #'
-#' `cross.time()` \code{\link[memoise]{memoise}}s arguments `s0`, `s1`, `e0`, and `e1` with a disk cache defined as \code{\link[cachem]{cache_disk}}`(dir = tempdir(), max_age = Inf, max_n = Inf, destroy_on_finalize = FALSE)`.  A future version will allow the cache to be customized in a post-hoc manner.
+#' \code{cross.time()} \code{\link[memoise]{memoise}}s arguments \code{s0}, \code{s1}, \code{e0}, and \code{e1} with a disk cache defined as \code{\link[cachem]{cache_disk}}\code{(dir = tempdir(), max_age = Inf, max_n = Inf, destroy_on_finalize = FALSE)}.  A future version will allow the cache to be customized in a post-hoc manner.
 #'
 #' @param s0 A numeric/date-coded vector containing the temporal lower boundary of the starting event duration
 #' @param s1 A numeric/date-coded vector containing the temporal upper boundary of the starting event duration
 #' @param e0 A numeric/date-coded vector containing the temporal lower boundary of the ending event duration
 #' @param e1 A numeric/date-coded vector containing the temporal upper boundary of the ending event duration
 #' @param control A length-2 sorted list with values indicating the range of allowable values for '.beta' (the difference between ends of 'to' events and beginnings of 'from' events)
-#' @param events.ascending (logical | TRUE) \code{FALSE} assumes events provided are in descending order
+#' @param events.ascending (logical | \code{TRUE}) \code{FALSE} assumes events provided are in descending order
 #' @param chatty (logical | \code{FALSE}) Use \code{chatty = TRUE} to see messages related to the execution.
 #' @param ... (Not used)
 #'
@@ -34,6 +31,9 @@
 #' 	  {0} \tab {> 0} \tab Concurrency \cr
 #' 	  {> 0} \tab {> 0} \tab Full Concurrency \cr
 #' 	  {0} \tab {0} \tab Continuity \cr
+#' 	  { } \tab {< 1} \tab \code{to} event shorter than \code{from} event \cr
+#' 	  { } \tab {= 1} \tab \code{to} event same length as \code{from} event \cr
+#' 	  { } \tab {> 1} \tab \code{to} event longer than \code{from} event \cr
 #'		}
 #'	}
 #' \item{\code{epsilon.desc: }}{A plain-language description of \code{epsilon}}
@@ -73,12 +73,13 @@ delayedAssign("cross.time", {
 			)[
 			# Relative change across boundary values
 			, epsilon := {
-					# Do not algebraically reduce the following with respect to '.beta': the sign is as important as the arguments
+					# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
 					.out = atan2(mEd, mSt) * atan2((mGap * .beta), mGap)
+					.tau = sign(log(to.len/from.len))
 
 					# Scale back down to an angle: `sqrt()` needs to have a complex argument for handling negative arguments
 					# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another
-					.out = sqrt(as.complex(.out))/(0.25 * pi) + sqrt(as.complex(mGap))
+					.out = sqrt(as.complex(.out))/(0.25 * pi) + sqrt(as.complex(mGap))^.tau
 
 					unlist(.out)
 				}
@@ -109,3 +110,6 @@ delayedAssign("cross.time", {
 
 	memoise::memoise(f = .xtime, cache = .evs_cache)
 })
+
+# usethis::use_pkgdown()
+# pkgdown::build_site()

@@ -1,4 +1,4 @@
-#' Event Vector Space: A relational vector space of events
+#' Relational Temporal Vector Space
 #'
 #' @description
 #' `event.vector.space` is an R6 class object that creates a temporally-compared space of "\emph{event vectors}", each comprised of a 'from' and 'to' date.
@@ -15,13 +15,12 @@
 #' @section Class Member "Space":
 #' \code{$space} is a \code{\link[data.table]{data.table}} that is populated upon execution of \code{\link{make.evs_universe}()}:
 #'    \describe{
-#'      \item{`jk`}{Values of the "join key"}
+#'      \item{\code{jk}}{Values of the "join key"}
 #'      \item{"crossed" time output}{ See \code{\link{cross.time}()}}
-#'      \item{`fr_*`}{The temporal ranges of each "from" event}
-#'      \item{`to_*`}{The temporal ranges of each "to" event}
-#'      \item{`src.pair`}{Values of the "from-to" pairings of events given by the contexts provided: FROM:TO}
-#'      \item{`from.coord`}{String representation of temporal boundaries expressed as concatenated integers}
-#'      \item{`to.coord`}{String representation of temporal boundaries expressed as concatenated integers}
+#'      \item{\code{fr_*}, \code{to_*}}{The temporal ranges of each \emph{from}/\emph{to}event}
+#'      \item{\code{src.pair}}{Values of the "from-to" pairings of events given by the contexts provided: FROM:TO}
+#'      \item{\code{from.coord}}{String representation of temporal boundaries expressed as concatenated integers}
+#'      \item{\code{to.coord}}{String representation of temporal boundaries expressed as concatenated integers}
 #'    }
 #' \cr
 #'
