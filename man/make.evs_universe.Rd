@@ -14,15 +14,15 @@ make.evs_universe(
 )
 }
 \arguments{
-\item{...}{Logical expression that retain graph edges meeting the conditions}
+\item{...}{(\code{\link[rlang]{dots_list}}) Logical expression that retain graph edges meeting the conditions}
 
 \item{time.control}{A 2-element list containing the minimum and maximum values allowed for total temporal span between two events}
 
 \item{graph.control}{An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph}
 
-\item{omit.na}{(logical | FALSE) \code{TRUE} removes rows from class member \code{space} that have \code{NA} values}
+\item{omit.na}{(logical | \code{FALSE}) \code{TRUE} removes rows from class member \code{space} that have \code{NA} values}
 
-\item{chatty}{(logical | FALSE) Verbosity flag}
+\item{chatty}{(logical | \code{FALSE}) Verbosity flag}
 
 \item{evs}{An \code{EVSpace} object}
 }
@@ -39,6 +39,6 @@ Invisibly, the original object augmented with new member \code{space}
 
 \section{Parallelism}{
 
-Parallelism over \code{$q_graph} is supported via \code{\link[furrr]{future_map}}.  The user is responsible for setting a \code{\link[future]{plan}}.
+Parallelism over \code{$q_graph} is supported via package \href{https://rdocumentation.org/packages/furrr/versions/0.3.1}{furrr}: the user is responsible for setting a \code{\link[future]{plan}}.
 }
 

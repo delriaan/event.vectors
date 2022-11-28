@@ -11,12 +11,12 @@ melt_time(x, start.names, end.names, ...)
 
 \item{start.names}{(string or vector) The names of the "start" columns: parsed if given as a delimited string of pattern "[,;|][ ]?"}
 
-\item{end.names}{(same as `start.names`)}
+\item{end.names}{(same as \code{start.names})}
 
 \item{...}{(string list) Optional column names that are "point-in-time" columns.}
 }
 \value{
-A "melted" data.table with temporal feature vector V(start_date, end_date)
+A "melted" \code{\link[data.table]{data.table}} with temporal feature vector containing \emph{start_date} and \emph{end_date}
 }
 \description{
 \code{melt_time} leverages data.table::melt to transform the input's temporal feature vector into a pair of features indicating temporal duration (i.e., start & stop).  It handles feature vectors of any length.  "Point-in-time" columns are duplicated before melting

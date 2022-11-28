@@ -1,12 +1,11 @@
 # ~Initialization ====
 # library(EVSpace);
-# library(data.table)
 #
 # library(igraph, exclude = c("compose", "simplify", "union", "%->%", "%<-%"))
-# library(magrittr)
 # library(furrr)
-
 # library(book.of.workflow)
+# library(magrittr)
+# library(data.table)
 
 library(purrr)
 library(tictoc);
@@ -36,11 +35,11 @@ make.test_data <- function(j = 5, n = 5, m = 5, dest = globalenv(), .debug = FAL
 		set.seed(sample(1:10000, 1));
 		.src = LETTERS[[.x]];
 
-		.out = purrr::map_dfr(c(1:j), ~list(jk = rep.int(.x, sample(10:100, 1, TRUE)), src = .src)) %>% as.data.table();
+		.out = purrr::map_dfr(c(1:j), ~list(jk = rep.int(.x, sample(10:100, 1, TRUE)), src = .src)) %>% data.table::as.data.table();
 
 		.init_date = c(as.Date(sprintf(
 				"%s-%s-%s"
-				, rep.int(year(Sys.Date()), nrow(.out))
+				, rep.int(data.table::year(Sys.Date()), nrow(.out))
 				, sample(stringi::stri_pad_left(1:12, width = 2, pad = "0"), nrow(.out), TRUE)
 				, sample(stringi::stri_pad_left(1:28, width = 2, pad = "0"), nrow(.out), TRUE)
 				)));
@@ -52,8 +51,8 @@ make.test_data <- function(j = 5, n = 5, m = 5, dest = globalenv(), .debug = FAL
 			][
 			runif(length(jk)) > 0.65
 			] %>%
-			setkey(jk, src, date.start, date.end) %>%
-			setcolorder(c("jk", "date.start", "date.end", "src"))
+			data.table::setkey(jk, src, date.start, date.end) %>%
+			data.table::setcolorder(c("jk", "date.start", "date.end", "src"))
 		}) %>%
 	list2env(envir = dest);
 }
@@ -103,6 +102,7 @@ toc(log = TRUE);
 # ~ Validation #2 ====
 tic("EVSpace Universe Validation");
 # debug(make.evs_universe);
+# debug(cross.time);
 make.evs_universe(
 	self = test.evs
 	, mSt >= quantile(mSt, 0.5)
@@ -120,9 +120,11 @@ make.evs_universe(
 	, chatty = TRUE
 	);
 # undebug(make.evs_universe);
+# undebug(cross.time);
 toc(log = TRUE);
 
 test.evs$space[, .(jk, from.coord, to.coord, src.pair, mSt, mGap, mEd, epsilon = as.character(epsilon))] %>% summarytools::dfSummary()
+test.evs$space %>% View()
 
 igraph::vertex.attributes(test.evs$evt_graphs$`1`)
 #
