@@ -12,7 +12,7 @@ cross.time() memoises arguments s0, s1, e0, and e1 with a disk cache defined as 
     
     <a class="navbar-brand me-2" href="../index.html">EVSpace</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -76,7 +76,7 @@ cross.time() memoises arguments s0, s1, e0, and e1 with a disk cache defined as 
 
 
 <dt>control</dt>
-<dd><p>A length-2 sorted list with values indicating the range of allowable values for '.beta' (the difference between ends of 'to' events and beginnings of 'from' events)</p></dd>
+<dd><p>A length-2 sorted list with values indicating the range of allowable values for internal variable <code>.beta</code> (the difference between ends of 'to' events and beginnings of 'from' events)</p></dd>
 
 
 <dt>events.ascending</dt>
@@ -84,7 +84,7 @@ cross.time() memoises arguments s0, s1, e0, and e1 with a disk cache defined as 
 
 
 <dt>chatty</dt>
-<dd><p>(logical | <code>FALSE</code>) Use <code>chatty = TRUE</code> to see messages related to the execution.</p></dd>
+<dd><p>(logical | <code>FALSE</code>) Verbosity flag</p></dd>
 
 
 <dt>...</dt>
@@ -96,13 +96,13 @@ cross.time() memoises arguments s0, s1, e0, and e1 with a disk cache defined as 
     
 
 <p>A <code><a href="https://Rdatatable.gitlab.io/data.table/reference/data.table.html" class="external-link">data.table</a></code> object having the following fields:</p><dl><dt><code>mGap: </code></dt>
-<dd><p>Metric describing the difference between the following temporal boundaries: TO.start, FROM.end</p></dd>
+<dd><p>Metric describing the difference between the following temporal boundaries: <code>TO.start</code>, <code>FROM.end</code></p></dd>
 
 <dt><code>mSt: </code></dt>
-<dd><p>Metric describing the difference between the following temporal boundaries: TO.start, FROM.start</p></dd>
+<dd><p>Metric describing the difference between the following temporal boundaries: <code>TO.start</code>, <code>FROM.start</code></p></dd>
 
 <dt><code>mEd: </code></dt>
-<dd><p>Metrics describing the difference between the following temporal boundaries: TO.end, FROM.end</p></dd>
+<dd><p>Metrics describing the difference between the following temporal boundaries: <code>TO.end</code>, <code>FROM.end</code></p></dd>
 
 <dt><code>from.len: </code></dt>
 <dd><p>The duration of time of each "from" event: units are one the scale of the smallest increment of time represented (e.g., calendar dates in days will have lengths expressed in days)</p></dd>

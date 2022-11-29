@@ -1,17 +1,11 @@
 # ~Initialization ====
 # library(EVSpace);
-#
-# library(igraph, exclude = c("compose", "simplify", "union", "%->%", "%<-%"))
-# library(furrr)
-# library(book.of.workflow)
-# library(magrittr)
-# library(data.table)
 
 library(purrr)
 library(tictoc);
 library(future);
-# plan(tweak(multisession, workers = 5))
-plan(future.callr::callr)
+
+plan(tweak(multisession, workers = 5))
 #
 make.test_data <- function(j = 5, n = 5, m = 5, dest = globalenv(), .debug = FALSE){
 #' Make Test Data for Validation
@@ -56,28 +50,23 @@ make.test_data <- function(j = 5, n = 5, m = 5, dest = globalenv(), .debug = FAL
 		}) %>%
 	list2env(envir = dest);
 }
-# debug(make.test_data);
 
 BLAH <- new.env();
-rm(list = ls(pattern = "^test.+data"))
 make.test_data(j = 5, n = 5, m = 5, dest = BLAH, .debug = !TRUE);
 set.seed(sample(100000, 1));
 
 # ~ Create EVSpace object from test data
 tic.clear(); tic.clearlog();
-rm(list = ls(pattern = "inspect"));
 
 # ~ Validation #1 ====
 tic("EVSpace Validation Object");
 #
 test.evs <- event.vector.space$new();
-# debug(test.evs$configure)
 test.evs$
 	configure(
 		src.names			= paste0("BLAH$", ls(pattern = "^test_data", envir = BLAH))
 		, contexts		= paste0("Src", 1:length(ls(pattern = "^test_data", envir = BLAH)))
-		, map.fields	= purrr::map(sequence(length(ls(pattern = "^test_data", envir = BLAH)))
-															, ~c("jk", "date.start", "date.end"))
+		, map.fields	= purrr::map(sequence(length(ls(pattern = "^test_data", envir = BLAH))), ~c("jk", "date.start", "date.end"))
 		, row.filters	= purrr::map(sequence(length(ls(pattern = "^test_data", envir = BLAH))), ~rlang::expr(1==1))
 		, src.mix 		= "combn"
 		, chatty			= TRUE
@@ -85,28 +74,23 @@ test.evs$
 				evs_exclude.blender("Data.6", c("Data.4", "Data.7"))
 				, evs_exclude.blender("Data.3", c("Data.1", "Data.5"))
 			)}
-	)$
+		)$
 	set.data(chatty = TRUE)
-# undebug(test.evs$configure)
 
 test.evs$config %>% attributes()
 test.evs$.__enclos_env__$private$q_table
 
-# debug(test.evs$set.q_graphs)
 test.evs$set.q_graphs(chatty = TRUE)
-# undebug(test.evs$set.q_graphs)
 
 toc(log = TRUE);
 #
 
 # ~ Validation #2 ====
 tic("EVSpace Universe Validation");
-# debug(make.evs_universe);
-# debug(cross.time);
 make.evs_universe(
 	self = test.evs
-	, mSt >= quantile(mSt, 0.5)
-	, abs(mGap) >= quantile(mGap, 0.5)
+	, mSt >= quantile(mSt, 0.75)
+	, abs(mGap) >= quantile(mGap, 0.95)
 	, graph.control = { list(
 				quote({ E(g)$title	<- ends(g, E(g)) %>% apply(1, paste, collapse = " -> ")})
 				, quote({ V(g)$color <- V(g)$name %>% stri_split_fixed(":", simplify = TRUE) %>% .[, 1L] %>% {
@@ -119,8 +103,6 @@ make.evs_universe(
 	, omit.na = !TRUE
 	, chatty = TRUE
 	);
-# undebug(make.evs_universe);
-# undebug(cross.time);
 toc(log = TRUE);
 
 test.evs$space[, .(jk, from.coord, to.coord, src.pair, mSt, mGap, mEd, epsilon = as.character(epsilon))] %>% summarytools::dfSummary()
@@ -129,13 +111,13 @@ test.evs$space %>% View()
 igraph::vertex.attributes(test.evs$evt_graphs$`1`)
 #
 # ~ Validation #3 ====
-event_graph <- test.evs$evt_graphs %>% sample(1) %>% .[[1]] %>% print();
+event_graph <- igraph::subgraph(graph = test.evs$evt_graphs$`4`, vids = sample(igraph::V(test.evs$evt_graphs$`4`), 30))
 
 f2ab <- list(theta = 0.1, gravitationalConstant = -5000, centralGravity = 0.0,  avoidOverlap = 1, damping = 0.7);
 
 event_graph %>%
 	visNetwork::visIgraph(physics = TRUE, type = "full") %>%
-	visNetwork::visPhysics(solver = "repulsion", timestep = 0.05) %>%
+	visNetwork::visPhysics(solver = "forceAtlas2Based", timestep = 0.05) %>%
 	visNetwork::visOptions(width = "1600", height = "1024") %>%
 	visNetwork::visNodes(opacity = 0.5) %>%
 	# visNetwork::visEdges(length = 100) %>%
@@ -147,15 +129,7 @@ igraph::vertex_attr(event_graph)$source
 igraph::vertex_attr(event_graph)$order
 igraph::V(event_graph)[source %in% c("Src1", "Src4") & order %in% c(1, 4)] %>% map(igraph::neighborhood, graph = event_graph)
 igraph::subgraph.edges(graph = event_graph, eids = igraph::E(event_graph)[mGap >= 20])
-igraph::subgraph.edges(graph = event_graph, eids = igraph::E(event_graph)[mGap >= 20]) %>% {
-	g = .
-	igraph::V(g)[source %in% c("Src1", "Src4") & order %in% c(1, 4)] %>%
-	.[igraph::neighborhood.size(graph = g, order = 1, nodes = .) > 20] %>%
-	map(igraph::neighborhood, graph = g)
-}
 rm(BLAH, make.test_data)
-
-
 
 # ~ Cleanup ====
 plan(sequential);

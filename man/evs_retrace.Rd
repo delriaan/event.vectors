@@ -9,7 +9,7 @@ evs_retrace(self, ...)
 \arguments{
 \item{self}{An R object of class "event.vector.space"}
 
-\item{...}{(\code{\link[rlang]{dots_list}})Names of event graphs found in \code{self$evt_graphs}: 'dynamic-dots' are supported via \code{\link[rlang]{list2}}}
+\item{...}{(\code{\link[rlang]{dots_list}}) Names of event graphs found in \code{self$evt_graphs}}
 }
 \value{
 Because of the reference semantics of R6 classes, for each name given in \code{...}, graph updates are in place: \code{self} is returned invisibly.

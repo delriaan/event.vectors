@@ -26,7 +26,7 @@
     
     <a class="navbar-brand me-2" href="index.html">EVSpace</a>
 
-    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.0</small>
+    <small class="nav-text text-muted me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="">1.0.1</small>
 
     
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,7 +57,7 @@
 <p><span class="math display">$$
 \vec{e} :=
 \begin{bmatrix}
-\epsilon_{0,s} &amp; \epsilon_{0,e}\\
+\epsilon_{0,s} &amp; \epsilon_{0,e} \\
 \epsilon_{1,s} &amp; \epsilon_{1,e}
 \end{bmatrix}
 $$</span></p>
@@ -93,21 +93,23 @@ $$</span></p>
 <td align="center"><span class="math inline"><em>τ</em></span></td>
 <td>
 <p>Measure of relative duration across the event vector:</p>
-<p><span class="math display">$$ln{||V_1|| \over ||V_0||}$$</span></p>
+<p><span class="math display">$$ln{\frac{||V_1||}{||V_0||}}$$</span></p>
 </td>
 </tr>
 </tbody>
 </table>
-<p><span class="math inline"><em>ϵ⃗</em></span> is complex and defined as follow: <span class="math display">$$\sqrt{
-tan^{-1}{\Delta E \over \Delta S}
+<p><span class="math inline"><em>ϵ⃗</em></span> is complex and defined as follows: <span class="math display">$$
+\sqrt{
+tan^{-1}{\frac{\Delta E}{\Delta S}}
 *
-tan^{-1}{\Gamma \beta \over \Gamma}
-} + \Gamma^{\tau \over 2}$$</span> and is interpreted as follows:</p>
-<table style="width:97%;" class="table">
+tan^{-1}{\frac{\Gamma \beta}{\Gamma}}
+} + \Gamma^{\frac{\tau}{2}}
+$$</span> and is interpreted as follows:</p>
+<table style="width:99%;" class="table">
 <colgroup>
-<col width="13%">
-<col width="20%">
-<col width="62%">
+<col width="18%">
+<col width="18%">
+<col width="60%">
 </colgroup>
 <thead><tr class="header">
 <th align="center"><span class="math inline"><em>x</em></span></th>

@@ -37,8 +37,8 @@ Invisibly, the original object augmented with new member \code{space}
 \code{$space} should have as many rows as the sum of all edge counts for graphs in \code{$q_graph}
 }
 
-\section{Parallelism}{
+\section{Visualization}{
 
-Parallelism over \code{$q_graph} is supported via package \href{https://rdocumentation.org/packages/furrr/versions/0.3.1}{furrr}: the user is responsible for setting a \code{\link[future]{plan}}.
+The graphs in class member \code{$evt_graphs} are \code{\link[visNetwork]{visIgraph}}-ready
 }
 

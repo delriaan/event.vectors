@@ -68,8 +68,8 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 #' @section Class Member \code{$space}:
 #' \code{$space} should have as many rows as the sum of all edge counts for graphs in \code{$q_graph}
 #'
-#' @section Parallelism:
-#' Parallelism over \code{$q_graph} is supported via package \href{https://rdocumentation.org/packages/furrr/versions/0.3.1}{furrr}: the user is responsible for setting a \code{\link[future]{plan}}.
+#' @section Visualization:
+#' The graphs in class member \code{$evt_graphs} are \code{\link[visNetwork]{visIgraph}}-ready
 #'
 #' @export
 
@@ -192,7 +192,7 @@ evs_retrace <- function(self, ...){
 #' \code{evs_retrace} creates vertex attribute \code{trace} and populates it with an expression that retrieves the source record when evaluated.
 #'
 #' @param self An R object of class "event.vector.space"
-#' @param ... (\code{\link[rlang]{dots_list}})Names of event graphs found in \code{self$evt_graphs}: 'dynamic-dots' are supported via \code{\link[rlang]{list2}}
+#' @param ... (\code{\link[rlang]{dots_list}}) Names of event graphs found in \code{self$evt_graphs}
 # @param chatty Verbosity flag
 #'
 #' @return Because of the reference semantics of R6 classes, for each name given in \code{...}, graph updates are in place: \code{self} is returned invisibly.

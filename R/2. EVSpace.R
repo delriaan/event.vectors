@@ -186,22 +186,20 @@ event.vector.space <- { R6::R6Class(
 					.mflds = stringi::stri_split_regex(..3, "[, ]", omit_empty = TRUE, simplify = TRUE) %>% unlist() %>% unclass();
 					if (chatty){ print(.mflds) }
 
-					substitute({
-						if (!is.data.table(i)){ i <- as.data.table(i) };
+					rlang::expr({
+						if (!is.data.table(!!str2lang(..1))){ !!str2lang(sprintf("%s <- as.data.table(%1$s)", ..1)) }
 
-						i[, `:=`(src = j, jk = l, start_idx = m, end_idx = n, row.filters = k)] %>%
+						(!!str2lang(..1))[, `:=`(
+								src = !!..2
+								, jk = !!str2lang(.mflds[1])
+								, start_idx = !!str2lang(.mflds[2])
+								, end_idx = !!str2lang(.mflds[3])
+								, row.filters = !!..4
+								)
+							] %>%
 							setkeyv(c('jk', 'start_idx', 'end_idx')) %>%
 							setcolorder(c(key(.), 'row.filters'))
-						}
-						, list(
-								i = str2lang(..1)
-								, j = ..2
-								, k = ..4
-								, l = str2lang(.mflds[1])
-								, m = str2lang(.mflds[2])
-								, n = str2lang(.mflds[3])
-								)
-						) %>% eval()
+						}) %T>% { if (chatty) print(.) } %>% eval()
 				});
 
 				setattr(private$.params$config, "data_is_set", TRUE);
