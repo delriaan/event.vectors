@@ -55,15 +55,16 @@
 </h1></div>
 <p><em>event.vector.space</em> is an R6 class object that represents relations among the duration of events. Moving <em>from</em> one event <em>to</em> another creates a vector space consisting of relative ordering among <em>start</em>, <em>end</em>, <em>overlap</em>, and <em>span</em>:</p>
 <p><span class="math display">$$
-\vec{e}:=\begin{bmatrix}
-\epsilon_{0,s}&amp;\epsilon_{0,e}\\
-\epsilon_{1,s}&amp;\epsilon_{1,e}
+\vec{e} :=
+\begin{bmatrix}
+\epsilon_{0,s} &amp; \epsilon_{0,e}\\
+\epsilon_{1,s} &amp; \epsilon_{1,e}
 \end{bmatrix}
 $$</span></p>
 <table class="table">
 <colgroup>
-<col width="20%">
-<col width="79%">
+<col width="22%">
+<col width="77%">
 </colgroup>
 <tbody>
 <tr class="odd">
@@ -90,14 +91,17 @@ $$</span></p>
 </tr>
 <tr class="odd">
 <td><span class="math inline"><em>τ</em></span></td>
-<td>Measure of relative duration across the event vector: <span class="math display">$$ ln(\frac{ ||V_1|| }{ ||V_0|| }) $$</span>
+<td>
+<p>Measure of relative duration across the event vector:</p>
+<p><span class="math display">$$ln{\frac{||V_1||}{||V_0||}}$$</span></p>
 </td>
 </tr>
 </tbody>
 </table>
 <p><span class="math inline"><em>ϵ⃗</em></span> is complex: <span class="math display">$$
-\vec\epsilon := {x + \hat{i}y} \Rightarrow 
-{\sqrt{(tan^{-1}\frac{\Delta{E}}{\Delta{S}})(tan^{-1}{\frac{\Gamma \beta}{\Gamma}})} + \Gamma^{\frac{\tau}{2}}}
+\vec \epsilon := x + \hat{i}y \Rightarrow {
+\sqrt{tan^{-1}({\Delta E\Delta S^{-1}})*tan^{-1}({\Gamma \beta \Gamma^{-1}})
+} + \Gamma^{\frac{\tau}{2}}}
 $$</span> and is interpreted as follows:</p>
 <table class="table">
 <thead><tr class="header">
