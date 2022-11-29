@@ -10,7 +10,7 @@ $$
 \end{bmatrix}
 $$
 
-+------------------------+-----------------------------------------------------------------------------+
++:----------------------:+-----------------------------------------------------------------------------+
 | $\Delta S$, $\Delta E$ | Difference of *start* and *end* boundaries: $\epsilon_{1,i}-\epsilon_{0,i}$ |
 +------------------------+-----------------------------------------------------------------------------+
 | $\Gamma$               | The degree of temporal intersection: $\epsilon_{1,s}-\epsilon_{0,e}$        |
@@ -21,23 +21,31 @@ $$
 +------------------------+-----------------------------------------------------------------------------+
 | $\tau$                 | Measure of relative duration across the event vector:                       |
 |                        |                                                                             |
-|                        | $$ln{\frac{||V_1||}{||V_0||}}$$                                             |
+|                        | $$ln{||V_1|| \over ||V_0||}$$                                               |
 +------------------------+-----------------------------------------------------------------------------+
 
-$\vec\epsilon$ is complex: $$
-\vec \epsilon := x + \hat{i}y \Rightarrow {
-\sqrt{tan^{-1}({\Delta E\Delta S^{-1}})*tan^{-1}({\Gamma \beta \Gamma^{-1}})
-} + \Gamma^{\frac{\tau}{2}}}
-$$ and is interpreted as follows:
+$\vec\epsilon$ is complex and defined as follow: $$\sqrt{
+tan^{-1}{\Delta E \over \Delta S}
+*
+tan^{-1}{\Gamma \beta \over \Gamma}
+} + \Gamma^{\tau \over 2}$$ and is interpreted as follows:
 
-|   $x$   | $\hat{i}y$ |               **Definition**               |
-|:-------:|:----------:|:------------------------------------------:|
-| $\ne 0$ |   $= 0$    |                 *Disjoint*                 |
-|  $= 0$  |  $\ne 0$   |               *Concurrency*                |
-| $\ne 0$ |  $\ne 0$   |             *Full Concurrency*             |
-|  $= 0$  |   $= 0$    |                *Continuity*                |
-|         |   $< 1$    |    `to` event shorter than `from` event    |
-|         |   $= 1$    | `to` event of equal length to `from` event |
-|         |   $> 1$    |    `to` event longer than `from` event     |
++---------+--------------+--------------------------------------------+
+| $x$     | $\hat{i}y$   | **Definition**                             |
++:=======:+:============:+:==========================================:+
+| $\ne 0$ | $= 0$        | *Disjoint*                                 |
++---------+--------------+--------------------------------------------+
+| $= 0$   | $\ne 0$      | *Concurrency*                              |
++---------+--------------+--------------------------------------------+
+| $\ne 0$ | $\ne 0$      | *Full Concurrency*                         |
++---------+--------------+--------------------------------------------+
+| $= 0$   | $= 0$        | *Continuity*                               |
++---------+--------------+--------------------------------------------+
+|         | $< 1$        | `to` event shorter than `from` event       |
++---------+--------------+--------------------------------------------+
+|         | $= 1$        | `to` event of equal length to `from` event |
++---------+--------------+--------------------------------------------+
+|         | $> 1$        | `to` event longer than `from` event        |
++---------+--------------+--------------------------------------------+
 
 The time between these events is the focus of derivation that encodes the relationships between the boundaries of the events, thus allowing one to describe this relationship in a concise manner.
