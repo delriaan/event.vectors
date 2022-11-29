@@ -15,16 +15,16 @@ $$
 \end{bmatrix}
 $$
 
-|                        |                                                                                              |
-|------------------------|----------------------------------------------------------------------------------------------|
-| $\Delta S$, $\Delta E$ | Difference of *start* and *end* boundaries: $\epsilon_{1,i}-\epsilon_{0,i}$                  |
-| $\Gamma$               | The degree of temporal intersection: $\epsilon_{1,s}-\epsilon_{0,e}$                         |
-| $\beta$                | The maximal time spanned: $\epsilon_{1,e}-\epsilon_{0,s}$                                    |
-| $||V||$                | Duration of the *from* and *to* events: $\epsilon_{i,e}-\epsilon_{i,s}$                      |
-| $\tau$                 | Measure of relative duration across the event vector: $$ ln(\frac{ ||V_1|| }{ ||V_0|| }) $$  |
+|                        |                                                                                             |
+|------------------------|---------------------------------------------------------------------------------------------|
+| $\Delta S$, $\Delta E$ | Difference of *start* and *end* boundaries: $\epsilon_{1,i}-\epsilon_{0,i}$                 |
+| $\Gamma$               | The degree of temporal intersection: $\epsilon_{1,s}-\epsilon_{0,e}$                        |
+| $\beta$                | The maximal time spanned: $\epsilon_{1,e}-\epsilon_{0,s}$                                   |
+| $||V||$                | Duration of the *from* and *to* events: $\epsilon_{i,e}-\epsilon_{i,s}$                     |
+| $\tau$                 | Measure of relative duration across the event vector: $$ ln(\frac{ ||V_1|| }{ ||V_0|| }) $$ |
 
 $\vec\epsilon$ is complex: $$
-\vec\epsilon := {x + \hat{i}y} \Rightarrow 
+\vec\epsilon := x + \hat{i}y \Rightarrow 
 {\sqrt{(tan^{-1}\frac{\Delta{E}}{\Delta{S}})(tan^{-1}{\frac{\Gamma \beta}{\Gamma}})} + \Gamma^{\frac{\tau}{2}}}
 $$ and is interpreted as follows:
 
