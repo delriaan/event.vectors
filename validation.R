@@ -91,14 +91,13 @@ make.evs_universe(
 	self = test.evs
 	, mSt >= quantile(mSt, 0.75)
 	, abs(mGap) >= quantile(mGap, 0.95)
-	, graph.control = { list(
-				quote({ E(g)$title	<- ends(g, E(g)) %>% apply(1, paste, collapse = " -> ")})
-				, quote({ V(g)$color <- V(g)$name %>% stri_split_fixed(":", simplify = TRUE) %>% .[, 1L] %>% {
+	, graph.control = { rlang::exprs(
+				igraph::E(g)$title	<- igraph::ends(g, igraph::E(g)) %>% apply(1, paste, collapse = " -> ")
+				, igraph::V(g)$color <- igraph::V(g)$name %>% stringi::stri_split_fixed(":", simplify = TRUE) %>% .[, 1L] %>% {
 						x = .;
-						y = set_names(unique(x), map_chr(unique(x), ~rgb(runif(1), runif(1), runif(1))))
-						map_chr(x, ~names(y)[which(y == .x)])
-						}
-					})
+						y = purrr::set_names(unique(x), purrr::map_chr(unique(x), ~rgb(runif(1), runif(1), runif(1))))
+						purrr::map_chr(x, ~names(y)[which(y == .x)])
+					}
 			)}
 	, omit.na = !TRUE
 	, chatty = TRUE

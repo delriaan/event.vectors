@@ -9,6 +9,7 @@ make.evs_universe(
   ...,
   time.control = list(-Inf, Inf),
   graph.control = NULL,
+  furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE),
   omit.na = FALSE,
   chatty = FALSE
 )
@@ -19,6 +20,8 @@ make.evs_universe(
 \item{time.control}{A 2-element list containing the minimum and maximum values allowed for total temporal span between two events}
 
 \item{graph.control}{An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph}
+
+\item{furrr_opts}{\code{\link[furrr]{furrr_options}} defaulted as \code{scheduling = Inf} and \code{seed = TRUE}: internal globals are also set and will be appended to values provided here}
 
 \item{omit.na}{(logical | \code{FALSE}) \code{TRUE} removes rows from class member \code{space} that have \code{NA} values}
 
@@ -32,13 +35,12 @@ Invisibly, the original object augmented with new member \code{space}
 \description{
 \code{make.evs_universe} supplies values to two class fields: \code{q_graph} and \code{space}, the latter being created from the former.
 }
-\section{Class Member \code{$space}}{
+\section{Notes}{
 
-\code{$space} should have as many rows as the sum of all edge counts for graphs in \code{$q_graph}
+\itemize{
+\item{Class member \code{$space} should have as many rows as the sum of all edge counts for graphs in \code{$q_graph}}
+\item{The graphs in class member \code{$evt_graphs} are \code{\link[visNetwork]{visIgraph}}-ready}
+\item{Parallelism is internally supported via package \code{furrr}: the user is responsible for setting the appropriate \code{\link[future]{plan}}}
 }
-
-\section{Visualization}{
-
-The graphs in class member \code{$evt_graphs} are \code{\link[visNetwork]{visIgraph}}-ready
 }
 

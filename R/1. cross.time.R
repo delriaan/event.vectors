@@ -1,4 +1,6 @@
-.onLoad <- function(libname, packagename){ .evs_cache <<- cachem::cache_disk(dir = tempdir(), max_age = Inf, max_n = Inf, destroy_on_finalize = FALSE)	}
+.onLoad <- function(libname, packagename){
+	.evs_cache <<- cachem::cache_disk(dir = tempdir(), max_age = Inf, max_n = Inf, destroy_on_finalize = FALSE)
+	}
 .onUnload <- function(libpath){ .evs_cache$destroy(); gc() }
 
 #' Cross-Compare Temporal Boundaries
@@ -41,13 +43,11 @@
 #'
 #' @name cross.time
 #' @export
-
-delayedAssign("cross.time", {
-	.xtime <<- function(s0, s1, e0, e1, control, events.ascending = TRUE, chatty = FALSE, ...){
+cross.time <- function(s0, s1, e0, e1, control, events.ascending = TRUE, chatty = FALSE, ...){
 		## Reference: https://www.r-bloggers.com/using-complex-numbers-in-r/
 		## Division by Pi/4 makes it easy to tell if one argument is larger than, smaller than, or the same magnitude as the other (same = Pi/4)
 		## All computations are in the direction of B.max to A.min when `events.ascending` is TRUE
-
+		require(data.table);
 		direction =  as.character(as.numeric(events.ascending));
 
 		# `boundaries` ====
@@ -58,33 +58,31 @@ delayedAssign("cross.time", {
 		if (missing(control)){ control <- list(-Inf, Inf) }
 
 		# Calculate ====
-		output = {
-			data.table::data.table(
-				# The gap between the ordered events
-				mGap = boundaries[, 3] - boundaries[, 2]
-				# Difference of lower boundaries (start/lower-boundary)
-				, mSt	= boundaries[, 3] - boundaries[, 1]
-				# Difference of upper boundaries (end/upper-boundary)
-				, mEd	= boundaries[, 4] - boundaries[, 2]
-				# The duration of the first event
-				, from.len	= boundaries[, 2] - boundaries[, 1]
-				# The duration of the second event
-				, to.len	= boundaries[, 4] - boundaries[, 3]
-			)[
+		output = as.data.table(local({
+			# The gap between the ordered events
+			mGap <- boundaries[, 3] - boundaries[, 2]
+			# Difference of lower boundaries (start/lower-boundary)
+			mSt <- boundaries[, 3] - boundaries[, 1]
+			# Difference of upper boundaries (end/upper-boundary)
+			mEd <- boundaries[, 4] - boundaries[, 2]
+			# The duration of the first event
+			from.len <- boundaries[, 2] - boundaries[, 1]
+			# The duration of the second event
+			to.len <- boundaries[, 4] - boundaries[, 3]
+
 			# Relative change across boundary values
-			, epsilon := {
-					# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
-					.out = atan2(mEd, mSt) * atan2((mGap * .beta), mGap)
-					.tau = sign(log(to.len/from.len))
+			epsilon <- {
+						# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
+						.out = atan2(mEd, mSt) * atan2((mGap * .beta), mGap)
+						.tau = sign(log(to.len/from.len))
 
-					# Scale back down to an angle: `sqrt()` needs to have a complex argument for handling negative arguments
-					# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another
-					.out = sqrt(as.complex(.out))/(0.25 * pi) + sqrt(as.complex(mGap))^.tau
+						# Scale back down to an angle: `sqrt()` needs to have a complex argument for handling negative arguments
+						# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another
+						.out = sqrt(as.complex(.out))/(0.25 * pi) + sqrt(as.complex(mGap))^.tau
 
-					unlist(.out)
-				}
-			][
-			, epsilon.desc := {
+						unlist(.out)
+					}
+			epsilon.desc  <- {
 					c(`1` = "Disjoint", `10` = "Concurrency", `100` = "Full Concurrency", `1000` = "Continuity")[
 					as.character({
 						cbind(
@@ -96,20 +94,14 @@ delayedAssign("cross.time", {
 						})
 					]
 				}
-			][
-			# Filter out rows where '.beta' is not within the time control limits
-			(.beta <= control[[2]] & .beta >= control[[1]])
-			];
-		}
+			mget(ls())
+		}))[(.beta <= control[[2]] & .beta >= control[[1]])];
 
-		if (is.null(output)) { message(sprintf("[%s] \t... ERROR: nothing to output", Sys.time())); }
+		if (rlang::is_empty(output)) { message(sprintf("[%s] \t... ERROR: nothing to output", Sys.time())); }
 
 		# Return ====
 		output;
 	}
-
-	memoise::memoise(f = .xtime, cache = .evs_cache)
-})
 
 # usethis::use_pkgdown()
 # pkgdown::build_site()

@@ -51,7 +51,7 @@ melt_time <- function(x, start.names, end.names, ...){
 		)[, variable := NULL][!(is.na(start_date))];
 	}
 #
-make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.control = NULL, omit.na = FALSE, chatty = FALSE){
+make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.control = NULL, furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE), omit.na = FALSE, chatty = FALSE){
 #' Create the EVSpace Universe
 #'
 #' \code{make.evs_universe} supplies values to two class fields: \code{q_graph} and \code{space}, the latter being created from the former.
@@ -60,17 +60,18 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 #' @param ... (\code{\link[rlang]{dots_list}}) Logical expression that retain graph edges meeting the conditions
 #' @param time.control A 2-element list containing the minimum and maximum values allowed for total temporal span between two events
 #' @param graph.control An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph
+#' @param furrr_opts \code{\link[furrr]{furrr_options}} defaulted as \code{scheduling = Inf} and \code{seed = TRUE}: internal globals are also set and will be appended to values provided here
 #' @param omit.na (logical | \code{FALSE}) \code{TRUE} removes rows from class member \code{space} that have \code{NA} values
 #' @param chatty (logical | \code{FALSE}) Verbosity flag
 #'
 #' @return Invisibly, the original object augmented with new member \code{space}
 #'
-#' @section Class Member \code{$space}:
-#' \code{$space} should have as many rows as the sum of all edge counts for graphs in \code{$q_graph}
-#'
-#' @section Visualization:
-#' The graphs in class member \code{$evt_graphs} are \code{\link[visNetwork]{visIgraph}}-ready
-#'
+#' @section Notes:
+#' \itemize{
+#' \item{Class member \code{$space} should have as many rows as the sum of all edge counts for graphs in \code{$q_graph}}
+#' \item{The graphs in class member \code{$evt_graphs} are \code{\link[visNetwork]{visIgraph}}-ready}
+#' \item{Parallelism is internally supported via package \code{furrr}: the user is responsible for setting the appropriate \code{\link[future]{plan}}}
+#' }
 #' @export
 
 	force(self)
@@ -81,70 +82,72 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
   	} else { TRUE }
 
   # :: Create self$space from self$q_graph via calls to 'cross.time()'
-  .furrr_opts <- furrr::furrr_options(
-  		scheduling = Inf
-  		, seed = TRUE
-  		, packages = c("stringi", "igraph", "magrittr", "data.table")
-  		, globals = c(".evs_cache", "graph.control", ".vnames", ".graphs", "self", "cross.time")
-  		);
+  furrr_opts$globals <- furrr_opts$globals |> c(".evs_cache", "graph.control", ".vnames", ".graphs", "self", "cross.time") |> unique();
 
-  self$space <- purrr::imap(names(self$q_graph), ~{
-  # self$space <- furrr::future_imap(names(self$q_graph), ~{
-  	# Capture the current value of 'jk'
-  	jk = .x
+  # self$space <- purrr::imap(names(self$q_graph), ~{
+  self$space <- furrr::future_imap(names(self$q_graph), ~{
+  		self; .evs_cache; cross.time; time.control;
+	  	# Capture the current value of 'jk'
+	  	jk = .x
 
-  	# Capture the current graph
-  	g = self$q_graph[[.x]];
+	  	# Capture the current graph
+	  	g = self$q_graph[[.x]];
 
-  	# Traverse each row of the 2D array created via ends()
-  	# Set event vector space metrics for each edge -> { cross.time() ~ from:to }
-  	# These are the configuration edges
+	  	# Traverse each row of the 2D array created via ends()
+	  	# Set event vector space metrics for each edge -> { cross.time() ~ from:to }
+	  	# These are the configuration edges
+			as.data.table(igraph::ends(graph = g, igraph::E(g))) |>
+			apply(MARGIN = 1, FUN = function(i){
+		  	unravel = function(z){
+			  		k = is.data.table(z);
+			  		while(!k){ z <- z[[1]]; k <- is.data.table(z); }
+				  	z
+			  	}
+				fr_name = i[[1]]
+				to_name = i[[2]];
 
-  	unravel_proto = function(z){
-  		k = is.data.table(z);
-  		while(!k){ z <- z[[1]]; k <- is.data.table(z); }
-	  	return(copy(z))
-  	}
+				fr_data = as.data.table(unravel(igraph::V(g)[name == fr_name]$data))[, c("jk", "start_idx", "end_idx", "src"), with = FALSE];
+				fr_data$v_idx = sequence(nrow(fr_data));
 
-  	unravel = memoise::memoise(unravel_proto);
+				to_data = as.data.table(unravel(igraph::V(g)[name == to_name]$data))[, c("jk", "start_idx", "end_idx", "src"), with = FALSE];
+				to_data$v_idx = sequence(nrow(to_data));
 
-		purrr::pmap(igraph::ends(graph = g, igraph::E(g)) %>% as.data.table(), ~{
-			require
-			fr_data = (unravel(igraph::V(g)[name == ..1]$data))[, .(jk, start_idx, end_idx, src)][, v_idx := .I] %>% setkey(jk)
-			to_data = (unravel(igraph::V(g)[name == ..2]$data))[, .(jk, start_idx, end_idx, src)][, v_idx := .I] %>% setkey(jk)
-			.tmp_data =  fr_data[to_data, allow.cartesian = TRUE] %>% setcolorder(purrr::keep(names(.), ~.x %ilike% "start_idx|end_idx"))
+				.tmp_data =  merge(x = fr_data, y = to_data, by = "jk", allow.cartesian = TRUE) |>
+											setcolorder(purrr::keep(names(.), ~grepl("start_idx|end_idx", .x, ignore.case = TRUE))) |>
+											as.list() |> list2env(envir = new.env());
+# print(ls(.tmp_data))
+				.tmp_data = evalq({
+						from.coord <- paste(jk, as.character(start_idx.x), as.character(end_idx.x), src.x, v_idx.x, sep = ":")
+						to.coord <- paste(jk, as.character(start_idx.y), as.character(end_idx.y), src.y, v_idx.y, sep = ":")
+						src.pair <- paste(src.x, src.y, sep = ":")
+						xtime <-
+						from_timeframe <- purrr::map2(start_idx.x, end_idx.x, lubridate::interval)
+						to_timeframe   <- purrr::map2(start_idx.y, end_idx.y, lubridate::interval)
 
-			.tmp_data[,{
-				.out = cbind(
-					from.coord = paste(jk, as.character(start_idx), as.character(end_idx), src, v_idx, sep = ":")
-					, to.coord = paste(jk, as.character(i.start_idx), as.character(i.end_idx), i.src, i.v_idx, sep = ":")
-					, src.pair = paste(src, i.src, sep = ":")
-					, cross.time(
-							s0 = start_idx - start_idx
-							, s1 = i.start_idx - start_idx
-							, e0 = end_idx - start_idx
-							, e1 = i.end_idx - start_idx
-							, control = time.control
-							, chatty = chatty
-							)
-					, from_timeframe = purrr::map2(start_idx, end_idx, lubridate::interval)
-					, to_timeframe   = purrr::map2(i.start_idx, i.end_idx, lubridate::interval)
-					, jk = jk
-					) %>% as.data.table()
+					data.table(jk, from.coord, to.coord, src.pair
+						, cross.time(
+								s0 = start_idx.x - start_idx.x
+								, s1 = start_idx.y - start_idx.x
+								, e0 = end_idx.x - start_idx.x
+								, e1 = end_idx.y - start_idx.x
+								, control = time.control
+								, chatty = chatty
+								)
+						, from_timeframe, to_timeframe)
+				}, envir = .tmp_data)
 
 				# NOTE: 'edge.filter' is evaluated here because after the mapping, 'purrr::compact()' will handle empty results
 				# Also, filtering on 'self$space' is done because the actual event graphs are created from it.
-				.out[!is.na(epsilon) & eval(edge.filter)]
-			}]
-		}) %>% purrr::compact() %>% purrr::reduce(rbind)
-  }) %>%
-  	purrr::compact() %>%
-  	purrr::reduce(rbind)
+				.tmp_data[!is.na(epsilon) & eval(edge.filter), ]
+			}, simplify = FALSE) |> purrr::compact() |> rbindlist()
+	  }, .options = furrr::furrr_options(scheduling = Inf, seed = TRUE, packages = "data.table")) |>
+  	purrr::compact() |>
+  	data.table::rbindlist()
 
   if (omit.na){ self$space %<>% na.omit() }
 
   # :: Create self$evt_graphs from self$space
-  self$evt_graphs <- self$space %>% split(by = "jk") %>% purrr::map(igraph::graph_from_data_frame);
+  self$evt_graphs <- self$space |> split(by = "jk") |> purrr::map(igraph::graph_from_data_frame);
 
   .graphs = self$evt_graphs;
 	.vnames = sprintf("(%s)[:][0-9]+?", paste(self$config$contexts, collapse = "|"));
@@ -152,33 +155,34 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 
   # :: Finalize
 	message(sprintf("[%s] ... finalizing", Sys.time()));
-  self$evt_graphs <- furrr::future_map(seq_along(.graphs) %>% purrr::set_names(names(.graphs)), ~{
-  	g = .graphs[[.x]];
+  self$evt_graphs <- furrr::future_map(self$evt_graphs, ~{
+  	g = .x
 
   	igraph::V(g)$size 	<- tryCatch({
   		apply(
   			X = (stringi::stri_split_fixed(V(g)$name, ":", simplify = TRUE))[, c(2, 3)]
 	  		, MARGIN = 1
-  			, FUN = purrr::as_mapper(~as.Date(.x) %>% diff() %>% as.numeric() %>% sqrt() %>% as.integer())
+  			, FUN = purrr::as_mapper(~as.Date(.x) |> diff() |> as.numeric() |> sqrt() |> as.integer())
   			)
-  		}, error = function(e){ 10 })
-
+  		}, error = function(e){ 10 });
   	igraph::V(g)$title	<- purrr::map(igraph::V(g)$name, stringi::stri_extract_last_regex, pattern = .vnames);
   	igraph::V(g)$key		<- igraph::V(g)$name;
   	igraph::V(g)$name		<- igraph::V(g)$name;
 
-  	.vattrs <- igraph::V(g)$name %>%
-  		stringi::stri_split_fixed(":", simplify = TRUE) %>%
-  		purrr::array_branch(2) %>%
-  		append(list(title = purrr::map_chr(igraph::V(g)$name, stringi::stri_extract_last_regex, pattern = .vnames))) %>%
-  		purrr::set_names(c("jk", "start", "end", "source", "order", "title")) %>%
-  		as.list();
+  	.vattrs <- igraph::V(g)$name |>
+					  		stringi::stri_split_fixed(":", simplify = TRUE) |>
+					  		purrr::array_branch(2) |>
+					  		append(list(title = purrr::map_chr(igraph::V(g)$name, stringi::stri_extract_last_regex, pattern = .vnames))) |>
+					  		purrr::set_names(c("jk", "start", "end", "source", "order", "title")) |>
+					  		as.list();
 
-	  if (!is.null(graph.control)){ for (i in graph.control){ eval(i) } }
+	  if (!rlang::is_empty(graph.control)){ for (i in graph.control){ eval(i) } }
 
-  	igraph::vertex_attr(g) <- purrr::modify_at(.vattrs, c("start", "end"), as.Date) %>% purrr::modify_at("order", as.integer) %>% modify_at("source", as.factor)
+  	igraph::vertex_attr(g) <- purrr::modify_at(.vattrs, c("start", "end"), as.Date) |>
+  														purrr::modify_at("order", as.integer) |>
+  														purrr::modify_at("source", as.factor)
   	g
-  }, .options = .furrr_opts) %>% purrr::compact()
+  }, .options = furrr_opts) |> purrr::compact();
 
 	attr(self$space, "contexts")	<- self$config$contexts;
 	message(sprintf("[%s] The vector space is ready for analysis", Sys.time()));
@@ -200,14 +204,9 @@ evs_retrace <- function(self, ...){
 #' @export
 
 	evt_gph = if (...length() == 0){
-		names(self$evt_graphs) %>% purrr::set_names()
+		names(self$evt_graphs) |> purrr::set_names()
 	} else {
-		purrr::modify_if(
-			.x = rlang::list2(...)
-			, .p = is.numeric
-			, .f = ~names(self$evt_graphs[.x])
-			, .else = ~as.character(.x)
-			) %>% purrr::set_names()
+		purrr::modify_if(rlang::list2(...), is.numeric, ~names(self$evt_graphs[.x]), .else = ~as.character(.x)) |> purrr::set_names()
 	}
 
 	self$evt_graphs[names(evt_gph)] <- purrr::imap(evt_gph, ~{
@@ -215,14 +214,14 @@ evs_retrace <- function(self, ...){
 
 		evs.cfg = self$config;
 
-		igraph::V(g)$name <- igraph::V(g)$title %>% stringi::stri_extract_first_regex("[A-Z]+[:][0-9]+");
+		igraph::V(g)$name <- igraph::V(g)$title |> stringi::stri_extract_first_regex("[A-Z]+[:][0-9]+");
 		igraph::V(g)$trace <- purrr::map(igraph::V(g)$title, ~{
-				evs.lkup = stringi::stri_split_fixed(.x, ":", simplify = TRUE) %>% as.list() %>%
+				evs.lkup = stringi::stri_split_fixed(.x, ":", simplify = TRUE) |> as.list() |>
 									purrr::set_names(c("jk", "start_idx", "end_idx", "context", "seq_idx"));
 
 				self$config[(contexts == evs.lkup$context), {
 					.map_fields = if (rlang::has_length(unlist(map.fields), 1)){
-						stringi::stri_split_regex(unlist(map.fields), "[,|:]", simplify = TRUE) %>% as.vector()
+						stringi::stri_split_regex(unlist(map.fields), "[,|:]", simplify = TRUE) |> as.vector()
 						} else { unlist(map.fields) }
 
 					.map_fields %<>% purrr::set_names(c("who", "start", "end"))
@@ -233,7 +232,7 @@ evs_retrace <- function(self, ...){
 						, .map_fields["who"]  , evs.lkup$jk %>% as.numeric()
 						, .map_fields["start"], evs.lkup$start_idx
 						, .map_fields["end"]  , evs.lkup$end_idx
-						) %>% str2lang()
+						) |> str2lang()
 				}];
 			});
 		g;

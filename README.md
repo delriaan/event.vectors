@@ -32,22 +32,14 @@ tan^{-1}{\frac{\Gamma \beta}{\Gamma}}
 } + \Gamma^{\frac{\tau}{2}}
 $$ and is interpreted as follows:
 
-+-------------+-------------+--------------------------------------------+
-| $x$         | $\hat{i}y$  | **Definition**                             |
-+:===========:+:===========:+:==========================================:+
-| $\ne 0$     | $= 0$       | *Disjoint*                                 |
-+-------------+-------------+--------------------------------------------+
-| $= 0$       | $\ne 0$     | *Concurrency*                              |
-+-------------+-------------+--------------------------------------------+
-| $\ne 0$     | $\ne 0$     | *Full Concurrency*                         |
-+-------------+-------------+--------------------------------------------+
-| $= 0$       | $= 0$       | *Continuity*                               |
-+-------------+-------------+--------------------------------------------+
-|             | $< 1$       | `to` event shorter than `from` event       |
-+-------------+-------------+--------------------------------------------+
-|             | $= 1$       | `to` event of equal length to `from` event |
-+-------------+-------------+--------------------------------------------+
-|             | $> 1$       | `to` event longer than `from` event        |
-+-------------+-------------+--------------------------------------------+
+|   $x$   | $\hat{i}y$ |               **Definition**               |
+|:-------:|:----------:|:------------------------------------------:|
+| $\ne 0$ |   $= 0$    |                 *Disjoint*                 |
+|  $= 0$  |  $\ne 0$   |               *Concurrency*                |
+| $\ne 0$ |  $\ne 0$   |             *Full Concurrency*             |
+|  $= 0$  |   $= 0$    |                *Continuity*                |
+|         |   $< 1$    |    `to` event shorter than `from` event    |
+|         |   $= 1$    | `to` event of equal length to `from` event |
+|         |   $> 1$    |    `to` event longer than `from` event     |
 
 The time between these events is the focus of derivation that encodes the relationships between the boundaries of the events, thus allowing one to describe this relationship in a concise manner.
