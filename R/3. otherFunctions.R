@@ -76,81 +76,47 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 
 	force(self)
   edge.filter <- if (...length() > 0){
-  	rlang::enquos(..., .named = FALSE, .ignore_empty = "all") %>%
-  		map_chr(~{ rlang::get_expr(.x) %>% deparse() %>% sprintf(fmt = "(%s)") }) %>%
-  		paste(collapse = " & ") %>% str2lang()
+  	rlang::enquos(..., .named = FALSE, .ignore_empty = "all") |>
+  		purrr::map_chr(~{ rlang::get_expr(.x) |> deparse() |> sprintf(fmt = "(%s)") }) |>
+  		paste(collapse = " & ") |> str2lang()
   	} else { TRUE }
 
   # :: Create self$space from self$q_graph via calls to 'cross.time()'
   furrr_opts$globals <- furrr_opts$globals |> c(".evs_cache", "graph.control", ".vnames", ".graphs", "self", "cross.time") |> unique();
 
-  # self$space <- purrr::imap(names(self$q_graph), ~{
-  self$space <- furrr::future_imap(names(self$q_graph), ~{
-  		self; .evs_cache; cross.time; time.control;
-	  	# Capture the current value of 'jk'
-	  	jk = .x
+  .src_mix <- self$.__enclos_env__$private$q_table |> as.list() |> data.table::transpose() |> purrr::set_names(purrr::map_chr(., paste, collapse = " -> "));
 
-	  	# Capture the current graph
-	  	g = self$q_graph[[.x]];
+  # Retrieve the essential columns from sources and create a compact intermediate  data structure
+	.tmp_space <- self$config$src.names |>
+              purrr::map(~eval(str2lang(.x), envir = globalenv()) %>% .[, .(jk, start_idx, end_idx, rec_idx, src)]) |>
+              data.table::rbindlist() %>%
+              data.table::setkey(jk, start_idx);
+	# Use optimization from 'data.table' to create `self$space`
+	self$space <- { .tmp_space[
+		  , c(purrr::map(.src_mix, ~{ .SD[(src %in% .x$from), .(f_start_idx = start_idx, f_end_idx = end_idx, f_src = src)] %>% purrr::compact() }) |> data.table::rbindlist()
+		      , purrr::map(.src_mix, ~{ .SD[(src %in% .x$to), .(t_start_idx = start_idx, t_end_idx = end_idx, t_src = src)] %>% purrr::compact() }) |> data.table::rbindlist())
+		  , by = jk
+		  ][
+		  , c(cross.time(f_start_idx, t_start_idx, f_end_idx, t_end_idx)
+		     , list(from.coord = purrr::map2_chr(f_start_idx, f_end_idx, paste, sep = ":"))
+		     , list(to.coord   = purrr::map2_chr(t_start_idx, t_end_idx, paste, sep = ":"))
+		     , list(from_timeframe = purrr::map2(f_start_idx, f_end_idx, lubridate::interval))
+		     , list(to_timeframe   = purrr::map2(t_start_idx, t_end_idx, lubridate::interval))
+		     )
+		  , by = .(jk, src.pair = sprintf("%s -> %s", f_src, t_src))
+		  ][!is.na(epsilon) & eval(edge.filter)]
+		}
 
-	  	# Traverse each row of the 2D array created via ends()
-	  	# Set event vector space metrics for each edge -> { cross.time() ~ from:to }
-	  	# These are the configuration edges
-			as.data.table(igraph::ends(graph = g, igraph::E(g))) |>
-			apply(MARGIN = 1, FUN = function(i){
-		  	unravel = function(z){
-			  		k = is.data.table(z);
-			  		while(!k){ z <- z[[1]]; k <- is.data.table(z); }
-				  	z
-			  	}
-				fr_name = i[[1]]
-				to_name = i[[2]];
+  if (omit.na){
+  	logi_vec = apply(X = self$space, MARGIN = 1, FUN = function(i){ !any(is.na(i)) })
+  	self$space %<>% .[(logi_vec)]
+  }
 
-				fr_data = as.data.table(unravel(igraph::V(g)[name == fr_name]$data))[, c("jk", "start_idx", "end_idx", "src"), with = FALSE];
-				fr_data$v_idx = sequence(nrow(fr_data));
-
-				to_data = as.data.table(unravel(igraph::V(g)[name == to_name]$data))[, c("jk", "start_idx", "end_idx", "src"), with = FALSE];
-				to_data$v_idx = sequence(nrow(to_data));
-
-				.tmp_data =  merge(x = fr_data, y = to_data, by = "jk", allow.cartesian = TRUE) |>
-											setcolorder(purrr::keep(names(.), ~grepl("start_idx|end_idx", .x, ignore.case = TRUE))) |>
-											as.list() |> list2env(envir = new.env());
-# print(ls(.tmp_data))
-				.tmp_data = evalq({
-						from.coord <- paste(jk, as.character(start_idx.x), as.character(end_idx.x), src.x, v_idx.x, sep = ":")
-						to.coord <- paste(jk, as.character(start_idx.y), as.character(end_idx.y), src.y, v_idx.y, sep = ":")
-						src.pair <- paste(src.x, src.y, sep = ":")
-						xtime <-
-						from_timeframe <- purrr::map2(start_idx.x, end_idx.x, lubridate::interval)
-						to_timeframe   <- purrr::map2(start_idx.y, end_idx.y, lubridate::interval)
-
-					data.table(jk, from.coord, to.coord, src.pair
-						, cross.time(
-								s0 = start_idx.x - start_idx.x
-								, s1 = start_idx.y - start_idx.x
-								, e0 = end_idx.x - start_idx.x
-								, e1 = end_idx.y - start_idx.x
-								, control = time.control
-								, chatty = chatty
-								)
-						, from_timeframe, to_timeframe)
-				}, envir = .tmp_data)
-
-				# NOTE: 'edge.filter' is evaluated here because after the mapping, 'purrr::compact()' will handle empty results
-				# Also, filtering on 'self$space' is done because the actual event graphs are created from it.
-				.tmp_data[!is.na(epsilon) & eval(edge.filter), ]
-			}, simplify = FALSE) |> purrr::compact() |> rbindlist()
-	  }, .options = furrr::furrr_options(scheduling = Inf, seed = TRUE, packages = "data.table")) |>
-  	purrr::compact() |>
-  	data.table::rbindlist()
-
-  if (omit.na){ self$space %<>% na.omit() }
-
-  # :: Create self$evt_graphs from self$space
+  # :: Create `self$evt_graphs` from `self$space`
   self$evt_graphs <- self$space |> split(by = "jk") |> purrr::map(igraph::graph_from_data_frame);
+  .graphs <- self$evt_graphs;
+	.vnames <- sprintf("(%s)[:][0-9]+?", paste(self$config$contexts, collapse = "|"));
 
-  .graphs = self$evt_graphs;
-	.vnames = sprintf("(%s)[:][0-9]+?", paste(self$config$contexts, collapse = "|"));
 	if (chatty){ print(.vnames) }
 
   # :: Finalize
