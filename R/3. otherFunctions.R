@@ -84,7 +84,7 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
   # :: Create self$space from self$q_graph via calls to 'cross.time()'
   furrr_opts$globals <- furrr_opts$globals |> c(".evs_cache", "graph.control", ".vnames", ".graphs", "self", "cross.time") |> unique();
 
-  .src_mix <- self$.__enclos_env__$private$q_table |> as.list() |> data.table::transpose() |> purrr::set_names(purrr::map_chr(., paste, collapse = " -> "));
+  .src_mix <- self$.__enclos_env__$private$q_table |> as.list() |> data.table::transpose() %>% purrr::set_names(purrr::map_chr(., paste, collapse = " -> "));
 
   # Retrieve the essential columns from sources and create a compact intermediate  data structure
 	.tmp_space <- self$config$src.names |>
