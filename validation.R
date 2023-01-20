@@ -84,7 +84,6 @@ test.evs$set.q_graphs(chatty = TRUE)
 
 toc(log = TRUE);
 #
-
 # ~ Validation #2 ====
 tic("EVSpace Universe Validation");
 make.evs_universe(

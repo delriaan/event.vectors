@@ -88,21 +88,24 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 
   # Retrieve the essential columns from sources and create a compact intermediate  data structure
 	.tmp_space <- self$config$src.names |>
-              purrr::map(~eval(str2lang(.x), envir = globalenv()) %>% .[, .(jk, start_idx, end_idx, rec_idx, src)]) |>
+              purrr::map(~eval(str2lang(.x), envir = globalenv()) %>% .[, .(jk, start_idx, end_idx, src)]) |>
               data.table::rbindlist() %>%
               data.table::setkey(jk, start_idx);
 	# Use optimization from 'data.table' to create `self$space`
 	self$space <- { .tmp_space[
-		  , c(purrr::map(.src_mix, ~{ .SD[(src %in% .x$from), .(f_start_idx = start_idx, f_end_idx = end_idx, f_src = src)] %>% purrr::compact() }) |> data.table::rbindlist()
-		      , purrr::map(.src_mix, ~{ .SD[(src %in% .x$to), .(t_start_idx = start_idx, t_end_idx = end_idx, t_src = src)] %>% purrr::compact() }) |> data.table::rbindlist())
+		  , c(purrr::map(.src_mix, ~{ .SD[(src %in% .x[1]), .(f_start_idx = start_idx, f_end_idx = end_idx, f_src = src)] %>% purrr::compact() }) |> data.table::rbindlist()
+		      , purrr::map(.src_mix, ~{ .SD[(src %in% .x[2]), .(t_start_idx = start_idx, t_end_idx = end_idx, t_src = src)] %>% purrr::compact() }) |> data.table::rbindlist())
 		  , by = jk
 		  ][
 		  , c(cross.time(f_start_idx, t_start_idx, f_end_idx, t_end_idx)
-		     , list(from.coord = purrr::map2_chr(f_start_idx, f_end_idx, paste, sep = ":"))
-		     , list(to.coord   = purrr::map2_chr(t_start_idx, t_end_idx, paste, sep = ":"))
-		     , list(from_timeframe = purrr::map2(f_start_idx, f_end_idx, lubridate::interval))
-		     , list(to_timeframe   = purrr::map2(t_start_idx, t_end_idx, lubridate::interval))
-		     )
+		     , list(from.coord			= purrr::map2_chr(f_start_idx, f_end_idx, paste, sep = ":")
+					    , to.coord  			= purrr::map2_chr(t_start_idx, t_end_idx, paste, sep = ":")
+					    , from_timeframe	= purrr::map2(f_start_idx, f_end_idx, lubridate::interval)
+					    , to_timeframe  	= purrr::map2(t_start_idx, t_end_idx, lubridate::interval)
+					    , from.src				= f_src
+					    , to.src					= t_src
+		    			)
+		  	)
 		  , by = .(jk, src.pair = sprintf("%s -> %s", f_src, t_src))
 		  ][!is.na(epsilon) & eval(edge.filter)]
 		}
@@ -113,41 +116,15 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
   }
 
   # :: Create `self$evt_graphs` from `self$space`
-  self$evt_graphs <- self$space |> split(by = "jk") |> purrr::map(igraph::graph_from_data_frame);
+  self$evt_graphs <- self$space |> split(by = "jk") |> purrr::map(~igraph::graph_from_data_frame(data.table::setcolorder(.x, c("from.src", "to.src"))));
   .graphs <- self$evt_graphs;
-	.vnames <- sprintf("(%s)[:][0-9]+?", paste(self$config$contexts, collapse = "|"));
-
-	if (chatty){ print(.vnames) }
 
   # :: Finalize
 	message(sprintf("[%s] ... finalizing", Sys.time()));
   self$evt_graphs <- furrr::future_map(self$evt_graphs, ~{
-  	g = .x
-
-  	igraph::V(g)$size 	<- tryCatch({
-  		apply(
-  			X = (stringi::stri_split_fixed(V(g)$name, ":", simplify = TRUE))[, c(2, 3)]
-	  		, MARGIN = 1
-  			, FUN = purrr::as_mapper(~as.Date(.x) |> diff() |> as.numeric() |> sqrt() |> as.integer())
-  			)
-  		}, error = function(e){ 10 });
-  	igraph::V(g)$title	<- purrr::map(igraph::V(g)$name, stringi::stri_extract_last_regex, pattern = .vnames);
-  	igraph::V(g)$key		<- igraph::V(g)$name;
-  	igraph::V(g)$name		<- igraph::V(g)$name;
-
-  	.vattrs <- igraph::V(g)$name |>
-					  		stringi::stri_split_fixed(":", simplify = TRUE) |>
-					  		purrr::array_branch(2) |>
-					  		append(list(title = purrr::map_chr(igraph::V(g)$name, stringi::stri_extract_last_regex, pattern = .vnames))) |>
-					  		purrr::set_names(c("jk", "start", "end", "source", "order", "title")) |>
-					  		as.list();
-
+  	g = .x;
 	  if (!rlang::is_empty(graph.control)){ for (i in graph.control){ eval(i) } }
-
-  	igraph::vertex_attr(g) <- purrr::modify_at(.vattrs, c("start", "end"), as.Date) |>
-  														purrr::modify_at("order", as.integer) |>
-  														purrr::modify_at("source", as.factor)
-  	g
+  	g;
   }, .options = furrr_opts) |> purrr::compact();
 
 	attr(self$space, "contexts")	<- self$config$contexts;
@@ -167,7 +144,7 @@ evs_retrace <- function(self, ...){
 #'
 #' @return Because of the reference semantics of R6 classes, for each name given in \code{...}, graph updates are in place: \code{self} is returned invisibly.
 #'
-#' @export
+# @export
 
 	evt_gph = if (...length() == 0){
 		names(self$evt_graphs) |> purrr::set_names()
@@ -182,8 +159,7 @@ evs_retrace <- function(self, ...){
 
 		igraph::V(g)$name <- igraph::V(g)$title |> stringi::stri_extract_first_regex("[A-Z]+[:][0-9]+");
 		igraph::V(g)$trace <- purrr::map(igraph::V(g)$title, ~{
-				evs.lkup = stringi::stri_split_fixed(.x, ":", simplify = TRUE) |> as.list() |>
-									purrr::set_names(c("jk", "start_idx", "end_idx", "context", "seq_idx"));
+				evs.lkup = stringi::stri_split_fixed(.x, ":", simplify = TRUE) |> as.list() |> purrr::set_names(c("jk", "start_idx", "end_idx", "context", "seq_idx"));
 
 				self$config[(contexts == evs.lkup$context), {
 					.map_fields = if (rlang::has_length(unlist(map.fields), 1)){
@@ -198,7 +174,7 @@ evs_retrace <- function(self, ...){
 						, .map_fields["who"]  , evs.lkup$jk %>% as.numeric()
 						, .map_fields["start"], evs.lkup$start_idx
 						, .map_fields["end"]  , evs.lkup$end_idx
-						) |> str2lang()
+						) |> str2lang();
 				}];
 			});
 		g;

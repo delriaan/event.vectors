@@ -195,6 +195,7 @@ event.vector.space <- { R6::R6Class(
 								, start_idx = !!str2lang(.mflds[2])
 								, end_idx = !!str2lang(.mflds[3])
 								, row.filters = !!..4
+								, rec_idx = sequence(nrow((!!str2lang(..1))))
 								)
 							] %>%
 							setkeyv(c('jk', 'start_idx', 'end_idx')) %>%
