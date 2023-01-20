@@ -90,29 +90,47 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 	.tmp_space <- self$config$src.names |>
               purrr::map(~eval(str2lang(.x), envir = globalenv()) %>% .[, .(jk, start_idx, end_idx, src)]) |>
               data.table::rbindlist() %>%
-              data.table::setkey(jk, start_idx);
+              data.table::setkey(jk, start_idx, end_idx);
+
+  # `make.event_key` is used to create sequential unique identifiers for events sources and time-markers
+  make.event_key <- purrr::as_mapper(~{
+											root = .x
+											radix = .y
+											index = rep.int(NA, length(root));
+
+											# Populate 'index' based on unique values of 'root'
+											purrr::walk(unique(root), ~{
+												out.x = root[which(root %in% .x)]
+												out.y = radix[which(root %in% .x)];
+												index[which(root %in% .x)] <<- data.table::frank(out.y, ties.method = "dense") #|> duplicated() |> magrittr::not() |> cumsum()
+											})
+											index
+										})
+
 	# Use optimization from 'data.table' to create `self$space`
 	self$space <- { .tmp_space[
 		  , c(purrr::map(.src_mix, ~{ .SD[(src %in% .x[1]), .(f_start_idx = start_idx, f_end_idx = end_idx, f_src = src)] %>% purrr::compact() }) |> data.table::rbindlist()
 		      , purrr::map(.src_mix, ~{ .SD[(src %in% .x[2]), .(t_start_idx = start_idx, t_end_idx = end_idx, t_src = src)] %>% purrr::compact() }) |> data.table::rbindlist())
 		  , by = jk
 		  ][
-		  , c(cross.time(
-		  			s0 = f_start_idx
-		  			, s1 = t_start_idx
-		  			, e0 = f_end_idx
-		  			, e1 = t_end_idx
-		  			)
+		  , c(cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx)
 		     , list(from.coord			= purrr::map2_chr(f_start_idx, f_end_idx, paste, sep = ":")
 					    , to.coord  			= purrr::map2_chr(t_start_idx, t_end_idx, paste, sep = ":")
 					    , from_timeframe	= purrr::map2(f_start_idx, f_end_idx, lubridate::interval)
 					    , to_timeframe  	= purrr::map2(t_start_idx, t_end_idx, lubridate::interval)
-					    , from.src				= f_src
-					    , to.src					= t_src
 		    			)
 		  	)
-		  , by = .(jk, src.pair = sprintf("%s -> %s", f_src, t_src))
-		  ][!is.na(epsilon) & eval(edge.filter)]
+		  , by = .(jk, f_src, t_src)
+		  ][
+		  # Enforce row filter rules before proceeding
+		  !is.na(epsilon) & eval(edge.filter)
+		  ][
+		  # Impute sequencing on event sources: this has a direct impact when creating distinct vertex names during subsequent graph creation
+		  , c("f_src", "t_src") := list(paste(f_src, make.event_key(f_src, from.coord), sep = ":")
+		  															, paste(t_src, make.event_key(t_src, to.coord), sep = ":"))
+		  , by  = .(jk)
+		  ][, src.pair := sprintf("%s -> %s", f_src, t_src)] %>%
+			data.table::setnames(c("f_src", "t_src"), c("from.src", "to.src"))
 		}
 
   if (omit.na){
@@ -149,40 +167,57 @@ evs_retrace <- function(self, ...){
 #'
 #' @return Because of the reference semantics of R6 classes, for each name given in \code{...}, graph updates are in place: \code{self} is returned invisibly.
 #'
-# @export
+#' @export
 
 	evt_gph = if (...length() == 0){
-		names(self$evt_graphs) |> purrr::set_names()
-	} else {
-		purrr::modify_if(rlang::list2(...), is.numeric, ~names(self$evt_graphs[.x]), .else = ~as.character(.x)) |> purrr::set_names()
-	}
+			names(self$evt_graphs) |> purrr::set_names()
+		} else {
+			purrr::modify_if(rlang::list2(...), is.numeric, ~names(self$evt_graphs[.x]), .else = ~as.character(.x)) |> purrr::set_names()
+		}
 
 	self$evt_graphs[names(evt_gph)] <- purrr::imap(evt_gph, ~{
 		g = self$evt_graphs[[.y]];
 
 		evs.cfg = self$config;
 
-		igraph::V(g)$name <- igraph::V(g)$title |> stringi::stri_extract_first_regex("[A-Z]+[:][0-9]+");
-		igraph::V(g)$trace <- purrr::map(igraph::V(g)$title, ~{
-				evs.lkup = stringi::stri_split_fixed(.x, ":", simplify = TRUE) |> as.list() |> purrr::set_names(c("jk", "start_idx", "end_idx", "context", "seq_idx"));
+		evs.lkup = { self$space[(jk %in% igraph::E(g)$jk), .(jk, from.src, from.coord, to.src, to.coord)] %>%
+				melt(measure.vars = list(src = c("from.src", "to.src"), coord = c("from.coord", "to.coord")), variable.name = "type", variable.factor = FALSE) |>
+				unique() %>%
+				.[, c(list(type = as.numeric(type))
+							, paste(jk, src, coord, sep = ":") |>
+								stringi::stri_split_fixed(":", simplify = TRUE) |>
+								data.table::as.data.table() |>
+								purrr::set_names(c("jk", "context", "seq_idx", "start_idx", "end_idx")) |>
+								purrr::modify_at(c("jk", "seq_idx"), as.numeric)
+							)
+					]} %>% data.table::setorder(context, type, seq_idx)
 
-				self$config[(contexts == evs.lkup$context), {
-					.map_fields = if (rlang::has_length(unlist(map.fields), 1)){
-						stringi::stri_split_regex(unlist(map.fields), "[,|:]", simplify = TRUE) |> as.vector()
-						} else { unlist(map.fields) }
+		igraph::V(g)$title <- igraph::V(g)$name;
+		igraph::V(g)$trace <- { igraph::V(g)$title |>
+				purrr::map(~{
+					vkey = stringi::stri_split_fixed(.x, ":", simplify = TRUE) |> as.list() |>
+								purrr::set_names(c("context", "seq_idx")) |>
+								purrr::modify_at("seq_idx", as.numeric)
+					vlkup = evs.lkup[vkey, on = c("context", "seq_idx")][(type == min(type))]
 
-					.map_fields %<>% purrr::set_names(c("who", "start", "end"))
+					evs.cfg[(contexts %in% vlkup$context), {
+						.map_fields = if (rlang::has_length(unlist(map.fields), 1)){
+								stringi::stri_split_regex(unlist(map.fields), "[,|:]", simplify = TRUE) |> as.vector()
+							} else { unlist(map.fields) }
 
-					sprintf(
-						"%s[(%s == %s) & (%s == as.Date('%s')) & (%s == as.Date('%s'))]"
-						, src.names
-						, .map_fields["who"]  , evs.lkup$jk %>% as.numeric()
-						, .map_fields["start"], evs.lkup$start_idx
-						, .map_fields["end"]  , evs.lkup$end_idx
-						) |> str2lang();
-				}];
-			});
-		g;
+						.map_fields %<>% purrr::set_names(c("who", "start", "end"))
+
+						parse(text = sprintf(
+							"%s[(%s == %s) & (%s == as.Date('%s')) & (%s == as.Date('%s'))]"
+							, src.names
+							, .map_fields["who"]  , vlkup$jk %>% as.numeric()
+							, .map_fields["start"], vlkup$start_idx
+							, .map_fields["end"]  , vlkup$end_idx
+							))
+					}];
+				})
+			}
+		g
 	})
 
 	invisible(self)

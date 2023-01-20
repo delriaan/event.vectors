@@ -58,7 +58,7 @@ set.seed(sample(100000, 1));
 # ~ Create EVSpace object from test data
 tic.clear(); tic.clearlog();
 
-# ~ Validation #1 ====
+# ~ Validation #1 :: event.vector.space ====
 tic("EVSpace Validation Object");
 #
 test.evs <- event.vector.space$new();
@@ -84,7 +84,7 @@ test.evs$set.q_graphs(chatty = TRUE)
 
 toc(log = TRUE);
 #
-# ~ Validation #2 ====
+# ~ Validation #2 :: make.evs_universe() ====
 tic("EVSpace Universe Validation");
 make.evs_universe(
 	self = test.evs
@@ -104,32 +104,39 @@ make.evs_universe(
 toc(log = TRUE);
 
 test.evs$space[, .(jk, from.coord, to.coord, src.pair, mSt, mGap, mEd, epsilon = as.character(epsilon))] %>% summarytools::dfSummary()
-test.evs$space %>% View()
+test.evs$space[(jk == 4)] %>% View("Space: jk == 4")
 
 igraph::vertex.attributes(test.evs$evt_graphs$`1`)
 #
-# ~ Validation #3 ====
-event_graph <- igraph::subgraph(graph = test.evs$evt_graphs$`4`, vids = sample(igraph::V(test.evs$evt_graphs$`4`), 30))
+# ~ Validation #3 :: evs_retrace() ====
+evs_retrace(test.evs, "4")
+event_graph <- test.evs$evt_graphs$`4`
+igraph::V(event_graph)$trace[[1]] %>% eval(envir = globalenv())
 
+# ~ Validation #4 :: visNetwork::visIgraph() ====
 f2ab <- list(theta = 0.1, gravitationalConstant = -5000, centralGravity = 0.0,  avoidOverlap = 1, damping = 0.7);
 
-event_graph %>%
+event_graph %>% {
+		g = .
+		igraph::V(g)$title <- igraph::V(g)$trace |>
+			purrr::map_chr(~{
+				x = eval(.x, envir = globalenv()) %>%
+					.[, purrr::modify_at(.SD[, !"row.filters"], c("start_idx", "end_idx"), as.character)] %>%
+					melt(measure.vars = names(.), variable.name = "key", variable.factor = FALSE)
+
+				kableExtra::kable(x = x, caption = "Retraced data from source") |>
+					kableExtra::kable_styling()
+			})
+		g
+	} %>%
 	visNetwork::visIgraph(physics = TRUE, type = "full") %>%
 	visNetwork::visPhysics(solver = "forceAtlas2Based", timestep = 0.05) %>%
 	visNetwork::visOptions(width = "1600", height = "1024") %>%
 	visNetwork::visNodes(opacity = 0.5) %>%
-	# visNetwork::visEdges(length = 100) %>%
 	htmltools::html_print(viewer = browseURL)
 
-igraph::vertex_attr(event_graph)$start
-igraph::vertex_attr(event_graph)$end
-igraph::vertex_attr(event_graph)$source
-igraph::vertex_attr(event_graph)$order
-igraph::V(event_graph)[source %in% c("Src1", "Src4") & order %in% c(1, 4)] %>% map(igraph::neighborhood, graph = event_graph)
-igraph::subgraph.edges(graph = event_graph, eids = igraph::E(event_graph)[mGap >= 20])
-rm(BLAH, make.test_data)
-
 # ~ Cleanup ====
+rm(BLAH, make.test_data)
 plan(sequential);
 gc(full = TRUE)
 

@@ -43,7 +43,7 @@ event.vector.space <- { R6::R6Class(
       #' @param config (see class method \code{$configure()})
 			#' @param events.ascending When \code{TRUE}, the final output will only contain chronological events.
 			#' @param ... (not used)
-		initialize = function(config = NULL, events.ascending = TRUE, ...){
+		initialize = function(config = NULL, ...){
 				# ::  CLASS MEMBERS INITIALIZATION
 				if (!is.null(config)) {
 					.expr = substitute(self$configure());
@@ -55,7 +55,6 @@ event.vector.space <- { R6::R6Class(
 
 					eval(.expr)
 				}
-				private$.params$events.ascending	= events.ascending;
 
 				message(sprintf("[%s] Initializing the event vector space", Sys.time()));
 				invisible(self);
@@ -277,7 +276,7 @@ event.vector.space <- { R6::R6Class(
 	# _____ PRIVATE _____
 , private = { list(
 		# _____ PRIVATE CLASS MEMBERS _____
-		.params = { list(config = NULL, events.ascending	= NULL)}
+		.params = { list(config = NULL)}
 		, q_table = NULL
 		# _____ PRIVATE METHODS _____
 		)}

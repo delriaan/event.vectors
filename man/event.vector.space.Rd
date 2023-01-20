@@ -67,7 +67,7 @@ Initialize a Vector Space}
 \if{latex}{\out{\hypertarget{method-event.vector.space-new}{}}}
 \subsection{Method \code{new()}}{
 \subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{event.vector.space$new(config = NULL, events.ascending = TRUE, ...)}\if{html}{\out{</div>}}
+\if{html}{\out{<div class="r">}}\preformatted{event.vector.space$new(config = NULL, ...)}\if{html}{\out{</div>}}
 }
 
 \subsection{Arguments}{
@@ -75,9 +75,9 @@ Initialize a Vector Space}
 \describe{
 \item{\code{config}}{(see class method \code{$configure()})}
 
-\item{\code{events.ascending}}{When \code{TRUE}, the final output will only contain chronological events.}
-
 \item{\code{...}}{(not used)}
+
+\item{\code{events.ascending}}{When \code{TRUE}, the final output will only contain chronological events.}
 }
 \if{html}{\out{</div>}}
 }

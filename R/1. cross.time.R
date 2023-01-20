@@ -50,24 +50,24 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 	require(magrittr)
 
 	XTIME <- { data.table::data.table(
-						beta = e1 - s0
-						, mGap = s1 - e0
-						, mSt = s1 - s0
-						, mEd = e1 - e0
-						, from.len = e0 - s0
-						, to.len = e1 - s1
-						)
-				}
+							beta = e1 - s0
+							, mGap = s1 - e0
+							, mSt = s1 - s0
+							, mEd = e1 - e0
+							, from.len = e0 - s0
+							, to.len = e1 - s1
+							)[, purrr::map(.SD, as.numeric)]
+					}
 	epsilon <- XTIME %$% {
-			# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
-			.out = atan2(mEd, mSt) * atan2((mGap * beta), mGap)
-			.tau = sign(to.len - from.len)
+		# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
+		.out = atan2(mEd, mSt) * atan2((mGap * beta), mGap)
+		.tau = sign(to.len - from.len)
 
-			# Scale back down to an angle: `sqrt()` needs to have a complex argument for handling negative arguments
-			# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another
-			.out = sqrt(as.complex(.out)) + sqrt(as.complex(mGap)^.tau)
+		# Scale back down to an angle: `sqrt()` needs to have a complex argument for handling negative arguments
+		# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another
+		.out = sqrt(as.complex(.out)) + sqrt(as.complex(mGap)^.tau)
 
-			unlist(.out) |> purrr::modify_if(~Re(.x) |> is.infinite(), ~as.complex(0))
+		unlist(.out) |> purrr::modify_if(~Re(.x) |> is.infinite(), ~as.complex(0))
 	}
 	epsilon.desc  <- {
 			c(`1` = "Disjoint", `10` = "Concurrency", `100` = "Full Concurrency", `1000` = "Continuity")[
