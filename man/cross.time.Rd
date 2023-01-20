@@ -4,16 +4,7 @@
 \alias{cross.time}
 \title{Cross-Compare Temporal Boundaries}
 \usage{
-cross.time(
-  s0,
-  s1,
-  e0,
-  e1,
-  control,
-  events.ascending = TRUE,
-  chatty = FALSE,
-  ...
-)
+cross.time(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE, ...)
 }
 \arguments{
 \item{s0}{A numeric/date-coded vector containing the temporal lower boundary of the starting event duration}
@@ -25,8 +16,6 @@ cross.time(
 \item{e1}{A numeric/date-coded vector containing the temporal upper boundary of the ending event duration}
 
 \item{control}{A length-2 sorted list with values indicating the range of allowable values for internal variable \code{.beta} (the difference between ends of 'to' events and beginnings of 'from' events)}
-
-\item{events.ascending}{(logical | \code{TRUE}) \code{FALSE} assumes events provided are in descending order}
 
 \item{chatty}{(logical | \code{FALSE}) Verbosity flag}
 

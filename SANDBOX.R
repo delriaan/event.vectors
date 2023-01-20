@@ -1,60 +1,53 @@
+cross.time <- function(s0, s1, e0, e1, control, chatty = FALSE, ...){
+		## Reference: https://www.r-bloggers.com/using-complex-numbers-in-r/
+		## Division by Pi/4 makes it easy to tell if one argument is larger than, smaller than, or the same magnitude as the other (same = Pi/4)
+		## All computations are in the direction of B.max to A.min when `events.ascending` is TRUE
+		require(data.table);
+		require(magrittr);
+		if (missing(control)){ control <- list(-Inf, Inf) }
 
-.src_mix <- ALYZ$grievance_evs$.__enclos_env__$private$q_table |> as.list() |> transpose() %>% set_names(map_chr(., paste, collapse = " -> "));
+		XTIME <- { data.table::data.table(
+							beta = e1 - s0
+							, mGap = s1 - e0
+							, mSt = s1 - s0
+							, mEd = e1 - e0
+							, from.len = e0 - s0
+							, to.len = e1 - s1
+							)
+					}
+		epsilon <- XTIME %$% {
+				# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
+				.out = atan2(mEd, mSt) * atan2((mGap * beta), mGap)
+				.tau = sign(to.len - from.len)
 
-inspect <- ALYZ$grievance_evs$config$src.names |>
-              map(~eval(str2lang(.x)) %>% .[, .(jk, start_idx, end_idx, rec_idx, src)]) |>
-              rbindlist() %>%
-              setkey(jk, start_idx);
+				# Scale back down to an angle: `sqrt()` needs to have a complex argument for handling negative arguments
+				# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another
+				.out = sqrt(as.complex(.out)) + sqrt(as.complex(mGap)^.tau)
 
-inspect[
-  , c(map(.src_mix, ~{ .SD[(src %in% .x$from), .(f_start_idx = start_idx, f_end_idx = end_idx, f_src = src)] %>% purrr::compact() }) %>% rbindlist()
-      , map(.src_mix, ~{ .SD[(src %in% .x$to), .(t_start_idx = start_idx, t_end_idx = end_idx, t_src = src)] %>% purrr::compact() }) %>% rbindlist())
-  , by = jk
-  ][
-  , c(cross.time(f_start_idx, t_start_idx, f_end_idx, t_end_idx)
-     , list(from_timeframe = purrr::map2(f_start_idx, f_end_idx, lubridate::interval))
-     , list(to_timeframe   = purrr::map2(t_start_idx, t_end_idx, lubridate::interval))
-     )
-  , by = .(jk, src.pair = sprintf("%s -> %s", f_src, t_src))
-  ][
-  !is.na(epsilon) & eval(edge.filter)
-  ]
+				unlist(.out) |> purrr::modify_if(~Re(.x) |> is.infinite(), ~as.complex(0))
+		}
+		epsilon.desc  <- {
+				c(`1` = "Disjoint", `10` = "Concurrency", `100` = "Full Concurrency", `1000` = "Continuity")[
+				as.character({
+					cbind(
+						((Re(epsilon) != 0) & (Im(epsilon) == 0))
+						, ((Re(epsilon) == 0) & (Im(epsilon) != 0))
+						, ((Re(epsilon) != 0) & (Im(epsilon) != 0))
+						, ((Re(epsilon) == 0) & (Im(epsilon) == 0))
+						) %*% (10^c(0:3))
+					})
+				]
+			}
 
-inspect <- { .tmp_space[
-		  , c(purrr::map(.src_mix, ~{ .SD[(src %in% .x[1]), .(f_start_idx = start_idx, f_end_idx = end_idx, f_src = src)] %>% purrr::compact() }) |> data.table::rbindlist()
-		      , purrr::map(.src_mix, ~{ .SD[(src %in% .x[2]), .(t_start_idx = start_idx, t_end_idx = end_idx, t_src = src)] %>% purrr::compact() }) |> data.table::rbindlist())
-		  , by = jk
-		  ][
-		  , c(cross.time(f_start_idx, t_start_idx, f_end_idx, t_end_idx)
-		     , list(from.coord = purrr::map2_chr(f_start_idx, f_end_idx, paste, sep = ":"))
-		     , list(to.coord   = purrr::map2_chr(t_start_idx, t_end_idx, paste, sep = ":"))
-		     , list(from_timeframe = purrr::map2(f_start_idx, f_end_idx, lubridate::interval))
-		     , list(to_timeframe   = purrr::map2(t_start_idx, t_end_idx, lubridate::interval))
-		     )
-		  , by = .(jk, from.src = f_src, to.src = t_src, src.pair = sprintf("%s -> %s", f_src, t_src))
-		  ]
+		XTIME[, `:=`(epsilon = epsilon, epsilon.desc = epsilon.desc)][(beta %between% control)]
 }
 
-.vnames <- sprintf("(%s).?[0-9]+?", paste(test.evs$config$contexts, collapse = "|"));
+s0 <- rep.int(10, 4)
+e0 <- s0 + rep.int(10, 4)
+s1 <- s0 + c(4, 7, 12, 10)
+e1 <- s1 + c(3, 7, 7, 7)
 
-			g = test.evs$evt_graphs[[1]]
-			igraph::V(g)$size <- tryCatch({
-				apply(X = (stringi::stri_split_fixed(V(g)$name,
-					":", simplify = TRUE))[, c(2, 3)], MARGIN = 1,
-					FUN = purrr::as_mapper(~as.integer(sqrt(as.numeric(diff(as.Date(.x)))))))
-			}, error = function(e) {
-				10
-			})
-			igraph::V(g)$key <- igraph::V(g)$name
-			igraph::V(g)$name <- igraph::V(g)$name %>% sapply()
+(input <- data.table(use.case = c("FC", "PC", "DJ", "CT"), s0 = s0, e0 = e0, s1 = s1, e1 = e1))
+purrr::pmap(input, cross.time)|> purrr::set_names(input$use.case)
 
-			.vattrs <- append(
-						purrr::array_branch(stringi::stri_split_fixed(igraph::V(g)$name,":", simplify = TRUE), 2)
-					, list(title = purrr::map_chr(igraph::V(g)$name, stringi::stri_extract_last_regex, pattern = .vnames))
-					)
-				purrr::set_names(
-					c("jk", "start", "end", "source", "order", "title")))
-
-			igraph::vertex_attr(g) <- purrr::modify_at(purrr::modify_at(purrr::modify_at(.vattrs,
-				c("start", "end"), as.Date), "order", as.integer),
-				"source", as.factor)
+rlang::inject(cross.time(!!!as.list(input)))

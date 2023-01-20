@@ -97,7 +97,12 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 		      , purrr::map(.src_mix, ~{ .SD[(src %in% .x[2]), .(t_start_idx = start_idx, t_end_idx = end_idx, t_src = src)] %>% purrr::compact() }) |> data.table::rbindlist())
 		  , by = jk
 		  ][
-		  , c(cross.time(f_start_idx, t_start_idx, f_end_idx, t_end_idx)
+		  , c(cross.time(
+		  			s0 = f_start_idx
+		  			, s1 = t_start_idx
+		  			, e0 = f_end_idx
+		  			, e1 = t_end_idx
+		  			)
 		     , list(from.coord			= purrr::map2_chr(f_start_idx, f_end_idx, paste, sep = ":")
 					    , to.coord  			= purrr::map2_chr(t_start_idx, t_end_idx, paste, sep = ":")
 					    , from_timeframe	= purrr::map2(f_start_idx, f_end_idx, lubridate::interval)
