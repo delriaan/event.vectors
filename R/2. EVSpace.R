@@ -91,33 +91,33 @@ event.vector.space <- { R6::R6Class(
       #' @param update (logical) \code{TRUE} results in appending to the existing configuration
       #' @param chatty (logical | \code{FALSE}) Verbosity flag
 			configure =	function(src.names, contexts, map.fields, row.filters, src.mix = "comb", exclude.mix = list(c("", "")), update = FALSE, chatty = FALSE){
-				this.cfg = data.table(src.names, contexts, map.fields
-										, row.filters = purrr::map_chr(row.filters, ~ifelse(!is.character(.x), deparse(.x), .x)));
+				this.cfg = data.table(src.names, contexts, map.fields, row.filters = purrr::map_chr(row.filters, ~ifelse(!is.character(.x), deparse(.x), .x)));
 
 				private$.params$config <- if (!update | is.null(private$.params$config)){
-						rbindlist(list(private$.params$config, this.cfg), use.names = TRUE)
+						data.table::rbindlist(list(private$.params$config, this.cfg), use.names = TRUE)
 					} else { this.cfg }
 
-				private$.params$config[, jk.vec := purrr::map2(src.names, map.fields, ~{
-						jk.col = if (length(.y) > 1){ .y[1] } else {
-							stringi::stri_split_regex(.y, "[,|: ]+", simplify = TRUE, omit_empty = TRUE) %>% unlist() %>% .[1] }
-							str2lang(sprintf("%s[, sort(unique(%s))]", .x, jk.col)) %>% eval()
-						})];
+				private$.params$config[
+					, jk.vec := purrr::map2(src.names, map.fields, ~{
+							jk.col = if (length(.y) > 1){
+								.y[1]
+							} else {
+								stringi::stri_split_regex(.y, "[,|: ]+", simplify = TRUE, omit_empty = TRUE) |> unlist() %>% .[1] }
+								str2lang(sprintf("%s[, sort(unique(%s))]", .x, jk.col)) |> eval()
+							})];
 
-				setattr(private$.params$config, "src.mix", src.mix) %>%
+				setattr(private$.params$config, "src.mix", src.mix) |>
 					setattr(
 						"exclude.mix"
-						, sapply(exclude.mix, function(i){
-								paste0(if (length(i) == 1){ c(i, i) } else if(length(i) > 2) { i[1:2] } else { i }, collapse = ", ")
-							})
+						, sapply(exclude.mix, function(i){ paste0(if (length(i) == 1){ c(i, i) } else if(length(i) > 2) { i[1:2] } else { i }, collapse = ", ") })
 						) %>%
-					setattr("jk", .$jk.vec %>% unlist() %>% unique() %>% purrr::set_names()) %>%
+					setattr("jk", .$jk.vec |> unlist() |> unique() |> purrr::set_names()) |>
 					setkey(contexts);
 
 				# Sanity checks ...
 				apply(X = this.cfg, MARGIN = 1, FUN = function(i){
 						.cfg = as.list(i);
-						.data = parse(text = .cfg$src.names) %>% eval %>% eval(envir = globalenv());
+						.data = parse(text = .cfg$src.names) |> eval() |> eval(envir = globalenv());
 
 						cat(sprintf("===== Validating '%s' =====\n", .cfg$src.names));
 
@@ -126,8 +126,9 @@ event.vector.space <- { R6::R6Class(
 							.colnames = colnames(.data);
 
 							.map.fields = if (length(unlist(.cfg$map.fields)) > 1){
-								unlist(.cfg$map.fields) } else {
-									.cfg$map.fields %>% stringi::stri_split_regex("[, ]", simplify = TRUE, omit_empty = TRUE) %>% unlist()
+									unlist(.cfg$map.fields)
+								} else {
+									.cfg$map.fields |> stringi::stri_split_regex("[, ]", simplify = TRUE, omit_empty = TRUE) |> unlist()
 								}
 
 							if (chatty){ print(list(map.fields = c(.map.fields), src.colnames = c(.colnames))) }
@@ -137,7 +138,7 @@ event.vector.space <- { R6::R6Class(
 								} else {
 									message(sprintf(
 										"Error: %s missing but declared in mapping fields!"
-											, setdiff(.map.fields, intersect(.map.fields, .colnames)) %>% paste(collapse = ", ")
+											, setdiff(.map.fields, intersect(.map.fields, .colnames)) |> paste(collapse = ", ")
 										));
 									return();
 								}
@@ -153,13 +154,13 @@ event.vector.space <- { R6::R6Class(
 				# @def q_table sets the allowable comparisons before any calculations are done
 				private$q_table <- {
 					# .temp will be a matrix at this point
-					.temp = private$.params$config$contexts %>% utils::combn(m = 2) %>% cbind(apply(., 2, rev)) %>% t()
+					.temp = private$.params$config$contexts |> utils::combn(m = 2) %>% cbind(apply(., 2, rev)) |> t()
 
 					# enforce 'src.mix'
 					if (!src.mix %ilike% "reflex|all"){ .temp %<>% .[.[, 1] != .[, 2], ] }
 
 					# enforce 'exclude.mix' after converting .temp to a 'data.table' object
-					.temp %<>% as.data.table() %>% setnames(c("from", "to"));
+					.temp %<>% as.data.table() |> setnames(c("from", "to"));
 					.temp[!purrr::pmap_lgl(.temp, ~list(c(.x, .y)) %in% exclude.mix)]
 		  	}
 
@@ -175,14 +176,14 @@ event.vector.space <- { R6::R6Class(
 
 				# `set.data()` adds columns used in the call to `cross.time()` to the objects referenced by `private$.params$config$src.names`
 				setattr(private$.params$config, "data_is_set", FALSE);
-				if (chatty) { message(sprintf("[%s] Augmenting source event data ...", Sys.time())); }
+				if (chatty) { message(sprintf("[%s] Augmenting source event data ...", Sys.time())) }
 
 			  #  Adding columns `src` to the object referenced by the parsed value of .x
-				purrr::pwalk(private$.params$config[, .(src.names,	contexts, map.fields, row.filters)] %>% as.list(), ~{
+				purrr::pwalk(as.list(private$.params$config[, .(src.names,	contexts, map.fields, row.filters)]), ~{
 					message(sprintf("Processing %s (%s)", ..1, ..2));
 
 				  # Note that the following parses into a `data.table` syntax
-					.mflds = stringi::stri_split_regex(..3, "[, ]", omit_empty = TRUE, simplify = TRUE) %>% unlist() %>% unclass();
+					.mflds = stringi::stri_split_regex(..3, "[, ]", omit_empty = TRUE, simplify = TRUE) |> unlist() |> unclass();
 					if (chatty){ print(.mflds) }
 
 					rlang::expr({
@@ -247,9 +248,9 @@ event.vector.space <- { R6::R6Class(
 					 					data.table(jk = this.jk, X = "no data")
 					 				} else {
 						 				.evts[(.logi_vec), sprintf("%s[(jk == %s) & (%s)]", src.names, this.jk, row.filters)] %>%
-					 						purrr::map(~str2lang(.x) %>% eval(envir = globalenv()))
+					 						purrr::map(~str2lang(.x) |> eval(envir = globalenv()))
 					 				}
-						 		}) %>% purrr::flatten();
+						 		}) |> purrr::flatten();
 
 				 			# :: Return the graph
 				 			g

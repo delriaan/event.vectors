@@ -1,11 +1,8 @@
 # ~Initialization ====
 # library(EVSpace);
-
 library(purrr)
 library(tictoc);
 library(future);
-
-plan(tweak(multisession, workers = 5))
 #
 make.test_data <- function(j = 5, n = 5, m = 5, dest = globalenv(), .debug = FALSE){
 #' Make Test Data for Validation
@@ -52,12 +49,13 @@ make.test_data <- function(j = 5, n = 5, m = 5, dest = globalenv(), .debug = FAL
 }
 
 BLAH <- new.env();
-make.test_data(j = 5, n = 5, m = 5, dest = BLAH, .debug = !TRUE);
+make.test_data(j = 50, n = 5, m = 5, dest = BLAH, .debug = !TRUE);
 set.seed(sample(100000, 1));
 
 # ~ Create EVSpace object from test data
 tic.clear(); tic.clearlog();
 
+#
 # ~ Validation #1 :: event.vector.space ====
 tic("EVSpace Validation Object");
 #
@@ -75,16 +73,17 @@ test.evs$
 				, evs_exclude.blender("Data.3", c("Data.1", "Data.5"))
 			)}
 		)$
-	set.data(chatty = TRUE)
+	set.data(chatty = TRUE)$
+	set.q_graphs(chatty = TRUE);
 
-test.evs$config %>% attributes()
-test.evs$.__enclos_env__$private$q_table
-
-test.evs$set.q_graphs(chatty = TRUE)
+test.evs$config |> attributes();
+test.evs$.__enclos_env__$private$q_table;
 
 toc(log = TRUE);
 #
 # ~ Validation #2 :: make.evs_universe() ====
+plan(tweak(multisession, workers = 5));
+
 tic("EVSpace Universe Validation");
 make.evs_universe(
 	self = test.evs
@@ -103,10 +102,10 @@ make.evs_universe(
 	);
 toc(log = TRUE);
 
-test.evs$space[, .(jk, from.coord, to.coord, src.pair, mSt, mGap, mEd, epsilon = as.character(epsilon))] %>% summarytools::dfSummary()
-test.evs$space[(jk == 4)] %>% View("Space: jk == 4")
+test.evs$space[, .(jk, from.coord, to.coord, src.pair, mSt, mGap, mEd, epsilon = as.character(epsilon))] %>% summarytools::dfSummary();
+test.evs$space[(jk == 4)] %>% View("Space: jk == 4");
 
-igraph::vertex.attributes(test.evs$evt_graphs$`1`)
+igraph::vertex.attributes(test.evs$evt_graphs$`1`);
 #
 # ~ Validation #3 :: evs_retrace() ====
 evs_retrace(test.evs, "4")

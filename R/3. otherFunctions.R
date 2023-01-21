@@ -10,7 +10,7 @@ evs_exclude.blender <- function(x, y){
 #'
 #' @export
 
-	expand.grid(x, y) %>% apply(1, cbind) %>% as.data.table %>% purrr::map(c) %>% unname()
+	expand.grid(x, y) |> apply(1, cbind) |> data.table::as.data.table() |> purrr::map(c) |> unname()
 }
 #
 melt_time <- function(x, start.names, end.names, ...){
@@ -29,27 +29,23 @@ melt_time <- function(x, start.names, end.names, ...){
 
 	# %>%  Function to parse delimited names
 	parse.delim = function(i) {
-			if (i %like% "[,;|][ ]?") {
-			stringi::stri_split_regex(i, "[,;|][ ]?", simplify = T, omit_empty = T) %>% c
+			if (grepl("[,;|][ ]?", i)) {
+				stringi::stri_split_regex(i, "[,;|][ ]?", simplify = TRUE, omit_empty = TRUE) |> c()
 			} else { i }
 		}
 
-	# %>%  Check for class "data.table"
-	if (!is.data.table(x)) { as.data.table(x) }
+	# :: Check for class "data.table"
+	if (!data.table::is.data.table(x)) { data.table::as.data.table(x) }
 
-	# %>%  Check for additional column names that are understood to be "point-in-time" attributes: create duplicate columns if provided.
-	if (!is.null(c(...))) {
-		x[, c(paste("@", c(...), sep = "")) := .SD %>% pluck(c(...))]
-		}
+	# ::  Check for additional column names that are understood to be "point-in-time" attributes: create duplicate columns if provided.
+	if (!is.null(c(...))) { x[, c(paste("@", c(...), sep = "")) :=  purrr::pluck(.SD, c(...))] }
 
-	start.names %<>% parse.delim %>% c(c(...));
-	end.names %<>% parse.delim %>% c(names(x) %>% keep(~.x %like% "@"));
+	start.names <- parse.delim(start.names) |> c(c(...));
+	end.names <- parse.delim(end.names) |> c(names(x) |> purrr::keep(~.x %like% "@"));
 
-	# %>%  Return the "melted" data.table
-	melt(x, measure.vars = list(start.names, end.names)
-		, value.name	= c("start_date", "end_date")
-		)[, variable := NULL][!(is.na(start_date))];
-	}
+	# :: Return the "melted" data.table
+	melt(x, measure.vars = list(start.names, end.names), value.name	= c("start_date", "end_date"))[, variable := NULL][!(is.na(start_date))];
+}
 #
 make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.control = NULL, furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE), omit.na = FALSE, chatty = FALSE){
 #' Create the EVSpace Universe
@@ -76,9 +72,9 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 
 	force(self)
   edge.filter <- if (...length() > 0){
-  	rlang::enquos(..., .named = FALSE, .ignore_empty = "all") |>
+  	str2lang(rlang::enquos(..., .named = FALSE, .ignore_empty = "all") |>
   		purrr::map_chr(~{ rlang::get_expr(.x) |> deparse() |> sprintf(fmt = "(%s)") }) |>
-  		paste(collapse = " & ") |> str2lang()
+  		paste(collapse = " & "))
   	} else { TRUE }
 
   # :: Create self$space from self$q_graph via calls to 'cross.time()'
@@ -150,7 +146,7 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
   	g;
   }, .options = furrr_opts) |> purrr::compact();
 
-	attr(self$space, "contexts")	<- self$config$contexts;
+	attr(self$space, "contexts") <- self$config$contexts;
 	message(sprintf("[%s] The vector space is ready for analysis", Sys.time()));
 
 	invisible(self);

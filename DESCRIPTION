@@ -1,7 +1,7 @@
 Type: Package
 Package: EVSpace
 Title: Event Vector Space: Analysis of event relations
-Version: 1.2.0
+Version: 1.2.1
 Author: Chionesu George <sapienti.Dei@outlook.com> [aut, cre]
 Maintainer: Chionesu George <sapienti.Dei@outlook.com>
 Depends: 
