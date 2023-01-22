@@ -87,8 +87,8 @@ plan(tweak(multisession, workers = 5));
 tic("EVSpace Universe Validation");
 make.evs_universe(
 	self = test.evs
-	, mSt >= quantile(mSt, 0.75)
-	, abs(mGap) >= quantile(mGap, 0.95)
+	# , mSt >= quantile(mSt, 0.75)
+	, abs(mGap) >= 10
 	, graph.control = { rlang::exprs(
 				igraph::E(g)$title	<- igraph::ends(g, igraph::E(g)) %>% apply(1, paste, collapse = " -> ")
 				, igraph::V(g)$color <- igraph::V(g)$name %>% stringi::stri_split_fixed(":", simplify = TRUE) %>% .[, 1L] %>% {
@@ -104,13 +104,27 @@ toc(log = TRUE);
 
 test.evs$space[, .(jk, from.coord, to.coord, src.pair, mSt, mGap, mEd, epsilon = as.character(epsilon))] %>% summarytools::dfSummary();
 test.evs$space[(jk == 4)] %>% View("Space: jk == 4");
-
 igraph::vertex.attributes(test.evs$evt_graphs$`1`);
 #
 # ~ Validation #3 :: evs_retrace() ====
-evs_retrace(test.evs, "4")
+evs_retrace(test.evs)
+
 event_graph <- test.evs$evt_graphs$`4`
 igraph::V(event_graph)$trace[[1]] %>% eval(envir = globalenv())
+test.evs$space[
+	(jk == 4) & (src.pair %ilike% "(->) src3")
+	, as_mapper(~{
+			print(.SD[c(.x, .y)])
+			print(from <- epsilon[.x])
+			print(to <- epsilon[.y])
+			atan2(to - from, to) / (pi/4)
+		})(1, 4)
+	]
+
+test.evs$space[
+	(jk == 4) & (src.pair %ilike% "(->) src3")
+	, from_timeframe[1] %>% lubridate::int_aligns()
+	]
 
 # ~ Validation #4 :: visNetwork::visIgraph() ====
 f2ab <- list(theta = 0.1, gravitationalConstant = -5000, centralGravity = 0.0,  avoidOverlap = 1, damping = 0.7);
