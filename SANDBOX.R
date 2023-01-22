@@ -53,6 +53,7 @@ markov_viz_data <- split(trans_matrix, f = rownames(trans_matrix)) |> imap(~{
 	rbindlist() |>
 	melt(id.vars = "from_src", variable.name = "to_src", variable.factor = FALSE)
 
+# Sankey
 markov_viz_data[
 	, map(.SD[, .(source = paste0("F_", from_src), target = paste0("T_", to_src))], ~{
 			outer(.x, unique(sort(c(paste0("F_", from_src), paste0("T_", to_src)))), `==`) |> apply(1, which) - 1
@@ -84,6 +85,7 @@ plotly::plot_ly(
     , yaxis = list(showgrid = FALSE, zeroline = FALSE)
     )
 
+# Contour
 markov_viz_data[, c(.SD[, .(from_src)], book.of.features::xform.basis_vector(fvec = to_src, avec = value))][, map(.SD, book.of.utilities::calc.rms), by = from_src] %>%
 plotly::plot_ly(
 	x = ~names(.[, !"from_src"])
@@ -92,3 +94,12 @@ plotly::plot_ly(
 	, type = "contour"
 	# , mode = "marker"
 	)
+
+# Other
+View(test.evs$space[
+			(jk == 1)
+			, .(src.pair, epsilon, epsilon.desc, from.coord, to.coord
+					, event_flow = round(epsilon * shift(epsilon, type = "lead", fill = last(epsilon)), 4) |> cumsum()
+					)
+			, by = jk
+			])
