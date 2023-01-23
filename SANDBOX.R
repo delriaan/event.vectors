@@ -59,31 +59,27 @@ markov_viz_data[
 			outer(.x, unique(sort(c(paste0("F_", from_src), paste0("T_", to_src)))), `==`) |> apply(1, which) - 1
 		}) |> append(list(value = value))
 	][order(source, value)] |>
-modify_at(c("source", "target"), ~factor(.x, levels = sort(unique(.x)), ordered = TRUE)) |>
-plotly::plot_ly(
-	type = "sankey"
-	, orientation = "h"
-	, node = {
-			.colors = replicate(markov_viz_data[, length(unique(sort(c(paste0("F_", from_src), paste0("T_", to_src)))))]
-													, rlang::inject(rgb(!!!runif(3, .1, .8)))
-													) |> sort()
-			list(
-	      label = markov_viz_data[, unique(sort(c(paste0("F_", from_src), paste0("T_", to_src))))]
-	      , color = .colors
-	      , pad = 15
-	      , thickness = 20
-	      , line = list(color = .colors, width = 0.5, stroke = I("#000000"))
-	    	)}
-	, link = { list(
-      source = ~source
-      , target = ~target
-      , value =  ~value
-    	)}
-	) |>
-	plotly::layout(
-    xaxis = list(showgrid = FALSE, zeroline = FALSE)
-    , yaxis = list(showgrid = FALSE, zeroline = FALSE)
-    )
+	modify_at(c("source", "target"), ~factor(.x, levels = sort(unique(.x)), ordered = TRUE)) |>
+	plotly::plot_ly(
+		type = "sankey"
+		, orientation = "h"
+		, node = {
+				.colors = replicate(markov_viz_data[, length(unique(sort(c(paste0("F_", from_src), paste0("T_", to_src)))))]
+														, rlang::inject(rgb(!!!runif(3, .1, .8)))
+														) |> sort()
+				list(
+		      label = markov_viz_data[, unique(sort(c(paste0("F_", from_src), paste0("T_", to_src))))]
+		      , color = .colors
+		      , pad = 15
+		      , thickness = 20
+		      , line = list(color = .colors, width = 0.5, stroke = I("#000000"))
+		    	)}
+		, link = { list(source = ~source, target = ~target, value =  ~value)}
+		) |>
+		plotly::layout(
+	    xaxis = list(showgrid = FALSE, zeroline = FALSE)
+	    , yaxis = list(showgrid = FALSE, zeroline = FALSE)
+	    )
 
 # Contour
 markov_viz_data[, c(.SD[, .(from_src)], book.of.features::xform.basis_vector(fvec = to_src, avec = value))][, map(.SD, book.of.utilities::calc.rms), by = from_src] %>%
