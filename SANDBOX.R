@@ -4,6 +4,7 @@ library(igraph)
 library(book.of.features)
 library(matrixStats)
 library(plotly)
+
 registerDoFuture()
 plan(sequential)
 plan(tweak(multisession, workers = 5))
@@ -40,7 +41,8 @@ trans_matrix <- {
 		}
 }
 
-markov_viz_data <- split(trans_matrix, f = rownames(trans_matrix)) |> imap(~{
+markov_viz_data <- split(trans_matrix, f = rownames(trans_matrix)) |>
+	imap(~{
 		out = t(.x) |> as.matrix()
 
 		purrr::walk(purrr::set_names(1:30), ~{
@@ -49,9 +51,13 @@ markov_viz_data <- split(trans_matrix, f = rownames(trans_matrix)) |> imap(~{
 
 		out[, order(colnames(out))]
 	}) |>
-	purrr::imap(~data.table(from_src = .y, .x[c(TRUE, matrixStats::colDiffs(.x) |> apply(1, purrr::as_mapper(~all(round(.x, 3) != 0)))), ] %>% as.data.table())) |>
+	purrr::imap(~{
+		data.table(from_src = .y
+							 , .x[c(TRUE, matrixStats::colDiffs(.x) |> apply(1, purrr::as_mapper(~all(round(.x, 3) != 0)))), ] %>%
+							 		as.data.table())
+		}) |>
 	rbindlist() |>
-	melt(id.vars = "from_src", variable.name = "to_src", variable.factor = FALSE)
+	melt(id.vars = "from_src", variable.name = "to_src", variable.factor = FALSE);
 
 # Sankey
 markov_viz_data[
@@ -98,4 +104,4 @@ View(test.evs$space[
 					, event_flow = round(epsilon * shift(epsilon, type = "lead", fill = last(epsilon)), 4) |> cumsum()
 					)
 			, by = jk
-			])
+			]);
