@@ -108,7 +108,7 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 				.out = (sqrt(as.complex(.out)) + sqrt(as.complex(mGap)^.tau)) |> unlist() |> purrr::modify_if(~Re(.x) |> is.infinite(), ~as.complex(0))
 				if (rlang::is_empty(.out)){ epsilon } else { .out }
 			}
-		][, epsilon.desc  := descr_epsilon(epsilon)]
+		][, epsilon.desc := descr_epsilon(epsilon)][, c(out.names), with = FALSE]
 	} else { NULL }
 }
 

@@ -119,8 +119,16 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 
   self$space <- data.table::rbindlist(
   		self$space |> split(by = c("jk")) |> furrr::future_map(~{ # Call `cross.time()`
-		  	.x[, cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx, control = time.control), by = .(jk, f_src, t_src)]
-  		}) |> purrr::compact()
+		  	.x[, {
+			  		out.names <- purrr::set_names(as.character(rlang::exprs(
+								mGap, mSt, mEd, from.len, to.len, epsilon, epsilon.desc, from.coord, to.coord, from_timeframe, to_timeframe
+							)));
+		  			xtime = cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx, control = time.control);
+		  			if (nrow(xtime) == 0){ NULL } else { xtime[, c(out.names), with = FALSE] }
+		  		}
+		  		, by = .(jk, f_src, t_src)
+		  		]
+  			}) |> purrr::compact()
   		)[
 		  # Enforce row filter rules before proceeding
 		  !is.na(epsilon) & eval(edge.filter)
