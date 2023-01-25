@@ -70,54 +70,58 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 #' }
 #' @export
 
-	force(self)
+	force(self);
+
   edge.filter <- if (...length() > 0){
   	str2lang(rlang::enquos(..., .named = FALSE, .ignore_empty = "all") |>
   		purrr::map_chr(~{ rlang::get_expr(.x) |> deparse() |> sprintf(fmt = "(%s)") }) |>
   		paste(collapse = " & "))
   	} else { TRUE }
 
+  # :: `make.event_key` is a function used to create sequential unique identifiers for events sources and time-markers
+  make.event_key <- purrr::as_mapper(~{
+			root = .x
+			radix = .y
+			index = rep.int(NA, length(root));
+
+			# Populate 'index' based on unique values of 'root'
+			purrr::walk(unique(root), ~{
+				out.x = root[which(root %in% .x)]
+				out.y = radix[which(root %in% .x)];
+				index[which(root %in% .x)] <<- data.table::frank(out.y, ties.method = "dense")
+			})
+			index
+		})
+
   # :: Create self$space from self$q_graph via calls to 'cross.time()'
-  furrr_opts$globals <- furrr_opts$globals |> c(".evs_cache", "graph.control", ".vnames", ".graphs", "self", "cross.time") |> unique();
+  furrr_opts$globals <- furrr_opts$globals |> c("graph.control", "self", "cross.time", "time.control") |> unique();
+  furrr_opts$packages <- furrr_opts$packages |> c("magrittr", "data.table") |> unique();
 
-  .src_mix <- self$.__enclos_env__$private$q_table |> as.list() |> data.table::transpose() %>% purrr::set_names(purrr::map_chr(., paste, collapse = " -> "));
+  .src_mix <- self$.__enclos_env__$private$q_table;
 
-  # Retrieve the essential columns from sources and create a compact intermediate  data structure
+  # :: Retrieve the essential columns from sources and create a compact intermediate  data structure
 	.tmp_space <- self$config$src.names |>
               purrr::map(~eval(str2lang(.x), envir = globalenv()) %>% .[, .(jk, start_idx, end_idx, src)]) |>
-              data.table::rbindlist() %>%
-              data.table::setkey(jk, start_idx, end_idx);
+              data.table::rbindlist() |>
+              data.table::setkey(jk, start_idx, end_idx) |>
+  						data.table::setorder(jk, start_idx, end_idx) %>%
+  						.[, f_src_exists := src %in% .src_mix[, from], by = jk] %>%
+  						.[, t_src_exists := (src %in% .src_mix[, to]) & f_src_exists, by = jk] %>%
+  						.[(f_src_exists & t_src_exists), !c("f_src_exists", "t_src_exists")] %>%
+  						unique() |> as.list();
 
-  # `make.event_key` is used to create sequential unique identifiers for events sources and time-markers
-  make.event_key <- purrr::as_mapper(~{
-											root = .x
-											radix = .y
-											index = rep.int(NA, length(root));
+	# :: Use optimization from 'data.table' to create `self$space`
+	self$space <- data.table::as.data.table(merge(
+			.tmp_space[(.tmp_space$src %in% .src_mix$from)] |> purrr::compact()|> purrr::set_names(c("jk", "f_start_idx", "f_end_idx", "f_src"))
+			, .tmp_space[(.tmp_space$src %in% .src_mix$to)] |> purrr::compact()|> purrr::set_names(c("jk", "t_start_idx", "t_end_idx", "t_src"))
+			, by = "jk"
+			))
 
-											# Populate 'index' based on unique values of 'root'
-											purrr::walk(unique(root), ~{
-												out.x = root[which(root %in% .x)]
-												out.y = radix[which(root %in% .x)];
-												index[which(root %in% .x)] <<- data.table::frank(out.y, ties.method = "dense") #|> duplicated() |> magrittr::not() |> cumsum()
-											})
-											index
-										})
-
-	# Use optimization from 'data.table' to create `self$space`
-	self$space <- { .tmp_space[
-		  , c(purrr::map(.src_mix, ~{ .SD[(src %in% .x[1]), .(f_start_idx = start_idx, f_end_idx = end_idx, f_src = src)] %>% purrr::compact() }) |> data.table::rbindlist()
-		      , purrr::map(.src_mix, ~{ .SD[(src %in% .x[2]), .(t_start_idx = start_idx, t_end_idx = end_idx, t_src = src)] %>% purrr::compact() }) |> data.table::rbindlist())
-		  , by = jk
-		  ][
-		  , c(cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx)
-		     , list(from.coord			= purrr::map2_chr(f_start_idx, f_end_idx, paste, sep = ":")
-					    , to.coord  			= purrr::map2_chr(t_start_idx, t_end_idx, paste, sep = ":")
-					    , from_timeframe	= purrr::map2(f_start_idx, f_end_idx, lubridate::interval)
-					    , to_timeframe  	= purrr::map2(t_start_idx, t_end_idx, lubridate::interval)
-		    			)
-		  	)
-		  , by = .(jk, f_src, t_src)
-		  ][
+  self$space <- data.table::rbindlist(
+  		self$space |> split(by = c("jk")) |> furrr::future_map(~{ # Call `cross.time()`
+		  	.x[, cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx, control = time.control), by = .(jk, f_src, t_src)]
+  		}) |> purrr::compact()
+  		)[
 		  # Enforce row filter rules before proceeding
 		  !is.na(epsilon) & eval(edge.filter)
 		  ][
@@ -127,28 +131,20 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 		  , by  = .(jk)
 		  ][, src.pair := sprintf("%s -> %s", f_src, t_src)] %>%
 			data.table::setnames(c("f_src", "t_src"), c("from.src", "to.src"))
-		}
 
-  if (omit.na){
-  	logi_vec = apply(X = self$space, MARGIN = 1, FUN = function(i){ !any(is.na(i)) })
-  	self$space %<>% .[(logi_vec)]
-  }
+  attr(self$space, "contexts") <- self$config$contexts;
 
   # :: Create `self$evt_graphs` from `self$space`
-  self$evt_graphs <- self$space |> split(by = "jk") |> purrr::map(~igraph::graph_from_data_frame(data.table::setcolorder(.x, c("from.src", "to.src"))));
-  .graphs <- self$evt_graphs;
+	message(sprintf("[%s] ... creating event graphs", Sys.time()));
+  self$evt_graphs <- self$space |> split(by = "jk") |>furrr::future_map(~{
+			graph.control
+			g = igraph::graph_from_data_frame(data.table::setcolorder(.x, c("from.src", "to.src")))
+			if (!rlang::is_empty(graph.control)){ for (i in graph.control){ eval(i) }}
+			g
+		}, .options = furrr_opts)|> purrr::compact();
 
-  # :: Finalize
-	message(sprintf("[%s] ... finalizing", Sys.time()));
-  self$evt_graphs <- furrr::future_map(self$evt_graphs, ~{
-  	g = .x;
-	  if (!rlang::is_empty(graph.control)){ for (i in graph.control){ eval(i) } }
-  	g;
-  }, .options = furrr_opts) |> purrr::compact();
-
-	attr(self$space, "contexts") <- self$config$contexts;
+  # :: Return
 	message(sprintf("[%s] The vector space is ready for analysis", Sys.time()));
-
 	invisible(self);
 }
 #

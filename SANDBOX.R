@@ -99,3 +99,5 @@ View(test.evs$space[
 					)
 			, by = jk
 			])
+
+self$space[(jk == 1), cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx, control = time.control), by = .(jk, f_src, t_src)]

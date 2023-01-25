@@ -15,7 +15,7 @@ cross.time(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE, ...)
 
 \item{e1}{A numeric/date-coded vector containing the temporal upper boundary of the ending event duration}
 
-\item{control}{A length-2 sorted list with values indicating the range of allowable values for internal variable \code{.beta} (the difference between ends of 'to' events and beginnings of 'from' events)}
+\item{control}{A length-2 sorted list with values indicating the range of allowable values for internal variable \code{beta} (the difference between ends of 'to' events and beginnings of 'from' events)}
 
 \item{chatty}{(logical | \code{FALSE}) Verbosity flag}
 

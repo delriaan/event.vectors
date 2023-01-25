@@ -1,4 +1,4 @@
-# ~Initialization ====
+# ~ Initialization ====
 # library(EVSpace);
 library(purrr)
 library(tictoc);
@@ -91,13 +91,15 @@ test.evs$.__enclos_env__$private$q_table;
 toc(log = TRUE);
 #
 # ~ Validation #2 :: make.evs_universe() ====
-plan(tweak(multisession, workers = 8));
+plan(sequential)
+plan(tweak(multisession, workers = 7))
 
 tic("EVSpace Universe Validation");
 make.evs_universe(
 	self = test.evs
 	# , mSt >= quantile(mSt, 0.75)
-	, abs(mGap) >= 5
+	# , abs(mGap) >= 5
+	, time.control = list(0, 100)
 	, graph.control = { rlang::exprs(
 				igraph::E(g)$title	<- igraph::ends(g, igraph::E(g)) %>% apply(1, paste, collapse = " -> ")
 				, igraph::V(g)$color <- igraph::V(g)$name %>% stringi::stri_split_fixed(":", simplify = TRUE) %>% .[, 1L] %>% {
