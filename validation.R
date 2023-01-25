@@ -146,6 +146,13 @@ event_graph %>% {
 	htmltools::html_print(viewer = browseURL)
 
 # ~ Cleanup ====
+book.of.workflow::do.save_image(
+	"BLAH", "test.evs"
+	, file.name = "test_data"
+	, save.dir = "experiments"
+	, safe = TRUE
+	)
+
 rm(BLAH, make.test_data)
 plan(sequential);
 gc(full = TRUE)
