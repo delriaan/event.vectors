@@ -1,6 +1,7 @@
 # ~ Initialization ====
 # library(EVSpace);
 library(purrr)
+library(stringi)
 library(tictoc);
 library(future);
 #
@@ -91,8 +92,8 @@ test.evs$.__enclos_env__$private$q_table;
 toc(log = TRUE);
 #
 # ~ Validation #2 :: make.evs_universe() ====
-plan(sequential)
-plan(tweak(multisession, workers = 7))
+plan(sequential);
+plan(tweak(multisession, workers = 7));
 
 tic("EVSpace Universe Validation");
 make.evs_universe(
@@ -153,7 +154,11 @@ book.of.workflow::do.save_image(
 	, safe = TRUE
 	)
 
-rm(BLAH, make.test_data)
+rm(list = ls())
 plan(sequential);
 gc(full = TRUE)
+
+
+# usethis::use_pkgdown()
+# pkgdown::build_site()
 
