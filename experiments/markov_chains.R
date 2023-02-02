@@ -88,4 +88,4 @@ plotly::plot_ly(
 	plotly::layout(
     xaxis = list(showgrid = FALSE, zeroline = FALSE)
     , yaxis = list(showgrid = FALSE, zeroline = FALSE)
-    );
+    )
