@@ -15,6 +15,7 @@
 #' @param e1 A numeric/date-coded vector containing the temporal upper boundary of the ending event duration
 #' @param control A length-2 sorted list with values indicating the range of allowable values for internal variable \code{beta} (the difference between ends of 'to' events and beginnings of 'from' events)
 #' @param chatty (logical | \code{FALSE}) Verbosity flag
+#' @param units Conversion temporal units compatible with \code{lubridate}
 #' @param ... (Not used)
 #'
 #' @returns A \code{\link[data.table]{data.table}} object having the following fields:
@@ -41,12 +42,15 @@
 #'
 #' @name cross.time
 #' @export
-cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE, ...){
+cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE, units = "",  ...){
 ## Reference: https://www.r-bloggers.com/using-complex-numbers-in-r/
 ## Division by Pi/4 makes it easy to tell if one argument is larger than, smaller than, or the same magnitude as the other (same = Pi/4)
 ## All computations are in the direction of B.max to A.min when `events.ascending` is TRUE
 	require(data.table);
 	require(magrittr);
+
+	.conversion <- if (units %in% ls(pattern = "^(we|mo|da|ye|se|mi|na|ho|pi).+s$", envir = loadNamespace("lubridate"))){
+										rlang::inject(`::`(lubridate, !!units)) } else { as.numeric }
 
 	# `descr_epsilon` creates the text descriptions of `epsilon` in the output
 	descr_epsilon <- purrr::as_mapper(~{
@@ -74,7 +78,7 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 							)));
 
 	# Ensure increasing ordering of `control` and time
-	control <- (function(i){ i[unlist(i) |> order()] })(control)
+	control <- (function(i){ i[unlist(i) |> order()] |> .conversion() |> as.list() })(control)
 
 	XTIME <- { data.table::data.table(
 							beta				= as.numeric(e1 - s0)

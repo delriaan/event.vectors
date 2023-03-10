@@ -168,11 +168,12 @@ event.vector.space <- { R6::R6Class(
 			}
 		, # SET.DATA() ====
 			#' @description
-			#' \code{set.data()} adds column \code{src} to the objects referenced by the configuration argument
+			#' \code{set.data()} adds column \code{src} to the objects referenced by the configuration argument.  It also converts temporal fields based on the value of parameter \code{units}
+			#'
 			#' @param chatty (logical | \code{FALSE}) Verbosity flag
 		 set.data = function(chatty = FALSE){
 				if (is.null(private$.params$config)){
-					stop("No class object configuration detected. Provide a configuration set using `$configure()` involving at least two (2) temporal datasets."); }
+					stop("No class object configuration detected. Provide a configuration set using `$configure()` involving at least two (2) temporal datasets."); 				}
 
 				# `set.data()` adds columns used in the call to `cross.time()` to the objects referenced by `private$.params$config$src.names`
 				setattr(private$.params$config, "data_is_set", FALSE);

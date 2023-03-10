@@ -1,4 +1,4 @@
-make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.control = NULL, furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE), graph.only = FALSE, chatty = FALSE){
+make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.control = NULL, units = "", furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE), graph.only = FALSE, chatty = FALSE){
 #' Create the Event Vector Universe
 #'
 #' \code{make.evs_universe} supplies values to two class fields: \code{q_graph} and \code{space}, the latter being created from the former.
@@ -7,6 +7,7 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 #' @param ... (\code{\link[rlang]{dots_list}}) Logical expression that retain graph edges meeting the conditions
 #' @param time.control A 2-element list containing the minimum and maximum values allowed for total temporal span between two events
 #' @param graph.control An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph
+#' @param units (See \code{\link{cross.time}})
 #' @param furrr_opts \code{\link[furrr]{furrr_options}} defaulted as \code{scheduling = Inf} and \code{seed = TRUE}: internal globals are also set and will be appended to values provided here
 #' @param graph.only (logical | \code{FALSE}) \code{TRUE} assumes class member \code{$space} exists (possibly after external modification) and recreates member \code{$evt_graphs}
 #' @param chatty (logical | \code{FALSE}) Verbosity flag
@@ -45,7 +46,7 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 		});
 
   # :: Create self$space from self$q_graph via calls to 'cross.time()' ----
-  furrr_opts$globals <- furrr_opts$globals |> c("graph.control", "self", "cross.time", "time.control") |> unique();
+  furrr_opts$globals <- furrr_opts$globals |> c("graph.control", "self", "cross.time", "time.control", "units") |> unique();
   furrr_opts$packages <- furrr_opts$packages |> c("magrittr", "data.table") |> unique();
 
   .src_mix <- self$.__enclos_env__$private$q_table;
@@ -83,7 +84,7 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 								jk, f_src, t_src, mGap, mSt, mEd, from.len, to.len, epsilon, epsilon.desc, from.coord, to.coord, from_timeframe, to_timeframe
 							)));
 
-		  			xtime = .x %$% cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx, control = time.control);
+		  			xtime = .x %$% cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx, control = time.control, units = units);
 		  			if (nrow(xtime) == 0){ NULL } else { xtime[, c(.x, .SD)][, c(out.names), with = FALSE] }
 		  		}) |>
   				purrr::compact() |>

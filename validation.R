@@ -99,7 +99,7 @@ tic("EVSpace Universe Validation");
 make.evs_universe(
 	self = test.evs
 	# , mSt >= quantile(mSt, 0.75)
-	# , abs(mGap) >= 5
+	, abs(mGap) >= lubridate::days(5)
 	, time.control = list(0, 100)
 	, graph.control = { rlang::exprs(
 				igraph::E(g)$title	<- igraph::ends(g, igraph::E(g)) %>% apply(1, paste, collapse = " -> ")
@@ -111,6 +111,7 @@ make.evs_universe(
 				, igraph::V(g)$src <- igraph::V(g)$name %>% stringi::stri_replace_first_regex("[:][0-9]+", "")
 				)
 		}
+	, units = "minutes"
 	, omit.na = !TRUE
 	, chatty = TRUE
 	);
