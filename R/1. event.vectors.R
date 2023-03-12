@@ -1,7 +1,7 @@
-#' Relational Temporal Vector Space
+#' Event Vectors
 #'
 #' @description
-#' `event.vector.space` is an R6 class object that creates a temporally-compared space of "\emph{event vectors}", each comprised of a 'from' and 'to' date.
+#' \code{event.vectors} is an R6 class object that creates a temporally-compared space of "\emph{event vectors}", each comprised of a 'from' and 'to' temporal marker.
 #'
 #' The time between these events is the focus of derivation: properly, the event vector is a complex number that encodes the relationship between the boundaries of the events, thus allowing one to describe this relationship in a concise manner.
 #'
@@ -9,7 +9,7 @@
 #' @section Execution Workflow:
 #' The initial execution order should look something like the following ...
 #' \cr
-#' \code{ event.vector.space$new(...)$configure(...)$set.data(...)$set.q_graphs(...) \%>\% make.evs_universe(...) }.  The ability to execute the preceding workflow out of order exists, but it is best to adhere to the provided flow the first time around.
+#' \code{ event.vectors$new(...)$configure(...)$set.data(...)$set.q_graphs(...) \%>\% make.evs_universe(...) }.  The ability to execute the preceding workflow out of order exists, but it is best to adhere to the provided flow the first time around.
 #' \cr
 #' \cr
 #' @section Class Member "Space":
@@ -28,7 +28,7 @@
 event.vector.space <- { R6::R6Class(
 	classname = "event.vector.space"
 	# _____ PUBLIC METHODS _____
-, public = { list(
+	, public = { list(
 		# _____ PUBLIC CLASS MEMBERS _____
 		#' @field space The object containing the derived set of data (see 'Details')
 		space	 = NULL
@@ -46,7 +46,7 @@ event.vector.space <- { R6::R6Class(
 		initialize = function(config = NULL, ...){
 				# ::  CLASS MEMBERS INITIALIZATION
 				if (!is.null(config)) {
-					.expr = substitute(self$configure());
+					.expr = rlang::expr(self$configure());
 
 					.expr$src.names 	= config$src.names
 					.expr$contexts		= config$contexts
@@ -91,14 +91,13 @@ event.vector.space <- { R6::R6Class(
       #' @param update (logical) \code{TRUE} results in appending to the existing configuration
       #' @param chatty (logical | \code{FALSE}) Verbosity flag
 			configure =	function(src.names, contexts, map.fields, row.filters, src.mix = "comb", exclude.mix = list(c("", "")), update = FALSE, chatty = FALSE){
-				this.cfg = data.table(src.names, contexts, map.fields, row.filters = purrr::map_chr(row.filters, ~ifelse(!is.character(.x), deparse(.x), .x)));
+				this.cfg <- data.table(src.names, contexts, map.fields, row.filters = purrr::map_chr(row.filters, ~ifelse(!is.character(.x), deparse(.x), .x)));
 
 				private$.params$config <- if (!update | is.null(private$.params$config)){
 						data.table::rbindlist(list(private$.params$config, this.cfg), use.names = TRUE)
 					} else { this.cfg }
 
-				private$.params$config[
-					, jk.vec := purrr::map2(src.names, map.fields, ~{
+				private$.params$config[, jk.vec := purrr::map2(src.names, map.fields, ~{
 							jk.col = if (length(.y) > 1){
 								.y[1]
 							} else {
@@ -107,10 +106,9 @@ event.vector.space <- { R6::R6Class(
 							})];
 
 				setattr(private$.params$config, "src.mix", src.mix) |>
-					setattr(
-						"exclude.mix"
-						, sapply(exclude.mix, function(i){ paste0(if (length(i) == 1){ c(i, i) } else if(length(i) > 2) { i[1:2] } else { i }, collapse = ", ") })
-						) %>%
+					setattr("exclude.mix", sapply(exclude.mix, function(i){
+						paste0(if (length(i) == 1){ c(i, i) } else if(length(i) > 2) { i[1:2] } else { i }, collapse = ", ")
+					})) |>
 					setattr("jk", .$jk.vec |> unlist() |> unique() |> purrr::set_names()) |>
 					setkey(contexts);
 
@@ -190,18 +188,19 @@ event.vector.space <- { R6::R6Class(
 					rlang::expr({
 						if (!is.data.table(!!str2lang(..1))){ !!str2lang(sprintf("%s <- as.data.table(%1$s)", ..1)) }
 
-						(!!str2lang(..1))[, `:=`(
-								src = !!..2
-								, jk = !!str2lang(.mflds[1])
-								, start_idx = !!str2lang(.mflds[2])
-								, end_idx = !!str2lang(.mflds[3])
-								, row.filters = !!..4
-								, rec_idx = sequence(nrow((!!str2lang(..1))))
-								)
-							] %>%
+						(!!str2lang(..1))[
+							, `:=`(
+									src 				= !!..2
+									, jk				= !!str2lang(.mflds[1])
+									, start_idx = !!str2lang(.mflds[2])
+									, end_idx 	= !!str2lang(.mflds[3])
+									, row.filters = !!..4
+									, rec_idx 	= sequence(nrow((!!str2lang(..1))))
+									)
+								] |>
 							setkeyv(c('jk', 'start_idx', 'end_idx')) %>%
 							setcolorder(c(key(.), 'row.filters'))
-						}) %T>% { if (chatty) print(.) } %>% eval()
+						}) %T>% { if (chatty) print(.) } |> eval()
 				});
 
 				setattr(private$.params$config, "data_is_set", TRUE);
@@ -232,7 +231,7 @@ event.vector.space <- { R6::R6Class(
 							, map.fields := if (is.list(map.fields)){
 									purrr::map_chr(map.fields, paste, collapse = "|")
 								} else map.fields
-							] %>% unique();
+							] |> unique();
 
 			 			# :: Create a configuration graph from the current value of jk and it's associated events
 			 			g = cbind(private$q_table[c(and(from %in% .evts$contexts, to %in% .evts$contexts))], jk = this.jk);
@@ -248,7 +247,7 @@ event.vector.space <- { R6::R6Class(
 					 				if (identical(integer(), .logi_vec)){
 					 					data.table(jk = this.jk, X = "no data")
 					 				} else {
-						 				.evts[(.logi_vec), sprintf("%s[(jk == %s) & (%s)]", src.names, this.jk, row.filters)] %>%
+						 				.evts[(.logi_vec), sprintf("%s[(jk == %s) & (%s)]", src.names, this.jk, row.filters)] |>
 					 						purrr::map(~str2lang(.x) |> eval(envir = globalenv()))
 					 				}
 						 		}) |> purrr::flatten();
@@ -256,11 +255,11 @@ event.vector.space <- { R6::R6Class(
 				 			# :: Return the graph
 				 			g
 			 			}
-			 		}) %>% purrr::compact();
+			 		}) |> purrr::compact();
 				}
 
 		 		if (!rlang::is_empty(self$q_graph)){
-			 		if (chatty){ message(sprintf("Created %s query graphs", self$q_graph %>% length())) }
+			 		if (chatty){ message(sprintf("Created %s query graphs", self$q_graph |> length())) }
 		 			setattr(private$.params$config, "graphs_created", TRUE);
 		 		} else if (chatty){ message("No graphs greated") }
 
@@ -268,18 +267,18 @@ event.vector.space <- { R6::R6Class(
 			}
 		)}
 	# _____ PUBLIC ACTIVE BINDINGS _____
-, active = { list(
+	, active = { list(
 		#' @field config This is an active binding that returns the configuration used to instantiate the class.
 		config = function(...){
-			copy(private$.params$config) %>%
+			copy(private$.params$config) |>
 				setkey(contexts) %T>%
 				setattr("events.ascending", private$.params$events.ascending)}
 		)}
 	# _____ PRIVATE _____
-, private = { list(
+	, private = { list(
 		# _____ PRIVATE CLASS MEMBERS _____
 		.params = { list(config = NULL)}
 		, q_table = NULL
 		# _____ PRIVATE METHODS _____
 		)}
-)}
+	)}

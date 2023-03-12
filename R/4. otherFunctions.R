@@ -13,40 +13,6 @@ evs_exclude.blender <- function(x, y){
 	expand.grid(x, y) |> apply(1, cbind) |> data.table::as.data.table() |> purrr::map(c) |> unname()
 }
 #
-melt_time <- function(x, start.names, end.names, ...){
-#' Multiple Time Melter
-#'
-#' \code{melt_time} leverages data.table::melt to transform the input's temporal feature vector into a pair of features indicating temporal duration (i.e., start & stop).  It handles feature vectors of any length.  "Point-in-time" columns are duplicated before melting
-#'
-#' @param x (object) A data.frame, data.table, or coercible to data.table
-#' @param start.names (string or vector) The names of the "start" columns: parsed if given as a delimited string of pattern "[,;|][ ]?"
-#' @param end.names (same as \code{start.names})
-#' @param ... (string list) Optional column names that are "point-in-time" columns.
-#'
-#' @return A "melted" \code{\link[data.table]{data.table}} with temporal feature vector containing \emph{start_date} and \emph{end_date}
-#'
-#' @export
-
-	# %>%  Function to parse delimited names
-	parse.delim = function(i) {
-			if (grepl("[,;|][ ]?", i)) {
-				stringi::stri_split_regex(i, "[,;|][ ]?", simplify = TRUE, omit_empty = TRUE) |> c()
-			} else { i }
-		}
-
-	# :: Check for class "data.table"
-	if (!data.table::is.data.table(x)) { data.table::as.data.table(x) }
-
-	# ::  Check for additional column names that are understood to be "point-in-time" attributes: create duplicate columns if provided.
-	if (!is.null(c(...))) { x[, c(paste("@", c(...), sep = "")) :=  purrr::pluck(.SD, c(...))] }
-
-	start.names <- parse.delim(start.names) |> c(c(...));
-	end.names <- parse.delim(end.names) |> c(names(x) |> purrr::keep(~.x %like% "@"));
-
-	# :: Return the "melted" data.table
-	melt(x, measure.vars = list(start.names, end.names), value.name	= c("start_date", "end_date"))[, variable := NULL][!(is.na(start_date))];
-}
-#
 evs_retrace <- function(self, ...){
 #' Retrace Event Source Data
 #'

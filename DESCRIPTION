@@ -1,7 +1,7 @@
 Type: Package
-Package: EVSpace
-Title: Event Vector Space: Analysis of event relations
-Version: 1.3.1
+Package: event.vectors
+Title: Event Vectors
+Version: 1.5.0*
 Author: Chionesu George <sapienti.Dei@outlook.com> [aut, cre]
 Maintainer: Chionesu George <sapienti.Dei@outlook.com>
 Depends: 
@@ -13,7 +13,7 @@ Imports:
     stringi, 
     igraph,
     furrr,
-    purrr, 
+    purrr (< 1.0.0), 
     cachem (>= 1.0.6), 
     memoise (>= 2.0.1)
 Suggests:

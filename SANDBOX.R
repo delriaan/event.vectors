@@ -1,103 +1,64 @@
-library(foreach)
-library(doFuture)
-library(igraph)
-library(book.of.features)
-library(matrixStats)
-library(plotly)
-registerDoFuture()
-plan(sequential)
-plan(tweak(multisession, workers = 5))
-test.evs$evt_graphs$`1` |> vertex.attributes()
+# ::: Replacement for $configure :::
 
-test.evs$evt_graphs %<>% furrr::future_map(~{
-		g = .x
-		igraph::V(g)$length <- purrr::map(igraph::V(g), ~{
-			.x$trace |> eval(envir = globalenv()) %$% { end_idx - start_idx }
+library(magrittr)
+x <- mtcars[7:10]
+y <- cbind(mtcars[, c(1, 6, 9)], W = rownames(mtcars))
+ENV <- new.env()
+ENV$y <- cbind(mtcars[, 1:4], A = rownames(mtcars))
+ENV$q <- cbind(mtcars[, 5:6], B = rownames(mtcars))
+
+evs_configure <- function(src.names, contexts, map.fields = NULL, row.filters, src.mix = "comb", exclude.mix = list(c("", "")), update = FALSE, chatty = FALSE){
+	private <- new.env()
+
+	fld_nms <- c("jk", "start", "end")
+	make_refs <- purrr::as_mapper(~{
+		.this <- sapply(.x, as.character) |> rlang::parse_exprs()
+		if (!rlang::has_length(.this, 1)){ .this[-1] } else { .this}
+	})
+	make_quos <- purrr::as_mapper(~{
+		.this <- sapply(.y, as.character)
+		.that <- .x
+		if (!rlang::has_length(.this, 1)){ .this <- .this[-1] }
+
+		.that <- rlang::set_names(.that, .this)
+		rlang::as_quosures(.that, named = TRUE, env = rlang::caller_env(1))
+	})
+	set_fld_nms <- purrr::as_mapper(~{
+		nms.x <- names(.x)
+		nm_pos <- which(nms.x %in% fld_nms)
+		na_pos <- setdiff(seq_along(nms.x), nm_pos)
+		nms.x[na_pos] <- setdiff(fld_nms, nms.x[nm_pos])
+		nms.x
+	})
+
+	# Create the event data references
+	event_refs <- make_refs(rlang::enexprs(src.names)) |>	make_quos(rlang::enexprs(contexts))
+
+	# Create the field references for each data reference
+	this.cfg <- purrr::map2(
+			event_refs
+			, map.fields |> purrr::map(~rlang::parse_exprs(.x) |> rlang::set_names(set_fld_nms(.)))
+			, ~{	rlang::as_quosures(.y, env = rlang::as_data_mask(rlang::eval_tidy(.x)))[fld_nms]
 			})
-		g
-	}, .options = furrr::furrr_options(scheduling = Inf, seed = TRUE, globals = "BLAH"))
 
-trans_matrix <- test.evs$evt_graphs$`1` |> igraph::get.adjacency(attr = "mGap", names = TRUE, sparse = FALSE)
-
-# Transition Matrix
-trans_matrix <- {
-		trans_matrix |>
-		rownames() |>
-		purrr::map(~{
-			c(from = list(stringi::stri_replace_first_regex(.x, "[:][0-9]+", ""))
-				, colnames(trans_matrix)[trans_matrix[.x, ] != 0] %>%
-						stringi::stri_replace_first_regex("[:][0-9]+", "") |>
-							table()
-				)
-			}) |>
-		rbindlist(use.names = TRUE, fill = TRUE) %>% {
-			.[, purrr::map(.SD, sum, na.rm = TRUE), by = from
-			][, .SD/sum(.SD), by = from] -> .tmp_obj
-
-			.tmp_obj[, !"from"] %>%
-				as.matrix() %>%
-				setattr("dimnames", list(.tmp_obj$from, colnames(.)))
-		}
+	private$.params$config <- if (!update | is.null(private$.params$config)){	this.cfg } else { purrr::list_modify(private$.params$config, !!!this.cfg)}
 }
 
-markov_viz_data <- split(trans_matrix, f = rownames(trans_matrix)) |> imap(~{
-		out = t(.x) |> as.matrix()
-
-		purrr::walk(purrr::set_names(1:30), ~{
-				out <<- rbind(out, (out[nrow(out), ] %*% trans_matrix))
-			})
-
-		out[, order(colnames(out))]
-	}) |>
-	purrr::imap(~data.table(from_src = .y, .x[c(TRUE, matrixStats::colDiffs(.x) |> apply(1, purrr::as_mapper(~all(round(.x, 3) != 0)))), ] %>% as.data.table())) |>
-	rbindlist() |>
-	melt(id.vars = "from_src", variable.name = "to_src", variable.factor = FALSE)
-
-# Sankey
-markov_viz_data[
-	, map(.SD[, .(source = paste0("F_", from_src), target = paste0("T_", to_src))], ~{
-			outer(.x, unique(sort(c(paste0("F_", from_src), paste0("T_", to_src)))), `==`) |> apply(1, which) - 1
-		}) |> append(list(value = value))
-	][order(source, value)] |>
-	modify_at(c("source", "target"), ~factor(.x, levels = sort(unique(.x)), ordered = TRUE)) |>
-	plotly::plot_ly(
-		type = "sankey"
-		, orientation = "h"
-		, node = {
-				.colors = replicate(markov_viz_data[, length(unique(sort(c(paste0("F_", from_src), paste0("T_", to_src)))))]
-														, rlang::inject(rgb(!!!runif(3, .1, .8)))
-														) |> sort()
-				list(
-		      label = markov_viz_data[, unique(sort(c(paste0("F_", from_src), paste0("T_", to_src))))]
-		      , color = .colors
-		      , pad = 15
-		      , thickness = 20
-		      , line = list(color = .colors, width = 0.5, stroke = I("#000000"))
-		    	)}
-		, link = { list(source = ~source, target = ~target, value =  ~value)}
-		) |>
-		plotly::layout(
-	    xaxis = list(showgrid = FALSE, zeroline = FALSE)
-	    , yaxis = list(showgrid = FALSE, zeroline = FALSE)
-	    )
-
-# Contour
-markov_viz_data[, c(.SD[, .(from_src)], book.of.features::xform.basis_vector(fvec = to_src, avec = value))][, map(.SD, book.of.utilities::calc.rms), by = from_src] %>%
-plotly::plot_ly(
-	x = ~names(.[, !"from_src"])
-	, y = ~from_src
-	, z = ~as.matrix(.[, !"from_src"])
-	, type = "contour"
-	# , mode = "marker"
+inspect <- test_func(
+	src.names = c(y, ENV$q)
+	, contexts = c(EVENT_A, EVENT_B)
+	, map.fields = list(c("W", jk = "mpg", "wt"), c(end = "B", "drat", start = "wt"))
 	)
 
-# Other
-View(test.evs$space[
-			(jk == 1)
-			, .(src.pair, epsilon, epsilon.desc, from.coord, to.coord
-					, event_flow = round(epsilon * shift(epsilon, type = "lead", fill = last(epsilon)), 4) |> cumsum()
-					)
-			, by = jk
-			])
+inspect$EVENT_A
 
-self$space[(jk == 1), cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx, control = time.control), by = .(jk, f_src, t_src)]
+# Indirectly retrieve a value
+inspect$EVENT_A$start
+inspect$EVENT_A$start |> rlang::eval_tidy()
+
+# Directly retrieve a value
+inspect$EVENT_A$start |> rlang::quo_get_env() |> parent.env() %$% W
+
+
+setdiff(1:3, c(3,0,1))
+

@@ -3,7 +3,7 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 #'
 #' \code{make.evs_universe} supplies values to two class fields: \code{q_graph} and \code{space}, the latter being created from the former.
 #'
-#' @param evs An \code{EVSpace} object
+#' @param evs An \code{event.vectors} object
 #' @param ... (\code{\link[rlang]{dots_list}}) Logical expression that retain graph edges meeting the conditions
 #' @param time.control A 2-element list containing the minimum and maximum values allowed for total temporal span between two events
 #' @param graph.control An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph
