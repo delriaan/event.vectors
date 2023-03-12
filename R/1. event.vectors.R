@@ -66,18 +66,12 @@ event.vector.space <- { R6::R6Class(
 			#' \item If the former method is used, object must be a \code{\link{data.frame}}, \code{\link{data.table}}, \code{\link{list}}(-like) with the following columns: \code{src.names}, \code{contexts}, \code{map.fields}, and \code{row.filters}. It is important to set the configuration data.frame correctly by ensuring the elements of each row are related to the same dataset; otherwise, the wrong filter may attempted to be applied to a non-existent column.
 			#' \item If using this method, the same fields are available as arguments with the additional arguments \code{src.mix} and \code{exclude.mix} that can be used to override the default behavior of how class method \code{$evs.universe()} cross-compares sources.
 			#' }
-      #' @param src.names An atomic vector of strings containing the R workspace names of the source datasets given in "ENVIRONMENT$object" or "object" format
+      #' @param src.names An atomic vector of strings or expressions providing the source datasets given in "ENVIRONMENT$object" or simply "object" format: language to filter rows/columns are allowed.
       #' @param contexts An atomic vector of strings serving as labels for each data source
       #' @param map.fields One of two forms are supported:
       #' \itemize{
       #' \item An atomic vector of delimited strings, each string indicating the columns that serve as the join-key (\code{jk}), lower boundary (\code{time_start_idx}) and upper boundary (\code{time_end_idx}) in that order
       #' \item A list of length-three array of strings following the ordering rule stated above
-      #' }
-      #'
-      #' @param row.filters One of two forms are supported:
-      #' \itemize{
-      #' \item An atomic vector of strings, each element being used to filter the corresponding dataset before processing.  Each string should contain a logical statement of predicates such as \code{\eqn{(a \le b) | ((i + 10) \ge k[1])}}
-      #' \item An expression list of similar construction
       #' }
       #'
       #' @param src.mix \describe{
@@ -88,82 +82,77 @@ event.vector.space <- { R6::R6Class(
 			#'
       #' @param exclude.mix A list of vectors containing each source pair context to exclude (e.g. \code{list(c("A", "C"), c("u", "k"))}). \code{\link{evs_exclude.blender}} can be invoked to create this list more quickly.  Combinations are not automatically mirrored as is the case with 'src.mix'.
       #'
-      #' @param update (logical) \code{TRUE} results in appending to the existing configuration
       #' @param chatty (logical | \code{FALSE}) Verbosity flag
-			configure =	function(src.names, contexts, map.fields, row.filters, src.mix = "comb", exclude.mix = list(c("", "")), update = FALSE, chatty = FALSE){
-				this.cfg <- data.table(src.names, contexts, map.fields, row.filters = purrr::map_chr(row.filters, ~ifelse(!is.character(.x), deparse(.x), .x)));
+			configure =	function(src.names, contexts, map.fields = NULL, src.mix = "comb", exclude.mix = list(c()), chatty = FALSE){
+					if (!rlang::is_empty(exclude.mix)){ message("Source-mix exlusions detected") }
 
-				private$.params$config <- if (!update | is.null(private$.params$config)){
-						data.table::rbindlist(list(private$.params$config, this.cfg), use.names = TRUE)
-					} else { this.cfg }
+					private <- new.env()
+					fld_nms <- c("jk", "time_start_idx", "time_end_idx")
+					make_refs <- purrr::as_mapper(~{
+						.this <- sapply(.x, as.character) |> rlang::parse_exprs()
+						if (!rlang::has_length(.this, 1)){ .this[-1] } else { .this}
+					})
+					make_quos <- purrr::as_mapper(~{
+						.this <- sapply(.y, as.character)
+						.that <- .x
+						if (!rlang::has_length(.this, 1)){ .this <- .this[-1] }
 
-				private$.params$config[, jk.vec := purrr::map2(src.names, map.fields, ~{
-							jk.col = if (length(.y) > 1){
-								.y[1]
-							} else {
-								stringi::stri_split_regex(.y, "[,|: ]+", simplify = TRUE, omit_empty = TRUE) |> unlist() %>% .[1] }
-								str2lang(sprintf("%s[, sort(unique(%s))]", .x, jk.col)) |> eval()
-							})];
+						.that <- rlang::set_names(.that, .this)
+						rlang::as_quosures(.that, named = TRUE, env = rlang::caller_env(1))
+					})
+					set_fld_nms <- purrr::as_mapper(~{
+						nms.x <- names(.x)
+						nm_pos <- which(nms.x %in% fld_nms)
+						na_pos <- setdiff(seq_along(nms.x), nm_pos)
+						nms.x[na_pos] <- setdiff(fld_nms, nms.x[nm_pos])
+						nms.x
+					})
 
-				setattr(private$.params$config, "src.mix", src.mix) |>
-					setattr("exclude.mix", sapply(exclude.mix, function(i){
-						paste0(if (length(i) == 1){ c(i, i) } else if(length(i) > 2) { i[1:2] } else { i }, collapse = ", ")
-					})) |>
-					setattr("jk", .$jk.vec |> unlist() |> unique() |> purrr::set_names()) |>
-					setkey(contexts);
+					# Create the event data references
+					event_refs <- make_refs(rlang::enexprs(src.names)) |>	make_quos(rlang::enexprs(contexts))
 
-				# Sanity checks ...
-				apply(X = this.cfg, MARGIN = 1, FUN = function(i){
-						.cfg = as.list(i);
-						.data = parse(text = .cfg$src.names) |> eval() |> eval(envir = globalenv());
+					# Create a configuration quosure for each data source
+					private$.params$config <- list(event_refs, map.fields |> purrr::map(~rlang::parse_exprs(.x) |> rlang::set_names(set_fld_nms(.)))) |>
+						purrr::pmap(~{
+								.temp <- rlang::as_quosures(..2, env = rlang::as_data_mask(rlang::eval_tidy(..1)))[fld_nms];
+								.temp$jk.vec <- .temp$jk |> rlang::eval_tidy() |> unique() |> sort();
 
-						cat(sprintf("===== Validating '%s' =====\n", .cfg$src.names));
+								message(glue::glue("Validating source `{rlang::as_label(rlang::quo_get_expr(..1))}`\n"));
+								qa_check <- { c(
+									glue::glue("{rlang::as_label(rlang::quo_get_expr(..1))} exists: {assertthat::not_empty(rlang::eval_tidy(..1))}")
+									, glue::glue("- ${rlang::as_label(rlang::quo_get_expr(.temp$jk))} exists: {assertthat::not_empty(rlang::eval_tidy(.temp$jk))}" )
+									, glue::glue("- ${rlang::as_label(rlang::quo_get_expr(.temp$time_start_idx))} exists: {assertthat::not_empty(rlang::eval_tidy(.temp$time_start_idx))}" )
+									, glue::glue("- ${rlang::as_label(rlang::quo_get_expr(.temp$time_end_idx))} exists: {assertthat::not_empty(rlang::eval_tidy(.temp$time_end_idx))}" )
+									, "====================================="
+									)}
+								if (chatty){ purrr::walk(qa_check, message)}
 
-						if ((sum(dim(.data), na.rm = TRUE) > 0) & any(class(.data) %in% c("data.table", "data.frame", "tibble"))){
-							message(sprintf("%s found ...", .cfg$src.names));
-							.colnames = colnames(.data);
+								.temp
+							})
 
-							.map.fields = if (length(unlist(.cfg$map.fields)) > 1){
-									unlist(.cfg$map.fields)
-								} else {
-									.cfg$map.fields |> stringi::stri_split_regex("[, ]", simplify = TRUE, omit_empty = TRUE) |> unlist()
-								}
+					# @def q_table sets the allowable comparisons before any calculations are done
+					private$q_table <- {
+						# .temp will be a matrix at this point
+						.temp = private$.params$config |> names() |> utils::combn(m = 2) %>% cbind(apply(., 2, rev)) |> t()
 
-							if (chatty){ print(list(map.fields = c(.map.fields), src.colnames = c(.colnames))) }
+						# enforce 'src.mix'
+						if (!grepl("reflex|all", src.mix, ignore.case = TRUE)){ .temp %<>% .[.[, 1] != .[, 2], ] }
 
-							if (all(.map.fields %in% .colnames)){
-								message("All checks passed: continuing ..");
-								} else {
-									message(sprintf(
-										"Error: %s missing but declared in mapping fields!"
-											, setdiff(.map.fields, intersect(.map.fields, .colnames)) |> paste(collapse = ", ")
-										));
-									return();
-								}
-							} else {
-								message(sprintf(
-									"Error: %s not found or not of class {'data.table', 'data.frame', 'tibble'}"
-									, .cfg$src.names
-									));
-								return();
-							}
-					});
+						# enforce 'exclude.mix' after converting .temp to a 'data.table' object
+						.temp %<>% data.table::as.data.table() |> data.table::setnames(c("from", "to"));
+						.temp[!purrr::pmap_lgl(.temp, ~list(c(.x, .y)) %in% exclude.mix)]
+					}
 
-				# @def q_table sets the allowable comparisons before any calculations are done
-				private$q_table <- {
-					# .temp will be a matrix at this point
-					.temp = private$.params$config$contexts |> utils::combn(m = 2) %>% cbind(apply(., 2, rev)) |> t()
+					private$.params$config %<>%
+						data.table::setattr("src.mix", as.character(rlang::enexpr(src.mix))) |>
+						data.table::setattr("exclude.mix", sapply(exclude.mix, function(i){
+							paste0(if (length(i) == 1){ c(i, i) } else if(length(i) > 2) { i[1:2] } else { i }, collapse = ", ")
+						})) %>%
+						data.table::setattr("jk", purrr::map(., ~.x$jk.vec |> rlang::eval_tidy()) |> unlist() |> unique() |> sort() |> purrr::set_names())
 
-					# enforce 'src.mix'
-					if (!src.mix %ilike% "reflex|all"){ .temp %<>% .[.[, 1] != .[, 2], ] }
-
-					# enforce 'exclude.mix' after converting .temp to a 'data.table' object
-					.temp %<>% as.data.table() |> setnames(c("from", "to"));
-					.temp[!purrr::pmap_lgl(.temp, ~list(c(.x, .y)) %in% exclude.mix)]
-		  	}
-
-				invisible(self);
-			}
+					# invisible(private)
+					invisible(self);
+				}
 		, # SET.DATA() ====
 			#' @description
 			#' \code{set.data()} adds column \code{src} to the objects referenced by the configuration argument.  It also converts temporal fields based on the value of parameter \code{units}
