@@ -1,5 +1,5 @@
 make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.control = NULL, units = "", furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE), graph.only = FALSE, chatty = FALSE){
-#' Create the Event Vector Universe
+#' Create the Universe of Event Vectors
 #'
 #' \code{make.evs_universe} supplies values to two class fields: \code{q_graph} and \code{space}, the latter being created from the former.
 #'

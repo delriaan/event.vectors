@@ -39,40 +39,20 @@ event.vector.space <- { R6::R6Class(
 		# _____ PUBLIC CLASS METHODS _____
 			# NEW() ====
 		, #' @description
-      #' Initialize a Vector Space
-      #' @param config (see class method \code{$configure()})
-			#' @param events.ascending When \code{TRUE}, the final output will only contain chronological events.
+      #' Initialize the Event Vector Class
 			#' @param ... (not used)
-		initialize = function(config = NULL, ...){
+		initialize = function(...){
 				# ::  CLASS MEMBERS INITIALIZATION
-				if (!is.null(config)) {
-					.expr = rlang::expr(self$configure());
-
-					.expr$src.names 	= config$src.names
-					.expr$contexts		= config$contexts
-					.expr$map.fields	= config$map.fields
-					.expr$row.filters = config$row.filters
-
-					eval(.expr)
-				}
-
-				message(sprintf("[%s] Initializing the event vector space", Sys.time()));
+				message(sprintf("[%s] Initializing the event vector class", Sys.time()));
 				invisible(self);
 			}
 		, # CONFIGURE() ====
 			#' @description
-			#' Configuration is achieved via the object passed to \code{config} used at initialization or this method:
-			#' \itemize{
-			#' \item If the former method is used, object must be a \code{\link{data.frame}}, \code{\link{data.table}}, \code{\link{list}}(-like) with the following columns: \code{src.names}, \code{contexts}, \code{map.fields}, and \code{row.filters}. It is important to set the configuration data.frame correctly by ensuring the elements of each row are related to the same dataset; otherwise, the wrong filter may attempted to be applied to a non-existent column.
-			#' \item If using this method, the same fields are available as arguments with the additional arguments \code{src.mix} and \code{exclude.mix} that can be used to override the default behavior of how class method \code{$evs.universe()} cross-compares sources.
-			#' }
-      #' @param src.names An atomic vector of strings or expressions providing the source datasets given in "ENVIRONMENT$object" or simply "object" format: language to filter rows/columns are allowed.
+			#' \code{$configure()} creates references to the source data to use.
+			#'
+      #' @param src.defs Strings or expressions that define the data to use (must return \code{\link{data.frame}}, \code{\link{data.table}}, or list)
       #' @param contexts An atomic vector of strings serving as labels for each data source
-      #' @param map.fields One of two forms are supported:
-      #' \itemize{
-      #' \item An atomic vector of delimited strings, each string indicating the columns that serve as the join-key (\code{jk}), lower boundary (\code{time_start_idx}) and upper boundary (\code{time_end_idx}) in that order
-      #' \item A list of length-three array of strings following the ordering rule stated above
-      #' }
+      #' @param map.fields A list of column name vectors for each definition in \code{src.defs} providing data for the \emph{join key} (\code{jk}), \emph{start} (\code{time_start_idx}), and \emph{end} (\code{time_end_idx}) references. Provide names for elements in each vector to specify which data source field is mapped to each name (\code{jk}, \code{time_start_idx}, and \code{time_end_idx}).
       #'
       #' @param src.mix \describe{
 			#'	\item{"combination":}{ The default: generates unique pairs of sources}
@@ -80,22 +60,23 @@ event.vector.space <- { R6::R6Class(
 			#'	\item{"all":}{ The union of the preceding options}
 			#'	} \cr Partial matching is allowed, and generated combinations include the mirror (e.g., "A, B" will have a "B, A" combo pair generated).
 			#'
-      #' @param exclude.mix A list of vectors containing each source pair context to exclude (e.g. \code{list(c("A", "C"), c("u", "k"))}). \code{\link{evs_exclude.blender}} can be invoked to create this list more quickly.  Combinations are not automatically mirrored as is the case with 'src.mix'.
+      #' @param exclude.mix A list of vectors containing each source pair context to exclude (e.g. \code{list(c("A", "C"), c("u", "k"))}). \code{\link{evs_exclude.blender}} can be invoked to create this list more quickly.  Combinations are not automatically mirrored as is the case with \code{src.mix}.
       #'
       #' @param chatty (logical | \code{FALSE}) Verbosity flag
-			configure =	function(src.names, contexts, map.fields = NULL, src.mix = "comb", exclude.mix = list(c()), chatty = FALSE){
+			configure =	function(src.defs, contexts, map.fields = NULL, src.mix = "comb", exclude.mix = NULL, chatty = FALSE){
 					if (!rlang::is_empty(exclude.mix)){ message("Source-mix exlusions detected") }
 
-					private <- new.env()
+					# private <- new.env()
 					fld_nms <- c("jk", "time_start_idx", "time_end_idx")
+
 					make_refs <- purrr::as_mapper(~{
-						.this <- sapply(.x, as.character) |> rlang::parse_exprs()
-						if (!rlang::has_length(.this, 1)){ .this[-1] } else { .this}
+						sapply(.x, magrittr::freduce, list(eval, as.character)) |> rlang::parse_exprs()
+						# if (!rlang::has_length(.this, 1)){ .this[-1] } else { .this}
 					})
 					make_quos <- purrr::as_mapper(~{
-						.this <- sapply(.y, as.character)
+						.this <- sapply(.y, magrittr::freduce, list(eval, as.character))
 						.that <- .x
-						if (!rlang::has_length(.this, 1)){ .this <- .this[-1] }
+						# if (!rlang::has_length(.this, 1)){ .this <- .this[-1] }
 
 						.that <- rlang::set_names(.that, .this)
 						rlang::as_quosures(.that, named = TRUE, env = rlang::caller_env(1))
@@ -104,15 +85,17 @@ event.vector.space <- { R6::R6Class(
 						nms.x <- names(.x)
 						nm_pos <- which(nms.x %in% fld_nms)
 						na_pos <- setdiff(seq_along(nms.x), nm_pos)
+						if (rlang::is_empty(na_pos)){ na_pos <- seq_along(fld_nms) }
 						nms.x[na_pos] <- setdiff(fld_nms, nms.x[nm_pos])
 						nms.x
 					})
 
 					# Create the event data references
-					event_refs <- make_refs(rlang::enexprs(src.names)) |>	make_quos(rlang::enexprs(contexts))
+					event_refs <- make_refs(rlang::exprs(!!src.defs)) |>	make_quos(rlang::enexprs(contexts))
+					event_flds <- purrr::map(map.fields, ~{ rlang::parse_exprs(.x) %>% rlang::set_names(set_fld_nms(.)) })
 
 					# Create a configuration quosure for each data source
-					private$.params$config <- list(event_refs, map.fields |> purrr::map(~rlang::parse_exprs(.x) |> rlang::set_names(set_fld_nms(.)))) |>
+					private$.params$config <- list(event_refs, event_flds) |>
 						purrr::pmap(~{
 								.temp <- rlang::as_quosures(..2, env = rlang::as_data_mask(rlang::eval_tidy(..1)))[fld_nms];
 								.temp$jk.vec <- .temp$jk |> rlang::eval_tidy() |> unique() |> sort();
@@ -140,7 +123,7 @@ event.vector.space <- { R6::R6Class(
 
 						# enforce 'exclude.mix' after converting .temp to a 'data.table' object
 						.temp %<>% data.table::as.data.table() |> data.table::setnames(c("from", "to"));
-						.temp[!purrr::pmap_lgl(.temp, ~list(c(.x, .y)) %in% exclude.mix)]
+						.temp[!purrr::pmap_lgl(.temp, ~list(c(.x, .y)) %in% exclude.mix)] |> data.table::setkey(from, to)
 					}
 
 					private$.params$config %<>%
@@ -153,48 +136,6 @@ event.vector.space <- { R6::R6Class(
 					# invisible(private)
 					invisible(self);
 				}
-		, # SET.DATA() ====
-			#' @description
-			#' \code{set.data()} adds column \code{src} to the objects referenced by the configuration argument.  It also converts temporal fields based on the value of parameter \code{units}
-			#'
-			#' @param chatty (logical | \code{FALSE}) Verbosity flag
-		 set.data = function(chatty = FALSE){
-				if (is.null(private$.params$config)){
-					stop("No class object configuration detected. Provide a configuration set using `$configure()` involving at least two (2) temporal datasets."); 				}
-
-				# `set.data()` adds columns used in the call to `cross.time()` to the objects referenced by `private$.params$config$src.names`
-				setattr(private$.params$config, "data_is_set", FALSE);
-				if (chatty) { message(sprintf("[%s] Augmenting source event data ...", Sys.time())) }
-
-			  #  Adding columns `src` to the object referenced by the parsed value of .x
-				purrr::pwalk(as.list(private$.params$config[, .(src.names,	contexts, map.fields, row.filters)]), ~{
-					message(sprintf("Processing %s (%s)", ..1, ..2));
-
-				  # Note that the following parses into a `data.table` syntax
-					.mflds = stringi::stri_split_regex(..3, "[, ]", omit_empty = TRUE, simplify = TRUE) |> unlist() |> unclass();
-					if (chatty){ print(.mflds) }
-
-					rlang::expr({
-						if (!is.data.table(!!str2lang(..1))){ !!str2lang(sprintf("%s <- as.data.table(%1$s)", ..1)) }
-
-						(!!str2lang(..1))[
-							, `:=`(
-									src 				= !!..2
-									, jk				= !!str2lang(.mflds[1])
-									, start_idx = !!str2lang(.mflds[2])
-									, end_idx 	= !!str2lang(.mflds[3])
-									, row.filters = !!..4
-									, rec_idx 	= sequence(nrow((!!str2lang(..1))))
-									)
-								] |>
-							setkeyv(c('jk', 'start_idx', 'end_idx')) %>%
-							setcolorder(c(key(.), 'row.filters'))
-						}) %T>% { if (chatty) print(.) } |> eval()
-				});
-
-				setattr(private$.params$config, "data_is_set", TRUE);
-				invisible(self);
-			}
 		, # SET.Q_GRAPHS() ====
 			#' @description
 			#' \code{set.q_graphs()} creates a list of 'query graphs' for each unique value of 'jk'.  The list is stored as class member \code{q_graph}
@@ -203,53 +144,49 @@ event.vector.space <- { R6::R6Class(
 		 		if (is.null(private$.params$config)){
 		 			stop("No class object configuration detected.  Provide a configuration set using `$configure()` involving at least two (2) temporal datasets.")}
 
-		 		if (!attr(private$.params$config, "data_is_set")){
-		 			message("Source event data not prepared.  Executing '$set.data()'");
-		 			self$set.data(chatty = chatty);
-		 		}
+		 		data.table::setattr(private$.params$config, "graphs_created", FALSE);
 
-		 		setattr(private$.params$config, "graphs_created", FALSE);
+		 		events_by_jk <- data.table::rbindlist(list(purrr::imap(
+		 					private$.params$config, ~{
+								jk = private$.params$config |> attr("jk");
+								exists_in = jk %in% rlang::eval_tidy(.x$jk)
+								matrix(exists_in, ncol = 1, dimnames = list(jk, .y))
+							})))[, jk := private$.params$config |> attr("jk")];
 
-		 		self$q_graph <- { purrr::map(attr(private$.params$config, "jk"), ~{
-			 			# :: Select events for which the current value of jk has data
-			 			this.jk = .x;
+				events_by_jk <- {
+					events_by_jk[
+							, purrr::pmap_dfr(.SD, function(...){
+									jk_events <- ...names()[-1][c(...)[-1]];
+									qt <- private$q_table[list(jk_events, jk_events)];
+									if (nrow(qt) == 0){ list(from = NA, to = NA) } else { unique(qt) }
+								})
+							, by = jk
+							][!is.na(from), .(from, to, jk)]
+					}
 
-			 			.evts = private$.params$config[
-			 				(purrr::map_lgl(jk.vec, ~this.jk %in% .x)), !"jk.vec"
-							][
-							, map.fields := if (is.list(map.fields)){
-									purrr::map_chr(map.fields, paste, collapse = "|")
-								} else map.fields
-							] |> unique();
+		 		self$q_graph <- { split(events_by_jk, by = "jk") |>
+	 				purrr::imap(~{
+	 					# Graphs for each level of 'jk'
+	 					g <- igraph::graph_from_data_frame(.x);
 
-			 			# :: Create a configuration graph from the current value of jk and it's associated events
-			 			g = cbind(private$q_table[c(and(from %in% .evts$contexts, to %in% .evts$contexts))], jk = this.jk);
+	 					this_jk <- rlang::parse_expr(.y);
 
-			 			if (nrow(g) == 0){ NULL } else {
-			 				g = igraph::graph_from_data_frame(g);
+	 					# Return the minimal information needed to reconstruct the source data
+	 					igraph::V(g)$data <- purrr::imap(igraph::V(g), ~{
+	 						event <- private$.params$config[[.y]];
 
-				 			# :: Retrieve the map fields, which include time, from the source events
-				 			igraph::V(g)$data <- purrr::map(igraph::V(g), ~{
-					 				v_name = stringi::stri_replace_first_regex(.x$name, "[:][0-9]+", "");
-					 				.logi_vec = which(purrr::map_lgl(.evts$contexts, ~v_name %ilike% .x));
+	 						list(event = event, jk_val = this_jk) |>
+	 							purrr::modify_at("jk_val", ~as.call(list(rlang::parse_expr(paste0("as.", rlang::eval_tidy(event$jk)[1] |> typeof())), .x)) |> eval()) %>%
+	 							append(list(action = rlang::expr(rlang::eval_tidy(attr(event, "src.def"))[(!!rlang::quo_get_expr(event$jk) == !!.$jk_val)])))
+	 					});
 
-					 				if (identical(integer(), .logi_vec)){
-					 					data.table(jk = this.jk, X = "no data")
-					 				} else {
-						 				.evts[(.logi_vec), sprintf("%s[(jk == %s) & (%s)]", src.names, this.jk, row.filters)] |>
-					 						purrr::map(~str2lang(.x) |> eval(envir = globalenv()))
-					 				}
-						 		}) |> purrr::flatten();
-
-				 			# :: Return the graph
-				 			g
-			 			}
-			 		}) |> purrr::compact();
+	 					g
+	 				})
 				}
 
 		 		if (!rlang::is_empty(self$q_graph)){
 			 		if (chatty){ message(sprintf("Created %s query graphs", self$q_graph |> length())) }
-		 			setattr(private$.params$config, "graphs_created", TRUE);
+		 			data.table::setattr(private$.params$config, "graphs_created", TRUE);
 		 		} else if (chatty){ message("No graphs greated") }
 
 				invisible(self);
@@ -258,10 +195,7 @@ event.vector.space <- { R6::R6Class(
 	# _____ PUBLIC ACTIVE BINDINGS _____
 	, active = { list(
 		#' @field config This is an active binding that returns the configuration used to instantiate the class.
-		config = function(...){
-			copy(private$.params$config) |>
-				setkey(contexts) %T>%
-				setattr("events.ascending", private$.params$events.ascending)}
+		config = function(...){ private$.params$config }
 		)}
 	# _____ PRIVATE _____
 	, private = { list(
