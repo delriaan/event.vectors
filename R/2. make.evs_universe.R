@@ -1,5 +1,4 @@
-make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.control = NULL, units = "", furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE), graph.only = FALSE, chatty = FALSE){
-#' Create the Event Vector Universe
+#' Create the Universe of Event Vectors
 #'
 #' \code{make.evs_universe} supplies values to two class fields: \code{q_graph} and \code{space}, the latter being created from the former.
 #'
@@ -21,7 +20,7 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 #' \item{Parallelism is internally supported via package \code{furrr}: the user is responsible for setting the appropriate \code{\link[future]{plan}}}
 #' }
 #' @export
-
+make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.control = NULL, units = "", furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE), graph.only = FALSE, chatty = FALSE){
 	force(self);
 
   edge.filter <- if (...length() > 0){
@@ -49,48 +48,63 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
   furrr_opts$globals <- furrr_opts$globals |> c("graph.control", "self", "cross.time", "time.control", "units") |> unique();
   furrr_opts$packages <- furrr_opts$packages |> c("magrittr", "data.table") |> unique();
 
-  .src_mix <- self$.__enclos_env__$private$q_table;
+  # .src_mix <- self$.__enclos_env__$private$q_table;
+  .src_mix <- private$q_table;
 
   # :: Retrieve the essential columns from sources and create a compact intermediate data structure ----
-	.tmp_space <- self$config$src.names |>
-              purrr::map(~eval(str2lang(.x), envir = globalenv()) %>% .[, .(jk, start_idx, end_idx, src)]) |>
-              data.table::rbindlist() |>
-              data.table::setkey(jk, start_idx, end_idx) |>
-  						data.table::setorder(jk, start_idx, end_idx) %>%
+  if (chatty){ message("Creating `.tmp_space` ...")}
+	.tmp_space <- purrr::imap(self$config, ~{
+									out = .x %$% {
+										mget(c("jk", "time_start_idx", "time_end_idx")) |>
+										purrr::map(rlang::eval_tidy) |>
+										data.table::as.data.table()
+									}
+									out[, src := .y]
+								}) |>
+							data.table::rbindlist() |>
+              data.table::setkey(jk, time_start_idx, time_end_idx) |>
+  						data.table::setorder(jk, time_start_idx, time_end_idx) %>%
   						.[, f_src_exists := src %in% .src_mix[, from], by = jk] %>%
   						.[, t_src_exists := (src %in% .src_mix[, to]) & f_src_exists, by = jk] %>%
   						.[(f_src_exists & t_src_exists), !c("f_src_exists", "t_src_exists")] %>%
-  						unique() |> as.list();
+  						unique() |>
+							as.list();
 
 	# :: Use optimization from 'data.table' to create `self$space` ----
 	if (!graph.only){
+	  if (chatty){ message("Creating `self$space` (part 1) ...")}
+
 		# Step 1
-		self$space <- data.table::as.data.table(merge(
-			.tmp_space[(.tmp_space$src %in% .src_mix$from)] |> purrr::compact()|> purrr::set_names(c("jk", "f_start_idx", "f_end_idx", "f_src"))
-			, .tmp_space[(.tmp_space$src %in% .src_mix$to)] |> purrr::compact()|> purrr::set_names(c("jk", "t_start_idx", "t_end_idx", "t_src"))
-			, by = "jk")
-			)[(f_start_idx <= t_start_idx)] |>
-  	split(by = c("jk"));
+		self$space <- { data.table::as.data.table(merge(
+				.tmp_space[(.tmp_space$src %in% .src_mix$from)] |>
+						purrr::compact()|>
+						purrr::set_names(c("jk", "f_start_idx", "f_end_idx", "f_src"))
+				, .tmp_space[(.tmp_space$src %in% .src_mix$to)] |>
+						purrr::compact()|>
+						purrr::set_names(c("jk", "t_start_idx", "t_end_idx", "t_src"))
+				, by = "jk")
+				)[(t_start_idx - f_start_idx) >= 0] |>
+	  	split(by = c("jk"));
+		}
 
 		# Step 2
-	  self$space <- data.table::rbindlist({
-  		self$space |> furrr::future_map(~{
-  		# Call `cross.time()`
-		  	split(.x, by = c("jk", "f_src", "t_src")) |>
-  				purrr::map(~{
-  					JK <- .x$jk[1];
+	  if (chatty){ message("Creating `self$space` (part 2) ...")}
+		furrr_opts <- furrr::furrr_options(scheduling = Inf, seed = TRUE, packages = c("magrittr", "data.table"), globals = c("time.control", "units", "cross.time"));
 
-			  		out.names <- purrr::set_names(as.character(rlang::exprs(
-								jk, f_src, t_src, mGap, mSt, mEd, from.len, to.len, epsilon, epsilon.desc, from.coord, to.coord, from_timeframe, to_timeframe
-							)));
+		xtime <- furrr::future_map(self$space, ~{
+		# xtime <- purrr::map(self$space, ~{
+	  		# Call `cross.time()`
+					time.control; units;
+					base	= .x[, .(jk)];
+	  			xtime = .x[, cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx, control = time.control, units = units)
+	  								 , by = .(f_src, t_src)
+	  								 ]
 
-		  			xtime = .x %$% cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx, control = time.control, units = units);
-		  			if (nrow(xtime) == 0){ NULL } else { xtime[, c(.x, .SD)][, c(out.names), with = FALSE] }
-		  		}) |>
-  				purrr::compact() |>
-  				data.table::rbindlist()
-  			}) |> purrr::compact()
-  		})[
+	  			if (rlang::is_empty(xtime)){ NULL } else { xtime[, c(base, .SD)] }
+	  		}, .options = furrr_opts) |>
+			purrr::compact()
+
+	  self$space <- data.table::rbindlist(xtime)[
 		  # Enforce row filter rules before proceeding
 		  !is.na(epsilon) & eval(edge.filter)
 		  ][

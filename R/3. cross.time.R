@@ -49,8 +49,11 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 	require(data.table);
 	require(magrittr);
 
-	.conversion <- if (units %in% ls(pattern = "^(we|mo|da|ye|se|mi|na|ho|pi).+s$", envir = loadNamespace("lubridate"))){
+	.conversion <- if (units %ilike% "^(we|mo|da|ye|se|mi|na|ho|pi).+s$"){
 										rlang::inject(`::`(lubridate, !!units)) } else { as.numeric }
+
+	control <- if (any(is.infinite(unlist(control))) || any(is.na(unlist(control)))){ control <- list(-9000, 9000) }
+	control <- control %>% { .[unlist(.) |> order()] |> .conversion() |> as.list() }
 
 	# `descr_epsilon` creates the text descriptions of `epsilon` in the output
 	descr_epsilon <- purrr::as_mapper(~{
@@ -73,12 +76,27 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 			} else { "NA" }
 		});
 
-	out.names <- purrr::set_names(as.character(rlang::exprs(
-								mGap, mSt, mEd, from.len, to.len, epsilon, epsilon.desc, from.coord, to.coord, from_timeframe, to_timeframe
-							)));
+	out.names <- { c("mGap"
+								 , "mSt", "mEd"
+								 , "from.len", "to.len"
+								 , "epsilon", "epsilon.desc"
+								 , "from.coord", "to.coord"
+								 , "from_timeframe", "to_timeframe"
+								 )}
 
-	# Ensure increasing ordering of `control` and time
-	control <- (function(i){ i[unlist(i) |> order()] |> .conversion() |> as.list() })(control)
+	epsilon_expr <- rlang::expr({
+		# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
+		.out = atan2(mEd, mSt) * atan2((mGap * beta), mGap)
+		.tau = sign(to.len - from.len)
+
+		# Scale back down to an angle: `sqrt()` needs to have a complex argument for handling negative arguments
+		# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another
+		.out = (sqrt(as.complex(.out)) + sqrt(as.complex(mGap)^.tau)) |>
+						unlist() |>
+						purrr::modify_if(~Re(.x) |> is.infinite(), ~as.complex(0))
+
+		if (rlang::is_empty(.out)){ epsilon } else { .out }
+	});
 
 	XTIME <- { data.table::data.table(
 							beta				= as.numeric(e1 - s0)
@@ -87,31 +105,21 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 							, mEd 			= as.numeric(e1 - e0)
 							, from.len	= as.numeric(e0 - s0)
 							, to.len		= as.numeric(e1 - s1)
-							, epsilon		= NA
-							, epsilon.desc		= NA
+							, epsilon					= complex()
+							, epsilon.desc		= character()
 							, from.coord			= purrr::map2_chr(as.character(s0), as.character(e0), paste, sep = ":")
 							, to.coord  			= purrr::map2_chr(as.character(s1), as.character(e1), paste, sep = ":")
 							, from_timeframe	= purrr::map2(s0, e0, lubridate::interval)
 							, to_timeframe  	= purrr::map2(s1, e1, lubridate::interval)
-							)[(beta %between% control)]
+							)[(beta <= control[[2]]) & (beta >= control[[1]])]
 						}
+	# rlang::eval_tidy(epsilon_expr, data = XTIME) |> print()
 
 	# Handle the case when XTIME is empty due to filtering rows as a function of `beta` and `control:`
-	# if (!all(control_filter)){
-	# 	purrr::map(out.names, ~NA) |> data.table::as.data.table()
-	# } else {
 	if (!rlang::is_empty(XTIME)){
-		XTIME[
-		, epsilon := {
-				# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
-				.out = atan2(mEd, mSt) * atan2((mGap * beta), mGap)
-				.tau = sign(to.len - from.len)
-
-				# Scale back down to an angle: `sqrt()` needs to have a complex argument for handling negative arguments
-				# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another
-				.out = (sqrt(as.complex(.out)) + sqrt(as.complex(mGap)^.tau)) |> unlist() |> purrr::modify_if(~Re(.x) |> is.infinite(), ~as.complex(0))
-				if (rlang::is_empty(.out)){ epsilon } else { .out }
-			}
-		][, epsilon.desc := descr_epsilon(epsilon)][, c(out.names), with = FALSE]
-	} else { NULL }
+		XTIME[, epsilon := eval(epsilon_expr)
+				][, epsilon.desc := descr_epsilon(epsilon)
+				][, c(out.names), with = FALSE] |>
+		purrr::modify_at(c("beta", "mGap", "mSt", "mEd", "from.len", "to.len"), .conversion)
+	} else { XTIME }
 }

@@ -25,8 +25,8 @@
 #' \cr
 #'
 #' @export
-event.vector.space <- { R6::R6Class(
-	classname = "event.vector.space"
+event.vectors <- { R6::R6Class(
+	classname = "event.vectors"
 	# _____ PUBLIC METHODS _____
 	, public = { list(
 		# _____ PUBLIC CLASS MEMBERS _____
@@ -66,29 +66,26 @@ event.vector.space <- { R6::R6Class(
 			configure =	function(src.defs, contexts, map.fields = NULL, src.mix = "comb", exclude.mix = NULL, chatty = FALSE){
 					if (!rlang::is_empty(exclude.mix)){ message("Source-mix exlusions detected") }
 
-					# private <- new.env()
+					private <- new.env()
 					fld_nms <- c("jk", "time_start_idx", "time_end_idx")
 
-					make_refs <- purrr::as_mapper(~{
-						sapply(.x, magrittr::freduce, list(eval, as.character)) |> rlang::parse_exprs()
-						# if (!rlang::has_length(.this, 1)){ .this[-1] } else { .this}
-					})
+					make_refs <- purrr::as_mapper(~sapply(.x, magrittr::freduce, list(eval, as.character)) |> rlang::parse_exprs())
+
 					make_quos <- purrr::as_mapper(~{
 						.this <- sapply(.y, magrittr::freduce, list(eval, as.character))
 						.that <- .x
-						# if (!rlang::has_length(.this, 1)){ .this <- .this[-1] }
-
 						.that <- rlang::set_names(.that, .this)
 						rlang::as_quosures(.that, named = TRUE, env = rlang::caller_env(1))
 					})
+
 					set_fld_nms <- purrr::as_mapper(~{
-						nms.x <- names(.x)
-						nm_pos <- which(nms.x %in% fld_nms)
-						na_pos <- setdiff(seq_along(nms.x), nm_pos)
-						if (rlang::is_empty(na_pos)){ na_pos <- seq_along(fld_nms) }
-						nms.x[na_pos] <- setdiff(fld_nms, nms.x[nm_pos])
-						nms.x
-					})
+							nms.x <- names(.x)
+							nm_pos <- which(nms.x %in% fld_nms)
+							na_pos <- setdiff(seq_along(nms.x), nm_pos)
+							if (rlang::is_empty(na_pos)){ na_pos <- seq_along(fld_nms) }
+							nms.x[na_pos] <- setdiff(fld_nms, nms.x[nm_pos])
+							nms.x
+						})
 
 					# Create the event data references
 					event_refs <- make_refs(rlang::exprs(!!src.defs)) |>	make_quos(rlang::enexprs(contexts))
@@ -110,7 +107,7 @@ event.vector.space <- { R6::R6Class(
 									)}
 								if (chatty){ purrr::walk(qa_check, message)}
 
-								.temp
+								data.table::setattr(.temp, "src.def", ..1)
 							})
 
 					# @def q_table sets the allowable comparisons before any calculations are done
@@ -131,7 +128,10 @@ event.vector.space <- { R6::R6Class(
 						data.table::setattr("exclude.mix", sapply(exclude.mix, function(i){
 							paste0(if (length(i) == 1){ c(i, i) } else if(length(i) > 2) { i[1:2] } else { i }, collapse = ", ")
 						})) %>%
-						data.table::setattr("jk", purrr::map(., ~.x$jk.vec |> rlang::eval_tidy()) |> unlist() |> unique() |> sort() |> purrr::set_names())
+						data.table::setattr("jk", {
+							purrr::map(., ~.x$jk.vec |> rlang::eval_tidy()) |>
+								magrittr::freduce(list(unlist, unique, sort, purrr::set_names))
+							})
 
 					# invisible(private)
 					invisible(self);
@@ -146,51 +146,81 @@ event.vector.space <- { R6::R6Class(
 
 		 		data.table::setattr(private$.params$config, "graphs_created", FALSE);
 
-		 		events_by_jk <- data.table::rbindlist(list(purrr::imap(
-		 					private$.params$config, ~{
-								jk = private$.params$config |> attr("jk");
-								exists_in = jk %in% rlang::eval_tidy(.x$jk)
-								matrix(exists_in, ncol = 1, dimnames = list(jk, .y))
-							})))[, jk := private$.params$config |> attr("jk")];
+		 		events_by_jk <- purrr::imap(private$.params$config, ~{
+						jk <- private$.params$config |> attr("jk");
 
-				events_by_jk <- {
-					events_by_jk[
-							, purrr::pmap_dfr(.SD, function(...){
-									jk_events <- ...names()[-1][c(...)[-1]];
-									qt <- private$q_table[list(jk_events, jk_events)];
-									if (nrow(qt) == 0){ list(from = NA, to = NA) } else { unique(qt) }
-								})
-							, by = jk
-							][!is.na(from), .(from, to, jk)]
-					}
+						exists_in <- jk %in% rlang::eval_tidy(.x$jk);
 
-		 		self$q_graph <- { split(events_by_jk, by = "jk") |>
-	 				purrr::imap(~{
+						matrix(exists_in, ncol = 1, dimnames = list(jk, .y));
+					}) |> magrittr::freduce(list(list, data.table::rbindlist));
+
+				events_by_jk %<>% {
+					.[
+					, jk := private$.params$config |> attr("jk")
+					][
+					, purrr::pmap_dfr(.SD, function(...){
+								jk_events <- ...names()[-1][c(...)[-1]];
+
+								qt <- private$q_table[(from %in% jk_events), .SD[(to %in% jk_events), .(to)], by = from];
+
+								if (nrow(qt) == 0){ list(from = NA, to = NA) } else { unique(qt) }
+							})
+					, by = jk
+					][!is.na(from), .(from, to, jk)] |>
+					split(by = "jk")
+				}
+
+		 		self$q_graph <- purrr::imap(events_by_jk, ~{
 	 					# Graphs for each level of 'jk'
 	 					g <- igraph::graph_from_data_frame(.x);
 
 	 					this_jk <- rlang::parse_expr(.y);
 
 	 					# Return the minimal information needed to reconstruct the source data
+	 					# Note: the following allows for calling `igraph::V(g)$data$value()`
 	 					igraph::V(g)$data <- purrr::imap(igraph::V(g), ~{
-	 						event <- private$.params$config[[.y]];
+								event <- private$.params$config[[.y]];
 
-	 						list(event = event, jk_val = this_jk) |>
-	 							purrr::modify_at("jk_val", ~as.call(list(rlang::parse_expr(paste0("as.", rlang::eval_tidy(event$jk)[1] |> typeof())), .x)) |> eval()) %>%
-	 							append(list(action = rlang::expr(rlang::eval_tidy(attr(event, "src.def"))[(!!rlang::quo_get_expr(event$jk) == !!.$jk_val)])))
-	 					});
+								jk_val <- eval(as.call(list(rlang::parse_expr(paste0("as.", rlang::eval_tidy(event$jk)[1] |> typeof())), this_jk)));
+
+								value <- function(time_start_idx = TRUE, time_end_idx = TRUE, trace = FALSE){
+									# Argument 'trace' is used for retracing exact source row and uses the expressions for 'time_*_idx' for row-wise filtering
+
+									vars <- event %$% mget(c("jk", "time_start_idx", "time_end_idx")) |> purrr::map(~rlang::quo_get_expr(.x))
+
+									time_start_idx <- rlang::enexpr(time_start_idx);
+									time_end_idx <- rlang::enexpr(time_end_idx);
+
+									if (trace){
+										if (length(time_start_idx) > 1){ time_start_idx[[2]] <- vars$time_start_idx }
+										if (length(time_end_idx) > 1){ time_end_idx[[2]] <- vars$time_end_idx }
+									}
+
+									if (trace){ vars <- rlang::sym(".SD") } else { vars <- purrr::map_chr(unname(vars), rlang::as_label) }
+
+									row_expr <- rlang::exprs(!!rlang::quo_get_expr(event$jk) == !!jk_val, !!time_start_idx, !!time_end_idx)[c(TRUE, trace, trace)] |>
+										purrr::map_chr(rlang::as_label) |>
+										sprintf(fmt = "(%s)") |>
+										paste(collapse = " & ") |>
+										rlang::parse_expr()
+
+									rlang::expr(rlang::eval_tidy(attr(event, "src.def"))[(!!row_expr), !!vars]) |> print() |>eval()
+								}
+
+								mget(ls()) |> list2env(envir = new.env())
+	 						});
 
 	 					g
-	 				})
-				}
+	 				});
 
 		 		if (!rlang::is_empty(self$q_graph)){
 			 		if (chatty){ message(sprintf("Created %s query graphs", self$q_graph |> length())) }
+
 		 			data.table::setattr(private$.params$config, "graphs_created", TRUE);
 		 		} else if (chatty){ message("No graphs greated") }
 
 				invisible(self);
-			}
+}
 		)}
 	# _____ PUBLIC ACTIVE BINDINGS _____
 	, active = { list(

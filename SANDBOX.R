@@ -4,6 +4,8 @@ library(purrr)
 library(stringi)
 library(tictoc);
 library(future);
+library(magrittr);
+library(future.callr)
 #
 make.test_data <- function(j = 5, n = 5, m = 5, o = 1:10, dest = globalenv(), .debug = FALSE){
 #' Make Test Data for Validation
@@ -166,16 +168,16 @@ private$.params$config$Event_A
 private$.params$config$Event_C$time_start_idx |> rlang::eval_tidy()
 private$.params$config$Event_D$jk |> rlang::eval_tidy()
 private$.params$config$Event_D$jk.vec
-ENV$q$drat
 
 private$.params$config |> purrr::map(~rlang::eval_tidy(.x$jk) |> unique() |> sort())
 
 # Directly retrieve a value
-private$.params$config$EVENT_A$time_start_idx |> rlang::quo_get_env() |> parent.env() %$% wt
+private$.params$config$Event_A$time_start_idx |> rlang::quo_get_env() |> parent.env() %$% join_key
 }
 
 # ::: Replacement for $set.q_graphs() ::: ----
 self <- new.env()
+makeActiveBinding("config", function(...){ private$.params$config }, env = self)
 set.q_graphs = function(chatty = FALSE){
 		 		if (is.null(private$.params$config)){
 		 			stop("No class object configuration detected.  Provide a configuration set using `$configure()` involving at least two (2) temporal datasets.")}
@@ -192,7 +194,7 @@ set.q_graphs = function(chatty = FALSE){
 					events_by_jk[
 							, purrr::pmap_dfr(.SD, function(...){
 									jk_events <- ...names()[-1][c(...)[-1]];
-									qt <- private$q_table[list(jk_events, jk_events)];
+									qt <- private$q_table[(from %in% jk_events), .SD[(to %in% jk_events), .(to)], by = from];
 									if (nrow(qt) == 0){ list(from = NA, to = NA) } else { unique(qt) }
 								})
 							, by = jk
@@ -208,11 +210,32 @@ set.q_graphs = function(chatty = FALSE){
 
 	 					# Return the minimal information needed to reconstruct the source data
 	 					igraph::V(g)$data <- purrr::imap(igraph::V(g), ~{
-	 						event <- private$.params$config[[.y]];
+								event <- private$.params$config[[.y]];
 
-	 						list(event = event, jk_val = this_jk) |>
-	 							purrr::modify_at("jk_val", ~as.call(list(rlang::parse_expr(paste0("as.", rlang::eval_tidy(event$jk)[1] |> typeof())), .x)) |> eval()) %>%
-	 							append(list(action = rlang::expr(rlang::eval_tidy(attr(event, "src.def"))[(!!rlang::quo_get_expr(event$jk) == !!.$jk_val)])))
+								jk_val <- as.call(list(rlang::parse_expr(paste0("as.", rlang::eval_tidy(event$jk)[1] |> typeof())), this_jk)) |> eval();
+
+								value <- function(time_start_idx = TRUE, time_end_idx = TRUE, trace = FALSE){
+									vars <- event %$% mget(c("jk", "time_start_idx", "time_end_idx")) |> purrr::map(~rlang::quo_get_expr(.x))
+
+									time_start_idx <- rlang::enexpr(time_start_idx);
+									time_end_idx <- rlang::enexpr(time_end_idx);
+
+									if (trace){
+										if (length(time_start_idx) > 1){ time_start_idx[[2]] <- vars$time_start_idx }
+										if (length(time_end_idx) > 1){ time_end_idx[[2]] <- vars$time_end_idx }
+									}
+
+									if (trace){ vars <- rlang::sym(".SD") } else { vars <- purrr::map_chr(unname(vars), rlang::as_label) }
+
+									row_expr <- rlang::exprs(!!rlang::quo_get_expr(event$jk) == !!jk_val, !!time_start_idx, !!time_end_idx)[c(TRUE, trace, trace)] |>
+										purrr::map_chr(rlang::as_label) |>
+										sprintf(fmt = "(%s)") |>
+										paste(collapse = " & ") |>
+										rlang::parse_expr()
+
+									rlang::expr(rlang::eval_tidy(attr(event, "src.def"))[(!!row_expr), !!vars]) |> print() |>eval()
+								}
+								mget(ls()) |> list2env(envir = new.env());
 	 					});
 
 	 					g
@@ -226,8 +249,11 @@ set.q_graphs = function(chatty = FALSE){
 
 				invisible(self);
 }
+
+# undebug(set.q_graphs)
 set.q_graphs()
-igraph::V(self[["q_graph"]][["1"]])$data
+# debug(igraph::V(self[["q_graph"]][["1"]])$data[[1]]$value)
+igraph::V(self[["q_graph"]][["1"]])$data[[1]]$value(time_start_idx = time_start_idx == as.Date("2023-01-09"), trace = !FALSE)
 
 
 inspect <- private$.params$config |>
@@ -237,6 +263,9 @@ inspect <- private$.params$config |>
 }) |> data.table::rbindlist()
 
 # ::: Replacement for make.evs_universe() ::: Updated to use quosures on 2023-03-12 ----
+# Looking into using the edge-list of query graphs to execute the action expression for the connected vertices
+plan(callr);
+#
 make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.control = NULL, units = "", furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE), graph.only = FALSE, chatty = FALSE){
 #' Create the Universe of Event Vectors
 #'
@@ -288,9 +317,11 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
   furrr_opts$globals <- furrr_opts$globals |> c("graph.control", "self", "cross.time", "time.control", "units") |> unique();
   furrr_opts$packages <- furrr_opts$packages |> c("magrittr", "data.table") |> unique();
 
-  .src_mix <- self$.__enclos_env__$private$q_table;
+  # .src_mix <- self$.__enclos_env__$private$q_table;
+  .src_mix <- private$q_table;
 
   # :: Retrieve the essential columns from sources and create a compact intermediate data structure ----
+  if (chatty){ message("Creating `.tmp_space` ...")}
 	.tmp_space <- purrr::imap(self$config, ~{
 									out = .x %$% {
 										mget(c("jk", "time_start_idx", "time_end_idx")) |>
@@ -300,8 +331,8 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 									out[, src := .y]
 								}) |>
 							data.table::rbindlist() |>
-              data.table::setkey(jk, start_idx, end_idx) |>
-  						data.table::setorder(jk, start_idx, end_idx) %>%
+              data.table::setkey(jk, time_start_idx, time_end_idx) |>
+  						data.table::setorder(jk, time_start_idx, time_end_idx) %>%
   						.[, f_src_exists := src %in% .src_mix[, from], by = jk] %>%
   						.[, t_src_exists := (src %in% .src_mix[, to]) & f_src_exists, by = jk] %>%
   						.[(f_src_exists & t_src_exists), !c("f_src_exists", "t_src_exists")] %>%
@@ -310,33 +341,39 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 
 	# :: Use optimization from 'data.table' to create `self$space` ----
 	if (!graph.only){
+	  if (chatty){ message("Creating `self$space` (part 1) ...")}
+
 		# Step 1
-		self$space <- data.table::as.data.table(merge(
-			.tmp_space[(.tmp_space$src %in% .src_mix$from)] |> purrr::compact()|> purrr::set_names(c("jk", "f_start_idx", "f_end_idx", "f_src"))
-			, .tmp_space[(.tmp_space$src %in% .src_mix$to)] |> purrr::compact()|> purrr::set_names(c("jk", "t_start_idx", "t_end_idx", "t_src"))
-			, by = "jk")
-			)[(f_start_idx <= t_start_idx)] |>
-  	split(by = c("jk"));
+		self$space <- { data.table::as.data.table(merge(
+				.tmp_space[(.tmp_space$src %in% .src_mix$from)] |>
+						purrr::compact()|>
+						purrr::set_names(c("jk", "f_start_idx", "f_end_idx", "f_src"))
+				, .tmp_space[(.tmp_space$src %in% .src_mix$to)] |>
+						purrr::compact()|>
+						purrr::set_names(c("jk", "t_start_idx", "t_end_idx", "t_src"))
+				, by = "jk")
+				)[(t_start_idx - f_start_idx) >= 0] |>
+	  	split(by = c("jk"));
+		}
 
 		# Step 2
-	  self$space <- data.table::rbindlist({
-  		self$space |> furrr::future_map(~{
-  		# Call `cross.time()`
-		  	split(.x, by = c("jk", "f_src", "t_src")) |>
-  				purrr::map(~{
-  					JK <- .x$jk[1];
+	  if (chatty){ message("Creating `self$space` (part 2) ...")}
+		furrr_opts <- furrr::furrr_options(scheduling = Inf, seed = TRUE, packages = c("magrittr", "data.table"), globals = c("time.control", "units", "cross.time"));
 
-			  		out.names <- purrr::set_names(as.character(rlang::exprs(
-								jk, f_src, t_src, mGap, mSt, mEd, from.len, to.len, epsilon, epsilon.desc, from.coord, to.coord, from_timeframe, to_timeframe
-							)));
+		xtime <- furrr::future_map(self$space, ~{
+		# xtime <- purrr::map(self$space, ~{
+	  		# Call `cross.time()`
+					time.control; units;
+					base	= .x[, .(jk)];
+	  			xtime = .x[, cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx, control = time.control, units = units)
+	  								 , by = .(f_src, t_src)
+	  								 ]
 
-		  			xtime = .x %$% cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx, control = time.control, units = units);
-		  			if (nrow(xtime) == 0){ NULL } else { xtime[, c(.x, .SD)][, c(out.names), with = FALSE] }
-		  		}) |>
-  				purrr::compact() |>
-  				data.table::rbindlist()
-  			}) |> purrr::compact()
-  		})[
+	  			if (rlang::is_empty(xtime)){ NULL } else { xtime[, c(base, .SD)] }
+	  		}, .options = furrr_opts) |>
+			purrr::compact()
+
+	  self$space <- data.table::rbindlist(xtime)[
 		  # Enforce row filter rules before proceeding
 		  !is.na(epsilon) & eval(edge.filter)
 		  ][
@@ -365,3 +402,165 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 	invisible(self);
 }
 #
+make.evs_universe(self = self, chatty = TRUE, units = "days")
+# debug(make.evs_universe)
+# undebug(make.evs_universe)
+
+# ::: Replacement for cross.time() ::: ----
+cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE, units = "",  ...){
+## Reference: https://www.r-bloggers.com/using-complex-numbers-in-r/
+## Division by Pi/4 makes it easy to tell if one argument is larger than, smaller than, or the same magnitude as the other (same = Pi/4)
+## All computations are in the direction of B.max to A.min when `events.ascending` is TRUE
+	require(data.table);
+	require(magrittr);
+
+	.conversion <- if (units %ilike% "^(we|mo|da|ye|se|mi|na|ho|pi).+s$"){
+										rlang::inject(`::`(lubridate, !!units)) } else { as.numeric }
+
+	control <- if (any(is.infinite(unlist(control))) || any(is.na(unlist(control)))){ control <- list(-9000, 9000) }
+	control <- control %>% { .[unlist(.) |> order()] |> .conversion() |> as.list() }
+
+	# `descr_epsilon` creates the text descriptions of `epsilon` in the output
+	descr_epsilon <- purrr::as_mapper(~{
+			if (rlang::is_empty(.x)){
+				"NA"
+			} else if (!all(is.na(.x))){
+				ifelse(
+					is.na(.x)
+					, "NA"
+					, { c(`1` = "Disjoint", `10` = "Concurrency", `100` = "Full Concurrency", `1000` = "Continuity")[
+							as.character({ cbind(
+								((Re(.x) != 0) & (Im(.x) == 0))
+								, ((Re(.x) == 0) & (Im(.x) != 0))
+								, ((Re(.x) != 0) & (Im(.x) != 0)) | ((Re(.x) == 1) & (Im(.x) == 0))
+								, ((Re(.x) == 0) & (Im(.x) == 0))
+								) %*% (10^c(0:3))
+							})]
+						}
+					)
+			} else { "NA" }
+		});
+
+	out.names <- { c("mGap"
+								 , "mSt", "mEd"
+								 , "from.len", "to.len"
+								 , "epsilon", "epsilon.desc"
+								 , "from.coord", "to.coord"
+								 , "from_timeframe", "to_timeframe"
+								 )}
+
+	epsilon_expr <- rlang::expr({
+		# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
+		.out = atan2(mEd, mSt) * atan2((mGap * beta), mGap)
+		.tau = sign(to.len - from.len)
+
+		# Scale back down to an angle: `sqrt()` needs to have a complex argument for handling negative arguments
+		# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another
+		.out = (sqrt(as.complex(.out)) + sqrt(as.complex(mGap)^.tau)) |>
+						unlist() |>
+						purrr::modify_if(~Re(.x) |> is.infinite(), ~as.complex(0))
+
+		if (rlang::is_empty(.out)){ epsilon } else { .out }
+	});
+
+	XTIME <- { data.table::data.table(
+							beta				= as.numeric(e1 - s0)
+							, mGap			= as.numeric(s1 - e0)
+							, mSt 			= as.numeric(s1 - s0)
+							, mEd 			= as.numeric(e1 - e0)
+							, from.len	= as.numeric(e0 - s0)
+							, to.len		= as.numeric(e1 - s1)
+							, epsilon					= complex()
+							, epsilon.desc		= character()
+							, from.coord			= purrr::map2_chr(as.character(s0), as.character(e0), paste, sep = ":")
+							, to.coord  			= purrr::map2_chr(as.character(s1), as.character(e1), paste, sep = ":")
+							, from_timeframe	= purrr::map2(s0, e0, lubridate::interval)
+							, to_timeframe  	= purrr::map2(s1, e1, lubridate::interval)
+							)[(beta <= control[[2]]) & (beta >= control[[1]])]
+						}
+	# rlang::eval_tidy(epsilon_expr, data = XTIME) |> print()
+
+	# Handle the case when XTIME is empty due to filtering rows as a function of `beta` and `control:`
+	if (!rlang::is_empty(XTIME)){
+		XTIME[, epsilon := eval(epsilon_expr)
+				][, epsilon.desc := descr_epsilon(epsilon)
+				][, c(out.names), with = FALSE] |>
+		purrr::modify_at(c("beta", "mGap", "mSt", "mEd", "from.len", "to.len"), .conversion)
+	} else { XTIME }
+}
+# debug(cross.time)
+# undebug(cross.time)
+# ::: Replacement for evs.retrace() ::: ----
+evs_retrace <- function(self, ...){
+#' Retrace Event Source Data
+#'
+#' \code{evs_retrace} creates vertex attribute \code{trace} and populates it with an expression that retrieves the source record when evaluated.
+#'
+#' @param self An R object of class "event.vector.space"
+#' @param ... (\code{\link[rlang]{dots_list}}) Names of event graphs found in \code{self$evt_graphs}
+# @param chatty Verbosity flag
+#'
+#' @return Because of the reference semantics of R6 classes, for each name given in \code{...}, graph updates are in place: \code{self} is returned invisibly.
+#'
+#' @export
+
+	evt_gph = if (...length() == 0){
+			names(self$evt_graphs) |> purrr::set_names()
+		} else {
+			purrr::modify_if(rlang::list2(...), is.numeric, ~names(self$evt_graphs[.x]), .else = ~as.character(.x)) |> purrr::set_names()
+		}
+
+	self$evt_graphs[names(evt_gph)] <- purrr::imap(evt_gph, ~{
+		g = self$evt_graphs[[.y]];
+
+		evs.cfg = self$config;
+
+		evs.lkup = { self$space[(jk %in% igraph::E(g)$jk), .(jk, from.src, from.coord, to.src, to.coord)] %>%
+				melt(measure.vars = list(src = c("from.src", "to.src"), coord = c("from.coord", "to.coord")), variable.name = "type", variable.factor = FALSE) |>
+				unique() %>%
+				.[, c(list(type = as.numeric(type))
+							, paste(jk, src, coord, sep = ":") |>
+								stringi::stri_split_fixed(":", simplify = TRUE) |>
+								data.table::as.data.table() |>
+								purrr::set_names(c("jk", "context", "seq_idx", "start_idx", "end_idx")) |>
+								purrr::modify_at(c("jk", "seq_idx"), as.numeric)
+							)
+					]} %>% data.table::setorder(context, type, seq_idx)
+
+		igraph::V(g)$title <- igraph::V(g)$name;
+		igraph::V(g)$trace <- { igraph::V(g)$title |>
+				purrr::map(~{
+					vkey = stringi::stri_split_fixed(.x, ":", simplify = TRUE) |> as.list() |>
+								purrr::set_names(c("context", "seq_idx")) |>
+								purrr::modify_at("seq_idx", as.numeric)
+					vlkup = evs.lkup[vkey, on = c("context", "seq_idx")][(type == min(type))]
+
+					evs.cfg[(contexts %in% vlkup$context), {
+						.map_fields = if (rlang::has_length(unlist(map.fields), 1)){
+								stringi::stri_split_regex(unlist(map.fields), "[,|:]", simplify = TRUE) |> as.vector()
+							} else { unlist(map.fields) }
+
+						.map_fields %<>% purrr::set_names(c("who", "start", "end"))
+
+						parse(text = sprintf(
+							"%s[(%s == %s) & (%s == as.Date('%s')) & (%s == as.Date('%s'))]"
+							, src.names
+							, .map_fields["who"]  , vlkup$jk %>% as.numeric()
+							, .map_fields["start"], vlkup$start_idx
+							, .map_fields["end"]  , vlkup$end_idx
+							))
+					}];
+				})
+			}
+		g
+	})
+
+	invisible(self)
+}
+# --------------
+
+rm(self, private, inspect, set.q_graphs, evs_configure, action)
+
+expr_list <- rlang::exprs(1 == 1, 2 == 2, 1 > 2)
+
+purrr::reduce(expr_list, ~as.expression(list(`&`, .x, .y))) |> eval()

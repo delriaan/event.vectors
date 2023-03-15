@@ -1,5 +1,5 @@
 # ~ Initialization ====
-# library(EVSpace);
+# library(event.vectors);
 library(purrr)
 library(stringi)
 library(tictoc);
@@ -59,29 +59,33 @@ make.test_data <- function(j = 5, n = 5, m = 5, o = 1:10, dest = globalenv(), .d
 }
 
 BLAH <- new.env();
-make.test_data(j = 50, n = 5, m = 5, o = c(5, 20), dest = BLAH, .debug = !TRUE);
 set.seed(sample(100000, 1));
+make.test_data(j = 50, n = 3, m = 5, o = c(5, 20), dest = BLAH, .debug = !TRUE);set.seed(sample(100000, 1));
+set.seed(sample(100000, 1));
+make.test_data(j = 50, n = 3, m = 5, o = c(5, 20), dest = .GlobalEnv, .debug = !TRUE);
 
-# ~ Create EVSpace object from test data
+# ~ Create event.vectors object from test data
 tic.clear(); tic.clearlog();
 
 #
-# ~ Validation #1 :: event.vector.space ====
+# ~ Validation #1 :: event.vectors ====
 tic("EVSpace Validation Object");
 #
-test.evs <- event.vector.space$new();
+test.evs <- event.vectors$new();
 test.evs$
 	configure(
-		src.names			= paste0("BLAH$", ls(pattern = "^test_data", envir = BLAH))
-		, contexts		= paste0("Src", 1:length(ls(pattern = "^test_data", envir = BLAH)))
-		, map.fields	= purrr::map(sequence(length(ls(pattern = "^test_data", envir = BLAH))), ~c("jk", "date.start", "date.end"))
-		, row.filters	= purrr::map(sequence(length(ls(pattern = "^test_data", envir = BLAH))), ~rlang::expr(1==1))
-		, src.mix 		= "combn"
-		, chatty			= TRUE
-		# , exclude.mix = { c(
-		# 		evs_exclude.blender("Data.6", c("Data.4", "Data.7"))
-		# 		, evs_exclude.blender("Data.3", c("Data.1", "Data.5"))
-		# 	)}
+		src.defs = c(ls(pattern = "^test") |>
+								 	purrr::modify_at(3, ~paste0(.x, "[(join_key > 3)]")) |>
+								 	purrr::modify_at(1, ~paste0(.x, "[lubridate::month(date.start)==1]")) |>
+								 	rlang::parse_exprs()
+								 , ("BLAH$" %s+% ls(BLAH, pattern = "^test")[1:3]) |>
+								 	purrr::modify_at(3, ~paste0(.x, "[(join_key == 1)]")) |>
+								 	purrr::modify_at(2, ~paste0(.x, "[lubridate::month(date.start)==8]")) |>
+								 	rlang::parse_exprs()
+								 )
+		, contexts = rlang::parse_exprs("Event_" %s+% LETTERS[1:6])
+		, map.fields = replicate(n = 6, c("join_key", "date.start", "date.end"), simplify = FALSE)
+		, chatty = TRUE
 		)$
 	set.data(chatty = TRUE)$
 	set.q_graphs(chatty = TRUE);
