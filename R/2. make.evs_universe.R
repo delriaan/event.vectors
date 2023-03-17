@@ -20,14 +20,8 @@
 #' \item{Parallelism is internally supported via package \code{furrr}: the user is responsible for setting the appropriate \code{\link[future]{plan}}}
 #' }
 #' @export
-make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.control = NULL, units = "", furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE), graph.only = FALSE, chatty = FALSE){
+make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.control = NULL, unit = "", furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE), graph.only = FALSE, chatty = FALSE){
 	force(self);
-
-  edge.filter <- if (...length() > 0){
-  	str2lang(rlang::enquos(..., .named = FALSE, .ignore_empty = "all") |>
-  		purrr::map_chr(~{ rlang::get_expr(.x) |> deparse() |> sprintf(fmt = "(%s)") }) |>
-  		paste(collapse = " & "))
-  	} else { TRUE }
 
   # :: `make.event_key` is a function used to create sequential unique identifiers for events sources and time-markers ----
   make.event_key <- purrr::as_mapper(~{
@@ -44,12 +38,11 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 			index
 		});
 
-  # :: Create self$space from self$q_graph via calls to 'cross.time()' ----
   furrr_opts$globals <- furrr_opts$globals |> c("graph.control", "self", "cross.time", "time.control", "units") |> unique();
   furrr_opts$packages <- furrr_opts$packages |> c("magrittr", "data.table") |> unique();
 
   # .src_mix <- self$.__enclos_env__$private$q_table;
-  .src_mix <- private$q_table;
+  .src_mix <- self$.__enclos_env__$private$q_table;
 
   # :: Retrieve the essential columns from sources and create a compact intermediate data structure ----
   if (chatty){ message("Creating `.tmp_space` ...")}
@@ -91,36 +84,43 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 	  if (chatty){ message("Creating `self$space` (part 2) ...")}
 		furrr_opts <- furrr::furrr_options(scheduling = Inf, seed = TRUE, packages = c("magrittr", "data.table"), globals = c("time.control", "units", "cross.time"));
 
-		xtime <- furrr::future_map(self$space, ~{
-		# xtime <- purrr::map(self$space, ~{
-	  		# Call `cross.time()`
-					time.control; units;
-					base	= .x[, .(jk)];
-	  			xtime = .x[, cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx, control = time.control, units = units)
-	  								 , by = .(f_src, t_src)
-	  								 ]
+		edge_filter <- rlang::enquos(..., .named = FALSE, .ignore_empty = "all")
+		if (rlang::is_empty(edge_filter)){ edge_filter <- TRUE }
 
-	  			if (rlang::is_empty(xtime)){ NULL } else { xtime[, c(base, .SD)] }
-	  		}, .options = furrr_opts) |>
-			purrr::compact()
+		self$space <- furrr::future_map(self$space, ~{
+  		# Call `cross.time()`
+			time.control; units; edge_filter;
 
-	  self$space <- data.table::rbindlist(xtime)[
-		  # Enforce row filter rules before proceeding
-		  !is.na(epsilon) & eval(edge.filter)
-		  ][
-		  # Impute sequencing on event sources: this has a direct impact when creating distinct vertex names during subsequent graph creation
-		  , c("f_src", "t_src") := list(paste(f_src, make.event_key(f_src, from.coord), sep = ":")
-		  															, paste(t_src, make.event_key(t_src, to.coord), sep = ":"))
-		  , by = jk
-		  ][, src.pair := sprintf("%s -> %s", f_src, t_src)
-		  ][, data.table::setnames(.SD, c("f_src", "t_src"), c("from.src", "to.src"))
-		  ][(from.src != to.src )] |> # Remove loops
-	  	data.table::setattr("contexts", self$config$contexts);
+			xtime <- .x[, cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx
+															 , control = time.control, unit = unit)
+								 , by = .(jk, f_src, t_src)]
+
+			if (rlang::is_empty(xtime)){ NULL } else { #print(str(xtime))
+				xtime[
+			  # Enforce row filter rules before proceeding
+			  !is.na(epsilon) #& purrr::reduce(purrr::map(edge_filter, rlang::eval_tidy, data = rlang::as_data_mask(xtime)), `&`)
+			  ][
+			  # Impute sequencing on event sources: this has a direct impact when creating distinct vertex names during subsequent graph creation
+			  , c("f_src", "t_src") := list(list(f_src, from.coord), list(t_src, to.coord)) |>
+		  														map(~paste(.x[[1]], make.event_key(.x[[1]], .x[[2]]), sep = ":"))
+			  ][, src.pair := sprintf("%s -> %s", f_src, t_src)
+			  ][, data.table::setnames(.SD, c("f_src", "t_src"), c("from.src", "to.src"))
+			  ][, epsilon.desc := factor(
+							epsilon.desc
+							, levels = c("NA", "Full Concurrency", "Concurrency", "Continuity", "Disjoint")
+							, ordered = TRUE
+							)
+			  ][(from.src != to.src )] # Remove loops
+			}
+		}, .options = furrr_opts) |>
+		purrr::compact() |>
+		# data.table::rbindlist()
+		list2env(envir = new.env())
 	}
 
-  # :: Create `self$evt_graphs` from `self$space` ----
+	# :: Create `self$evt_graphs` from `self$space` ----
 	message(sprintf("[%s] ... creating event graphs", Sys.time()));
-  self$evt_graphs <- self$space |> split(by = "jk") |> furrr::future_map(~{
+  self$evt_graphs <- self$space %$% mget(ls()) |> furrr::future_map(~{
 			graph.control
 			g = igraph::graph_from_data_frame(data.table::setcolorder(.x, c("from.src", "to.src")))
 
@@ -128,8 +128,11 @@ make.evs_universe <- function(self, ..., time.control = list(-Inf, Inf), graph.c
 			g
 		}, .options = furrr_opts) |> purrr::compact();
 
+	self$space <- self$space %$% mget(ls()) |> reduce(rbind);
+
 	# :: Return ----
-	message(sprintf("[%s] The vector space is ready for analysis", Sys.time()));
+	message(sprintf("[%s] The event vectors are ready for analysis", Sys.time()));
 	invisible(self);
 }
-#
+# debug(make.evs_universe)
+# undebug(make.evs_universe)

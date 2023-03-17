@@ -491,6 +491,9 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 # debug(cross.time)
 # undebug(cross.time)
 # ::: Replacement for evs.retrace() ::: ----
+# dir(pattern = "^[1-4]{1}.+R$", recursive = TRUE) |> purrr::walk(source)
+
+test.evs$evt_graphs$`1` |> igraph::V() %>% .$data$value()
 evs_retrace <- function(self, ...){
 #' Retrace Event Source Data
 #'
@@ -522,36 +525,15 @@ evs_retrace <- function(self, ...){
 							, paste(jk, src, coord, sep = ":") |>
 								stringi::stri_split_fixed(":", simplify = TRUE) |>
 								data.table::as.data.table() |>
-								purrr::set_names(c("jk", "context", "seq_idx", "start_idx", "end_idx")) |>
+								purrr::set_names(c("jk", "context", "seq_idx", "time_start_idx", "time_end_idx")) |>
 								purrr::modify_at(c("jk", "seq_idx"), as.numeric)
 							)
 					]} %>% data.table::setorder(context, type, seq_idx)
 
 		igraph::V(g)$title <- igraph::V(g)$name;
-		igraph::V(g)$trace <- { igraph::V(g)$title |>
-				purrr::map(~{
-					vkey = stringi::stri_split_fixed(.x, ":", simplify = TRUE) |> as.list() |>
-								purrr::set_names(c("context", "seq_idx")) |>
-								purrr::modify_at("seq_idx", as.numeric)
-					vlkup = evs.lkup[vkey, on = c("context", "seq_idx")][(type == min(type))]
 
-					evs.cfg[(contexts %in% vlkup$context), {
-						.map_fields = if (rlang::has_length(unlist(map.fields), 1)){
-								stringi::stri_split_regex(unlist(map.fields), "[,|:]", simplify = TRUE) |> as.vector()
-							} else { unlist(map.fields) }
-
-						.map_fields %<>% purrr::set_names(c("who", "start", "end"))
-
-						parse(text = sprintf(
-							"%s[(%s == %s) & (%s == as.Date('%s')) & (%s == as.Date('%s'))]"
-							, src.names
-							, .map_fields["who"]  , vlkup$jk %>% as.numeric()
-							, .map_fields["start"], vlkup$start_idx
-							, .map_fields["end"]  , vlkup$end_idx
-							))
-					}];
-				})
-			}
+		# Parse the vertex title and call V(g)$data$value(...) to retrieve the corresponding source data row
+		igraph::V(g)$trace <- {}
 		g
 	})
 

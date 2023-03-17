@@ -66,7 +66,7 @@ event.vectors <- { R6::R6Class(
 			configure =	function(src.defs, contexts, map.fields = NULL, src.mix = "comb", exclude.mix = NULL, chatty = FALSE){
 					if (!rlang::is_empty(exclude.mix)){ message("Source-mix exlusions detected") }
 
-					private <- new.env()
+					# private <- new.env()
 					fld_nms <- c("jk", "time_start_idx", "time_end_idx")
 
 					make_refs <- purrr::as_mapper(~sapply(.x, magrittr::freduce, list(eval, as.character)) |> rlang::parse_exprs())
@@ -89,17 +89,16 @@ event.vectors <- { R6::R6Class(
 
 					# Create the event data references
 					event_refs <- make_refs(rlang::exprs(!!src.defs)) |>	make_quos(rlang::enexprs(contexts))
-					event_flds <- purrr::map(map.fields, ~{ rlang::parse_exprs(.x) %>% rlang::set_names(set_fld_nms(.)) })
+					event_flds <- purrr::map(map.fields, ~{ rlang::parse_exprs(.x) %>% rlang::set_names(set_fld_nms(.)) %>% unlist(recursive = FALSE) })
 
 					# Create a configuration quosure for each data source
-					private$.params$config <- list(event_refs, event_flds) |>
-						purrr::pmap(~{
-								.temp <- rlang::as_quosures(..2, env = rlang::as_data_mask(rlang::eval_tidy(..1)))[fld_nms];
+					private$.params$config <- purrr::map2(event_refs, event_flds, ~{
+								.temp <- rlang::as_quosures(.y, env = rlang::as_data_mask(rlang::eval_tidy(.x)))[fld_nms];
 								.temp$jk.vec <- .temp$jk |> rlang::eval_tidy() |> unique() |> sort();
 
-								message(glue::glue("Validating source `{rlang::as_label(rlang::quo_get_expr(..1))}`\n"));
+								message(glue::glue("Validating source `{rlang::as_label(rlang::quo_get_expr(.x))}`\n"));
 								qa_check <- { c(
-									glue::glue("{rlang::as_label(rlang::quo_get_expr(..1))} exists: {assertthat::not_empty(rlang::eval_tidy(..1))}")
+									glue::glue("{rlang::as_label(rlang::quo_get_expr(.x))} exists: {assertthat::not_empty(rlang::eval_tidy(.x))}")
 									, glue::glue("- ${rlang::as_label(rlang::quo_get_expr(.temp$jk))} exists: {assertthat::not_empty(rlang::eval_tidy(.temp$jk))}" )
 									, glue::glue("- ${rlang::as_label(rlang::quo_get_expr(.temp$time_start_idx))} exists: {assertthat::not_empty(rlang::eval_tidy(.temp$time_start_idx))}" )
 									, glue::glue("- ${rlang::as_label(rlang::quo_get_expr(.temp$time_end_idx))} exists: {assertthat::not_empty(rlang::eval_tidy(.temp$time_end_idx))}" )
@@ -107,7 +106,7 @@ event.vectors <- { R6::R6Class(
 									)}
 								if (chatty){ purrr::walk(qa_check, message)}
 
-								data.table::setattr(.temp, "src.def", ..1)
+								data.table::setattr(.temp, "src.def", .x)
 							})
 
 					# @def q_table sets the allowable comparisons before any calculations are done
@@ -123,8 +122,8 @@ event.vectors <- { R6::R6Class(
 						.temp[!purrr::pmap_lgl(.temp, ~list(c(.x, .y)) %in% exclude.mix)] |> data.table::setkey(from, to)
 					}
 
-					private$.params$config %<>%
-						data.table::setattr("src.mix", as.character(rlang::enexpr(src.mix))) |>
+					private$.params$config %<>% {
+						data.table::setattr(., "src.mix", as.character(rlang::enexpr(src.mix))) |>
 						data.table::setattr("exclude.mix", sapply(exclude.mix, function(i){
 							paste0(if (length(i) == 1){ c(i, i) } else if(length(i) > 2) { i[1:2] } else { i }, collapse = ", ")
 						})) %>%
@@ -132,7 +131,7 @@ event.vectors <- { R6::R6Class(
 							purrr::map(., ~.x$jk.vec |> rlang::eval_tidy()) |>
 								magrittr::freduce(list(unlist, unique, sort, purrr::set_names))
 							})
-
+					}
 					# invisible(private)
 					invisible(self);
 				}

@@ -15,7 +15,7 @@
 #' @param e1 A numeric/date-coded vector containing the temporal upper boundary of the ending event duration
 #' @param control A length-2 sorted list with values indicating the range of allowable values for internal variable \code{beta} (the difference between ends of 'to' events and beginnings of 'from' events)
 #' @param chatty (logical | \code{FALSE}) Verbosity flag
-#' @param units Conversion temporal units compatible with \code{lubridate}
+#' @param unit Conversion temporal units compatible with \code{lubridate}
 #' @param ... (Not used)
 #'
 #' @returns A \code{\link[data.table]{data.table}} object having the following fields:
@@ -42,49 +42,45 @@
 #'
 #' @name cross.time
 #' @export
-cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE, units = "",  ...){
+cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE, unit = "",  ...){
 ## Reference: https://www.r-bloggers.com/using-complex-numbers-in-r/
 ## Division by Pi/4 makes it easy to tell if one argument is larger than, smaller than, or the same magnitude as the other (same = Pi/4)
 ## All computations are in the direction of B.max to A.min when `events.ascending` is TRUE
-	require(data.table);
-	require(magrittr);
+	require(data.table, quietly = TRUE);
+	require(magrittr, quietly = TRUE);
+	require(rlang, quietly = TRUE);
 
-	.conversion <- if (units %ilike% "^(we|mo|da|ye|se|mi|na|ho|pi).+s$"){
-										rlang::inject(`::`(lubridate, !!units)) } else { as.numeric }
+	.conversion <- if (unit %ilike% "^(we|mo|da|ye|se|mi|na|ho|pi).+s$"){
+										purrr::as_mapper(~lubridate::as.duration(.x %||% 0, unit = unit))
+									} else { as.numeric }
+	out.names <- { c("beta", "mGap"
+									 , "mSt", "mEd"
+									 , "from.len", "to.len"
+									 , "from.coord", "to.coord"
+									 , "from_timeframe", "to_timeframe"
+									 )}
 
-	control <- if (any(is.infinite(unlist(control))) || any(is.na(unlist(control)))){ control <- list(-9000, 9000) }
-	control <- control %>% { .[unlist(.) |> order()] |> .conversion() |> as.list() }
+	control <- purrr::imap(control, ~{
+			ifelse(is.infinite(.x), sign(.x) * 9000
+				, ifelse(rlang::is_empty(.x)
+						, c(-9000, 9000)[.y], .x))
+		})
 
-	# `descr_epsilon` creates the text descriptions of `epsilon` in the output
-	descr_epsilon <- purrr::as_mapper(~{
-			if (rlang::is_empty(.x)){
-				"NA"
-			} else if (!all(is.na(.x))){
-				ifelse(
-					is.na(.x)
-					, "NA"
-					, { c(`1` = "Disjoint", `10` = "Concurrency", `100` = "Full Concurrency", `1000` = "Continuity")[
-							as.character({ cbind(
-								((Re(.x) != 0) & (Im(.x) == 0))
-								, ((Re(.x) == 0) & (Im(.x) != 0))
-								, ((Re(.x) != 0) & (Im(.x) != 0)) | ((Re(.x) == 1) & (Im(.x) == 0))
-								, ((Re(.x) == 0) & (Im(.x) == 0))
-								) %*% (10^c(0:3))
-							})]
-						}
-					)
-			} else { "NA" }
-		});
 
-	out.names <- { c("mGap"
-								 , "mSt", "mEd"
-								 , "from.len", "to.len"
-								 , "epsilon", "epsilon.desc"
-								 , "from.coord", "to.coord"
-								 , "from_timeframe", "to_timeframe"
-								 )}
+	beta			<- as.numeric(e1 - s0)
+	x_filter  <- (beta <= control[[2]]) & (beta >= control[[1]])
+	if (rlang::is_empty(beta)){ return(NULL) }
 
-	epsilon_expr <- rlang::expr({
+	mGap			<- as.numeric(s1 - e0)
+	mSt 			<- as.numeric(s1 - s0)
+	mEd 			<- as.numeric(e1 - e0)
+	from.len	<- as.numeric(e0 - s0)
+	to.len		<- as.numeric(e1 - s1)
+	from.coord			<- purrr::map2_chr(as.character(s0), as.character(e0), paste, sep = ":")
+	to.coord  			<- purrr::map2_chr(as.character(s1), as.character(e1), paste, sep = ":")
+	from_timeframe	<- purrr::map2(s0, e0, lubridate::interval)
+	to_timeframe  	<- purrr::map2(s1, e1, lubridate::interval)
+	epsilon <- {
 		# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
 		.out = atan2(mEd, mSt) * atan2((mGap * beta), mGap)
 		.tau = sign(to.len - from.len)
@@ -95,31 +91,35 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 						unlist() |>
 						purrr::modify_if(~Re(.x) |> is.infinite(), ~as.complex(0))
 
-		if (rlang::is_empty(.out)){ epsilon } else { .out }
-	});
+		if (rlang::is_empty(.out)){ complex() } else { .out }
+	}
+	# print(ls())
+	epsilon.desc <- purrr::as_mapper(~{
+		.eval_epsilon <- purrr::as_mapper(~{
+			ifelse(
+				is.na(.x) || !is.complex(.x)
+				, "NA"
+				, rlang::set_names(
+						c(((Re(.x) != 0) & (Im(.x) != 0)) | ((Re(.x) == 1) & (Im(.x) == 0))
+							, (Re(.x) == 0) & (Im(.x) != 0)
+							, (Re(.x) == 0) & (Im(.x) == 0)
+							, (!Re(.x) %in% c(0, 1)) & (Im(.x) == 0)
+							)
+						, c("Full Concurrency", "Concurrency", "Continuity", "Disjoint")
+						) %>% .[.] |> names()
+					)
+			})
+		if (rlang::is_empty(.x)){ NULL } else { sapply(.x, .eval_epsilon) }
+	})(epsilon);
+	# print(ls())
 
-	XTIME <- { data.table::data.table(
-							beta				= as.numeric(e1 - s0)
-							, mGap			= as.numeric(s1 - e0)
-							, mSt 			= as.numeric(s1 - s0)
-							, mEd 			= as.numeric(e1 - e0)
-							, from.len	= as.numeric(e0 - s0)
-							, to.len		= as.numeric(e1 - s1)
-							, epsilon					= complex()
-							, epsilon.desc		= character()
-							, from.coord			= purrr::map2_chr(as.character(s0), as.character(e0), paste, sep = ":")
-							, to.coord  			= purrr::map2_chr(as.character(s1), as.character(e1), paste, sep = ":")
-							, from_timeframe	= purrr::map2(s0, e0, lubridate::interval)
-							, to_timeframe  	= purrr::map2(s1, e1, lubridate::interval)
-							)[(beta <= control[[2]]) & (beta >= control[[1]])]
-						}
-	# rlang::eval_tidy(epsilon_expr, data = XTIME) |> print()
+	beta	<- .conversion(beta);
+	mGap	<- .conversion(mGap);
+	mSt 	<- .conversion(mSt);
+	mEd 	<- .conversion(mEd);
 
-	# Handle the case when XTIME is empty due to filtering rows as a function of `beta` and `control:`
-	if (!rlang::is_empty(XTIME)){
-		XTIME[, epsilon := eval(epsilon_expr)
-				][, epsilon.desc := descr_epsilon(epsilon)
-				][, c(out.names), with = FALSE] |>
-		purrr::modify_at(c("beta", "mGap", "mSt", "mEd", "from.len", "to.len"), .conversion)
-	} else { XTIME }
+	c(out.names, "epsilon", "epsilon.desc") |> mget() |> data.table::as.data.table()
 }
+
+# debug(cross.time)
+# undebug(cross.time)
