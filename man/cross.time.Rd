@@ -4,7 +4,16 @@
 \alias{cross.time}
 \title{Cross-Compare Temporal Boundaries}
 \usage{
-cross.time(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE, ...)
+cross.time(
+  s0,
+  s1,
+  e0,
+  e1,
+  control = list(-Inf, Inf),
+  chatty = FALSE,
+  unit = "",
+  ...
+)
 }
 \arguments{
 \item{s0}{A numeric/date-coded vector containing the temporal lower boundary of the starting event duration}
@@ -18,6 +27,8 @@ cross.time(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE, ...)
 \item{control}{A length-2 sorted list with values indicating the range of allowable values for internal variable \code{beta} (the difference between ends of 'to' events and beginnings of 'from' events)}
 
 \item{chatty}{(logical | \code{FALSE}) Verbosity flag}
+
+\item{unit}{Conversion temporal units compatible with \code{lubridate}}
 
 \item{...}{(Not used)}
 }
@@ -46,6 +57,4 @@ A \code{\link[data.table]{data.table}} object having the following fields:
 }
 \description{
 Given a four-element vector of start and end coordinates of two events, \code{cross.time()} compares the distances among the upper and lower boundaries of pairs of event vectors. This includes "like" boundary comparison (e.g., start #2 - start#1) and contrary boundary comparison (e.g. start #2 - end #1).
-
-\code{cross.time()} \code{\link[memoise]{memoise}}s arguments \code{s0}, \code{s1}, \code{e0}, and \code{e1} with a disk cache defined as \code{\link[cachem]{cache_disk}}\code{(dir = tempdir(), max_age = Inf, max_n = Inf, destroy_on_finalize = FALSE)}.  A future version will allow the cache to be customized in a post-hoc manner.
 }

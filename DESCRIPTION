@@ -1,7 +1,7 @@
 Type: Package
 Package: event.vectors
 Title: Event Vectors
-Version: 1.5.0*
+Version: 1.6.0
 Author: Chionesu George <sapienti.Dei@outlook.com> [aut, cre]
 Maintainer: Chionesu George <sapienti.Dei@outlook.com>
 Depends: 
@@ -15,7 +15,8 @@ Imports:
     furrr,
     purrr (< 1.0.0), 
     cachem (>= 1.0.6), 
-    memoise (>= 2.0.1)
+    memoise (>= 2.0.1), 
+    rlang
 Suggests:
 	visNetwork
 Encoding: UTF-8

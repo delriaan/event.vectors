@@ -6,7 +6,7 @@ library(tictoc);
 library(future);
 library(magrittr);
 #
-# dir(pattern = "^[1-4]{1}.+R$", recursive = TRUE) |> purrr::walk(source)
+dir(pattern = "^[1-4]{1}.+R$", recursive = TRUE) |> purrr::walk(source)
 
 make.test_data <- function(j = 5, n = 5, m = 5, o = 1:10, dest = globalenv(), .debug = FALSE){
 #' Make Test Data for Validation
@@ -66,17 +66,15 @@ set.seed(sample(100000, 1));
 make.test_data(j = 50, n = 3, m = 5, o = c(5, 20), dest = BLAH, .debug = !TRUE);set.seed(sample(100000, 1));
 set.seed(sample(100000, 1));
 make.test_data(j = 50, n = 3, m = 5, o = c(5, 20), dest = .GlobalEnv, .debug = !TRUE);
-
-# ~ Create event.vectors object from test data
 tic.clear(); tic.clearlog();
 
 #
 # ~ Validation #1 :: event.vectors ====
+plan(sequential);
+plan(tweak(multisession, workers = 7));
 tic("EVSpace Validation Object");
-#
-test.evs <- event.vectors$new();
-# undebug(test.evs$configure)
-test.evs$
+test.evs <- { event.vectors$
+	new()$
 	configure(
 		src.defs = c(ls(pattern = "^test.+[0-9]$") |>
 								 	purrr::modify_at(3, ~paste0(.x, "[(join_key > 3)]")) |>
@@ -90,54 +88,40 @@ test.evs$
 		, contexts = rlang::parse_exprs("Event_" %s+% LETTERS[1:6])
 		, map.fields = replicate(n = 6, c("join_key", "date.start", "date.end"), simplify = FALSE)
 		, chatty = TRUE
+		)$
+	make.evs_universe(
+		# , mSt >= quantile(mSt, 0.75)
+		# , abs(mGap) >= lubridate::days(5)
+		# , abs(mGap) <= lubridate::days(120)
+		, time.control = list(0, 100)
+		# , graph.control = { rlang::exprs(
+		# 			igraph::E(g)$title	<- igraph::ends(g, igraph::E(g)) %>% apply(1, paste, collapse = " -> ")
+		# 			, igraph::V(g)$color <- igraph::V(g)$name %>% stringi::stri_split_fixed(":", simplify = TRUE) %>% .[, 1L] %>% {
+		# 					x = .;
+		# 					y = purrr::set_names(unique(x), purrr::map_chr(unique(x), ~rgb(runif(1), runif(1), runif(1))))
+		# 					purrr::map_chr(x, ~names(y)[which(y == .x)])
+		# 				}
+		# 			, igraph::V(g)$src <- igraph::V(g)$name %>% stringi::stri_replace_first_regex("[:][0-9]+", "")
+		# 			)
+		# 	}
+		, units = "days"
+		, chatty = TRUE
 		)
-	# set.q_graphs(chatty = TRUE);
+}
+toc(log = TRUE);
 
 test.evs$config |> attributes();
 test.evs$.__enclos_env__$private$q_table;
 test.evs$.__enclos_env__$private$.params$config
-toc(log = TRUE);
-#
-# ~ Validation #2 :: make.evs_universe() ====
-plan(sequential);
-plan(tweak(multisession, workers = 7));
-
-tic("EVSpace Universe Validation");
-# undebug(make.evs_universe)
-make.evs_universe(
-	self = test.evs
-	# , mSt >= quantile(mSt, 0.75)
-	# , abs(mGap) >= lubridate::days(5)
-	# , abs(mGap) <= lubridate::days(120)
-	, time.control = list(0, 100)
-	# , graph.control = { rlang::exprs(
-	# 			igraph::E(g)$title	<- igraph::ends(g, igraph::E(g)) %>% apply(1, paste, collapse = " -> ")
-	# 			, igraph::V(g)$color <- igraph::V(g)$name %>% stringi::stri_split_fixed(":", simplify = TRUE) %>% .[, 1L] %>% {
-	# 					x = .;
-	# 					y = purrr::set_names(unique(x), purrr::map_chr(unique(x), ~rgb(runif(1), runif(1), runif(1))))
-	# 					purrr::map_chr(x, ~names(y)[which(y == .x)])
-	# 				}
-	# 			, igraph::V(g)$src <- igraph::V(g)$name %>% stringi::stri_replace_first_regex("[:][0-9]+", "")
-	# 			)
-	# 	}
-	, units = "days"
-	, chatty = TRUE
-	);
-toc(log = TRUE);
-
-(test.evs$space) |> View()
-# test.evs$space[, .(join_key, from.coord, to.coord, src.pair, mSt, mGap, mEd, epsilon = as.character(epsilon))] %>% summarytools::dfSummary();
-test.evs$space$[(jk == 4)] %>% View("Space: jk == 4");
+test.evs$space |> View()
+test.evs$space[, .(jk, from.coord, to.coord, src.pair, mSt, mGap, mEd, epsilon = as.character(epsilon))] %>% summarytools::dfSummary() |> summarytools::view(method = "browser");
+test.evs$space[(jk == 4)] %>% View("Space: jk == 4");
 igraph::vertex.attributes(test.evs$evt_graphs$`1`);
 test.evs$evt_graphs$`1` |> igraph::V()
 test.evs$evt_graphs$`1` |> igraph::E()
 test.evs$evt_graphs$`1` |> igraph::edge.attributes()
-#
-# ~ Validation #3 :: evs_retrace() ====
-evs_retrace(test.evs);
-(event_graph <- test.evs$evt_graphs$`4`);
 
-# ~ Validation #4 :: visNetwork::visIgraph() ====
+# ~ Validation #2 :: visNetwork::visIgraph() ====
 f2ab <- list(theta = 0.1, gravitationalConstant = -5000, centralGravity = 0.0,  avoidOverlap = 1, damping = 0.7);
 
 event_graph %>% {
@@ -160,13 +144,6 @@ event_graph %>% {
 	htmltools::html_print(viewer = browseURL)
 
 # ~ Cleanup ====
-book.of.workflow::do.save_image(
-	"BLAH", "test.evs"
-	, file.name = "test_data"
-	, save.dir = "experiments"
-	, safe = TRUE
-	)
-
 rm(list = ls())
 plan(sequential);
 gc(full = TRUE)

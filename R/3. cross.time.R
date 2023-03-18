@@ -1,13 +1,7 @@
-.onLoad <- function(libname, packagename){
-	.evs_cache <<- cachem::cache_disk(dir = tempdir(), max_age = Inf, max_n = Inf, destroy_on_finalize = FALSE)
-	}
-
 #' Cross-Compare Temporal Boundaries
 #'
 #' @description
 #' Given a four-element vector of start and end coordinates of two events, \code{cross.time()} compares the distances among the upper and lower boundaries of pairs of event vectors. This includes "like" boundary comparison (e.g., start #2 - start#1) and contrary boundary comparison (e.g. start #2 - end #1).
-#'
-#' \code{cross.time()} \code{\link[memoise]{memoise}}s arguments \code{s0}, \code{s1}, \code{e0}, and \code{e1} with a disk cache defined as \code{\link[cachem]{cache_disk}}\code{(dir = tempdir(), max_age = Inf, max_n = Inf, destroy_on_finalize = FALSE)}.  A future version will allow the cache to be customized in a post-hoc manner.
 #'
 #' @param s0 A numeric/date-coded vector containing the temporal lower boundary of the starting event duration
 #' @param s1 A numeric/date-coded vector containing the temporal upper boundary of the starting event duration
@@ -46,9 +40,9 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 ## Reference: https://www.r-bloggers.com/using-complex-numbers-in-r/
 ## Division by Pi/4 makes it easy to tell if one argument is larger than, smaller than, or the same magnitude as the other (same = Pi/4)
 ## All computations are in the direction of B.max to A.min when `events.ascending` is TRUE
-	require(data.table, quietly = TRUE);
-	require(magrittr, quietly = TRUE);
-	require(rlang, quietly = TRUE);
+	suppressPackageStartupMessages(require(data.table, quietly = TRUE));
+	suppressPackageStartupMessages(require(magrittr, quietly = TRUE));
+	suppressPackageStartupMessages(require(rlang, quietly = TRUE));
 
 	.conversion <- if (unit %ilike% "^(we|mo|da|ye|se|mi|na|ho|pi).+s$"){
 										purrr::as_mapper(~lubridate::as.duration(.x %||% 0, unit = unit))
@@ -66,9 +60,8 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 						, c(-9000, 9000)[.y], .x))
 		})
 
-
 	beta			<- as.numeric(e1 - s0)
-	x_filter  <- (beta <= control[[2]]) & (beta >= control[[1]])
+	x_filter  <- (beta <= control[[2]]) & (beta >= control[[1]]);
 	if (rlang::is_empty(beta)){ return(NULL) }
 
 	mGap			<- as.numeric(s1 - e0)

@@ -9,11 +9,11 @@
 #' @section Execution Workflow:
 #' The initial execution order should look something like the following ...
 #' \cr
-#' \code{ event.vectors$new(...)$configure(...)$set.data(...)$set.q_graphs(...) \%>\% make.evs_universe(...) }.  The ability to execute the preceding workflow out of order exists, but it is best to adhere to the provided flow the first time around.
+#' \code{ event.vectors$new(...)$configure(...)$make.evs_universe(...) }.  The ability to execute the preceding workflow out of order exists, but it is best to adhere to the provided flow the first time around.
 #' \cr
 #' \cr
 #' @section Class Member "Space":
-#' \code{$space} is a \code{\link[data.table]{data.table}} that is populated upon execution of \code{\link{make.evs_universe}()}:
+#' \code{$space} is a \code{\link[data.table]{data.table}} that is populated upon execution of \code{$make.evs_universe()}:
 #'    \describe{
 #'      \item{\code{jk}}{Values of the "join key"}
 #'      \item{"crossed" time output}{ See \code{\link{cross.time}()}}
@@ -135,91 +135,137 @@ event.vectors <- { R6::R6Class(
 					# invisible(private)
 					invisible(self);
 				}
-		, # SET.Q_GRAPHS() ====
+		, # MAKE.EVS_UNIVERSE() ====
 			#' @description
-			#' \code{set.q_graphs()} creates a list of 'query graphs' for each unique value of 'jk'.  The list is stored as class member \code{q_graph}
+			#' \code{make.evs_universe} supplies values to two class fields: \code{q_graph} and \code{space}, the latter being created from the former.
+			#'
+			#' \emph{Additional Information}:
+			#' \itemize{
+			#' \item{Class member \code{$space} should have as many rows as the sum of all edge counts for graphs in \code{$q_graph}}
+			#' \item{The graphs in class member \code{$evt_graphs} are \code{\link[visNetwork]{visIgraph}}-ready}
+			#' \item{Parallelism is internally supported via package \code{furrr}: the user is responsible for setting the appropriate \code{\link[future]{plan}}}
+			#' }
+			#'
+			#' @param ... (\code{\link[rlang]{dots_list}}) Logical expression that retain graph edges meeting the conditions
+			#' @param time.control A 2-element list containing the minimum and maximum values allowed for total temporal span between two events
+			#' @param graph.control An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph
+			#' @param unit (See \code{\link{cross.time}})
+			#' @param furrr_opts \code{\link[furrr]{furrr_options}} defaulted as \code{scheduling = Inf} and \code{seed = TRUE}: internal globals are also set and will be appended to values provided here
+			#' @param graph.only (logical | \code{FALSE}) \code{TRUE} assumes class member \code{$space} exists (possibly after external modification) and recreates member \code{$evt_graphs}
 			#' @param chatty (logical | \code{FALSE}) Verbosity flag
-			set.q_graphs = function(chatty = FALSE){
-		 		if (is.null(private$.params$config)){
-		 			stop("No class object configuration detected.  Provide a configuration set using `$configure()` involving at least two (2) temporal datasets.")}
+			#'
+			#' @return Invisibly, the original object augmented with new member \code{space}
+			make.evs_universe = function(..., time.control = list(-Inf, Inf), graph.control = NULL, unit = "", furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE), graph.only = FALSE, chatty = FALSE){
+			  # :: `make.event_key` is a function used to create sequential unique identifiers for events sources and time-markers ----
+			  make.event_key <- purrr::as_mapper(~{
+						root = .x
+						radix = .y
+						index = rep.int(NA, length(root));
 
-		 		data.table::setattr(private$.params$config, "graphs_created", FALSE);
+						# Populate 'index' based on unique values of 'root'
+						purrr::walk(unique(root), ~{
+							out.x = root[which(root %in% .x)]
+							out.y = radix[which(root %in% .x)];
+							index[which(root %in% .x)] <<- data.table::frank(out.y, ties.method = "dense")
+						})
+						index
+					});
 
-		 		events_by_jk <- purrr::imap(private$.params$config, ~{
-						jk <- private$.params$config |> attr("jk");
+			  furrr_opts$globals <- furrr_opts$globals |> c("graph.control", "self", "cross.time", "time.control", "units") |> unique();
+			  furrr_opts$packages <- furrr_opts$packages |> c("magrittr", "data.table") |> unique();
 
-						exists_in <- jk %in% rlang::eval_tidy(.x$jk);
+			  # .src_mix <- self$.__enclos_env__$private$q_table;
+			  .src_mix <- self$.__enclos_env__$private$q_table;
 
-						matrix(exists_in, ncol = 1, dimnames = list(jk, .y));
-					}) |> magrittr::freduce(list(list, data.table::rbindlist));
+			  # :: Retrieve the essential columns from sources and create a compact intermediate data structure ----
+			  if (chatty){ message("Creating `.tmp_space` ...")}
+				.tmp_space <- purrr::imap(self$config, ~{
+												out = .x %$% {
+													mget(c("jk", "time_start_idx", "time_end_idx")) |>
+													purrr::map(rlang::eval_tidy) |>
+													data.table::as.data.table()
+												}
+												out[, src := .y]
+											}) |>
+										data.table::rbindlist() |>
+			              data.table::setkey(jk, time_start_idx, time_end_idx) |>
+			  						data.table::setorder(jk, time_start_idx, time_end_idx) %>%
+			  						.[, f_src_exists := src %in% .src_mix[, from], by = jk] %>%
+			  						.[, t_src_exists := (src %in% .src_mix[, to]) & f_src_exists, by = jk] %>%
+			  						.[(f_src_exists & t_src_exists), !c("f_src_exists", "t_src_exists")] %>%
+			  						unique() |>
+										as.list();
 
-				events_by_jk %<>% {
-					.[
-					, jk := private$.params$config |> attr("jk")
-					][
-					, purrr::pmap_dfr(.SD, function(...){
-								jk_events <- ...names()[-1][c(...)[-1]];
+				# :: Use optimization from 'data.table' to create `self$space` ----
+				if (!graph.only){
+				  if (chatty){ message("Creating `self$space` (part 1) ...")}
 
-								qt <- private$q_table[(from %in% jk_events), .SD[(to %in% jk_events), .(to)], by = from];
+					# Step 1
+					self$space <- { data.table::as.data.table(merge(
+							.tmp_space[(.tmp_space$src %in% .src_mix$from)] |>
+									purrr::compact()|>
+									purrr::set_names(c("jk", "f_start_idx", "f_end_idx", "f_src"))
+							, .tmp_space[(.tmp_space$src %in% .src_mix$to)] |>
+									purrr::compact()|>
+									purrr::set_names(c("jk", "t_start_idx", "t_end_idx", "t_src"))
+							, by = "jk")
+							)[(t_start_idx - f_start_idx) >= 0] |>
+				  	split(by = c("jk"));
+					}
 
-								if (nrow(qt) == 0){ list(from = NA, to = NA) } else { unique(qt) }
-							})
-					, by = jk
-					][!is.na(from), .(from, to, jk)] |>
-					split(by = "jk")
+					# Step 2
+				  if (chatty){ message("Creating `self$space` (part 2) ...")}
+					furrr_opts <- furrr::furrr_options(scheduling = Inf, seed = TRUE, packages = c("magrittr", "data.table"), globals = c("time.control", "units", "cross.time"));
+
+					edge_filter <- rlang::enquos(..., .named = FALSE, .ignore_empty = "all")
+					if (rlang::is_empty(edge_filter)){ edge_filter <- TRUE }
+
+					self$space <- furrr::future_map(self$space, ~{
+			  		# Call `cross.time()`
+						time.control; units; edge_filter;
+
+						xtime <- .x[, cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx
+																		 , control = time.control, unit = unit)
+											 , by = .(jk, f_src, t_src)]
+
+						if (rlang::is_empty(xtime)){ NULL } else { #print(str(xtime))
+							xtime[
+						  # Enforce row filter rules before proceeding
+						  !is.na(epsilon) #& purrr::reduce(purrr::map(edge_filter, rlang::eval_tidy, data = rlang::as_data_mask(xtime)), `&`)
+						  ][
+						  # Impute sequencing on event sources: this has a direct impact when creating distinct vertex names during subsequent graph creation
+						  , c("f_src", "t_src") := list(list(f_src, from.coord), list(t_src, to.coord)) |>
+					  														map(~paste(.x[[1]], make.event_key(.x[[1]], .x[[2]]), sep = ":"))
+						  ][, src.pair := sprintf("%s -> %s", f_src, t_src)
+						  ][, data.table::setnames(.SD, c("f_src", "t_src"), c("from.src", "to.src"))
+						  ][, epsilon.desc := factor(
+										epsilon.desc
+										, levels = c("NA", "Full Concurrency", "Concurrency", "Continuity", "Disjoint")
+										, ordered = TRUE
+										)
+						  ][(from.src != to.src )] # Remove loops
+						}
+					}, .options = furrr_opts) |>
+					purrr::compact() |>
+					list2env(envir = new.env())
 				}
 
-		 		self$q_graph <- purrr::imap(events_by_jk, ~{
-	 					# Graphs for each level of 'jk'
-	 					g <- igraph::graph_from_data_frame(.x);
+				# :: Create `self$evt_graphs` from `self$space` ----
+				message(sprintf("[%s] ... creating event graphs", Sys.time()));
+			  self$evt_graphs <- self$space %$% mget(ls()) |> furrr::future_imap(~{
+						graph.control
+						g = igraph::graph_from_data_frame(data.table::setcolorder(.x, c("from.src", "to.src")))
 
-	 					this_jk <- rlang::parse_expr(.y);
+						if (!rlang::is_empty(graph.control)){ for (i in graph.control){ eval(i) }}
+						g
+					}, .options = furrr_opts) |> purrr::compact();
 
-	 					# Return the minimal information needed to reconstruct the source data
-	 					# Note: the following allows for calling `igraph::V(g)$data$value()`
-	 					igraph::V(g)$data <- purrr::imap(igraph::V(g), ~{
-								event <- private$.params$config[[.y]];
+				self$space <- self$space %$% mget(ls()) |> reduce(rbind);
 
-								jk_val <- eval(as.call(list(rlang::parse_expr(paste0("as.", rlang::eval_tidy(event$jk)[1] |> typeof())), this_jk)));
-
-								value <- function(time_start_idx = TRUE, time_end_idx = TRUE, trace = FALSE){
-									# Argument 'trace' is used for retracing exact source row and uses the expressions for 'time_*_idx' for row-wise filtering
-
-									vars <- event %$% mget(c("jk", "time_start_idx", "time_end_idx")) |> purrr::map(~rlang::quo_get_expr(.x))
-
-									time_start_idx <- rlang::enexpr(time_start_idx);
-									time_end_idx <- rlang::enexpr(time_end_idx);
-
-									if (trace){
-										if (length(time_start_idx) > 1){ time_start_idx[[2]] <- vars$time_start_idx }
-										if (length(time_end_idx) > 1){ time_end_idx[[2]] <- vars$time_end_idx }
-									}
-
-									if (trace){ vars <- rlang::sym(".SD") } else { vars <- purrr::map_chr(unname(vars), rlang::as_label) }
-
-									row_expr <- rlang::exprs(!!rlang::quo_get_expr(event$jk) == !!jk_val, !!time_start_idx, !!time_end_idx)[c(TRUE, trace, trace)] |>
-										purrr::map_chr(rlang::as_label) |>
-										sprintf(fmt = "(%s)") |>
-										paste(collapse = " & ") |>
-										rlang::parse_expr()
-
-									rlang::expr(rlang::eval_tidy(attr(event, "src.def"))[(!!row_expr), !!vars]) |> print() |>eval()
-								}
-
-								mget(ls()) |> list2env(envir = new.env())
-	 						});
-
-	 					g
-	 				});
-
-		 		if (!rlang::is_empty(self$q_graph)){
-			 		if (chatty){ message(sprintf("Created %s query graphs", self$q_graph |> length())) }
-
-		 			data.table::setattr(private$.params$config, "graphs_created", TRUE);
-		 		} else if (chatty){ message("No graphs greated") }
-
+				# :: Return ----
+				message(sprintf("[%s] The event vectors are ready for analysis", Sys.time()));
 				invisible(self);
-}
+			}
 		)}
 	# _____ PUBLIC ACTIVE BINDINGS _____
 	, active = { list(
