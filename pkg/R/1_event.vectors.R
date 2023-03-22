@@ -22,9 +22,8 @@
 #'      \item{\code{from.coord}}{String representation of temporal boundaries expressed as concatenated integers}
 #'      \item{\code{to.coord}}{String representation of temporal boundaries expressed as concatenated integers}
 #'    }
-#' \cr
-#'
-#' @export
+#' @import data.table
+#' @import magrittr
 event.vectors <- { R6::R6Class(
 	classname = "event.vectors"
 	# _____ PUBLIC METHODS _____
@@ -106,7 +105,7 @@ event.vectors <- { R6::R6Class(
 									)}
 								if (chatty){ purrr::walk(qa_check, message)}
 
-								data.table::setattr(.temp, "src.def", .x)
+								setattr(.temp, "src.def", .x)
 							})
 
 					# @def q_table sets the allowable comparisons before any calculations are done
@@ -118,16 +117,16 @@ event.vectors <- { R6::R6Class(
 						if (!grepl("reflex|all", src.mix, ignore.case = TRUE)){ .temp %<>% .[.[, 1] != .[, 2], ] }
 
 						# enforce 'exclude.mix' after converting .temp to a 'data.table' object
-						.temp %<>% data.table::as.data.table() |> data.table::setnames(c("from", "to"));
-						.temp[!purrr::pmap_lgl(.temp, ~list(c(.x, .y)) %in% exclude.mix)] |> data.table::setkey(from, to)
+						.temp %<>% as.data.table() |> setnames(c("from", "to"));
+						.temp[!purrr::pmap_lgl(.temp, ~list(c(.x, .y)) %in% exclude.mix)] |> setkey(from, to)
 					}
 
 					private$.params$config %<>% {
-						data.table::setattr(., "src.mix", as.character(rlang::enexpr(src.mix))) |>
-						data.table::setattr("exclude.mix", sapply(exclude.mix, function(i){
+						setattr(., "src.mix", as.character(rlang::enexpr(src.mix))) |>
+						setattr("exclude.mix", sapply(exclude.mix, function(i){
 							paste0(if (length(i) == 1){ c(i, i) } else if(length(i) > 2) { i[1:2] } else { i }, collapse = ", ")
 						})) %>%
-						data.table::setattr("jk", {
+						setattr("jk", {
 							purrr::map(., ~.x$jk.vec |> rlang::eval_tidy()) |>
 								magrittr::freduce(list(unlist, unique, sort, purrr::set_names))
 							})
@@ -166,7 +165,7 @@ event.vectors <- { R6::R6Class(
 						purrr::walk(unique(root), ~{
 							out.x = root[which(root %in% .x)]
 							out.y = radix[which(root %in% .x)];
-							index[which(root %in% .x)] <<- data.table::frank(out.y, ties.method = "dense")
+							index[which(root %in% .x)] <<- frank(out.y, ties.method = "dense")
 						})
 						index
 					});
@@ -183,13 +182,13 @@ event.vectors <- { R6::R6Class(
 												out = .x %$% {
 													mget(c("jk", "time_start_idx", "time_end_idx")) |>
 													purrr::map(rlang::eval_tidy) |>
-													data.table::as.data.table()
+													as.data.table()
 												}
 												out[, src := .y]
 											}) |>
-										data.table::rbindlist() |>
-			              data.table::setkey(jk, time_start_idx, time_end_idx) |>
-			  						data.table::setorder(jk, time_start_idx, time_end_idx) %>%
+										rbindlist() |>
+			              setkey(jk, time_start_idx, time_end_idx) |>
+			  						setorder(jk, time_start_idx, time_end_idx) %>%
 			  						.[, f_src_exists := src %in% .src_mix[, from], by = jk] %>%
 			  						.[, t_src_exists := (src %in% .src_mix[, to]) & f_src_exists, by = jk] %>%
 			  						.[(f_src_exists & t_src_exists), !c("f_src_exists", "t_src_exists")] %>%
@@ -201,7 +200,7 @@ event.vectors <- { R6::R6Class(
 				  if (chatty){ message("Creating `self$space` (part 1) ...")}
 
 					# Step 1
-					self$space <- { data.table::as.data.table(merge(
+					self$space <- { as.data.table(merge(
 							.tmp_space[(.tmp_space$src %in% .src_mix$from)] |>
 									purrr::compact()|>
 									purrr::set_names(c("jk", "f_start_idx", "f_end_idx", "f_src"))
@@ -215,7 +214,7 @@ event.vectors <- { R6::R6Class(
 
 					# Step 2
 				  if (chatty){ message("Creating `self$space` (part 2) ...")}
-					furrr_opts <- furrr::furrr_options(scheduling = Inf, seed = TRUE, packages = c("magrittr", "data.table"), globals = c("time.control", "units", "cross.time"));
+					furrr_opts <- furrr::furrr_options(scheduling = Inf, seed = TRUE, packages = c("magrittr", "data.table", "rlang"), globals = c("time.control", "units", "cross.time"));
 
 					edge_filter <- rlang::enquos(..., .named = FALSE, .ignore_empty = "all")
 					if (rlang::is_empty(edge_filter)){ edge_filter <- TRUE }
@@ -237,7 +236,7 @@ event.vectors <- { R6::R6Class(
 						  , c("f_src", "t_src") := list(list(f_src, from.coord), list(t_src, to.coord)) |>
 					  														map(~paste(.x[[1]], make.event_key(.x[[1]], .x[[2]]), sep = ":"))
 						  ][, src.pair := sprintf("%s -> %s", f_src, t_src)
-						  ][, data.table::setnames(.SD, c("f_src", "t_src"), c("from.src", "to.src"))
+						  ][, setnames(.SD, c("f_src", "t_src"), c("from.src", "to.src"))
 						  ][, epsilon.desc := factor(
 										epsilon.desc
 										, levels = c("NA", "Full Concurrency", "Concurrency", "Continuity", "Disjoint")
@@ -254,7 +253,7 @@ event.vectors <- { R6::R6Class(
 				message(sprintf("[%s] ... creating event graphs", Sys.time()));
 			  self$evt_graphs <- self$space %$% mget(ls()) |> furrr::future_imap(~{
 						graph.control
-						g = igraph::graph_from_data_frame(data.table::setcolorder(.x, c("from.src", "to.src")))
+						g = igraph::graph_from_data_frame(setcolorder(.x, c("from.src", "to.src")))
 
 						if (!rlang::is_empty(graph.control)){ for (i in graph.control){ eval(i) }}
 						g

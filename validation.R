@@ -143,6 +143,19 @@ event_graph %>% {
 	visNetwork::visNodes(opacity = 0.5) %>%
 	htmltools::html_print(viewer = browseURL)
 
+# ~ Validation #3 :: continuity ----
+inspect <- continuity.dev(
+	data = copy(test_data.01)[, `:=`(Z_1 = sample(letters, .N, TRUE), Z_2 = sample(LETTERS[1:5], .N, TRUE))]
+	, map_fields = c(join_key, Z_1, Z_2)
+	, time_fields = c(date.start, date.end)
+	, boundary_name = episode
+	, timeout = 10
+	, archipelago = TRUE
+	, show.all = TRUE
+	)
+
+View(inspect)
+#
 # ~ Cleanup ====
 rm(list = ls())
 plan(sequential);

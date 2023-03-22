@@ -40,10 +40,6 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 ## Reference: https://www.r-bloggers.com/using-complex-numbers-in-r/
 ## Division by Pi/4 makes it easy to tell if one argument is larger than, smaller than, or the same magnitude as the other (same = Pi/4)
 ## All computations are in the direction of B.max to A.min when `events.ascending` is TRUE
-	suppressPackageStartupMessages(require(data.table, quietly = TRUE));
-	suppressPackageStartupMessages(require(magrittr, quietly = TRUE));
-	suppressPackageStartupMessages(require(rlang, quietly = TRUE));
-
 	.conversion <- if (unit %ilike% "^(we|mo|da|ye|se|mi|na|ho|pi).+s$"){
 										purrr::as_mapper(~lubridate::as.duration(.x %||% 0, unit = unit))
 									} else { as.numeric }
@@ -111,7 +107,7 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 	mSt 	<- .conversion(mSt);
 	mEd 	<- .conversion(mEd);
 
-	c(out.names, "epsilon", "epsilon.desc") |> mget() |> data.table::as.data.table()
+	c(out.names, "epsilon", "epsilon.desc") |> mget() |> as.data.table()
 }
 
 # debug(cross.time)
