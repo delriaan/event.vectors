@@ -10,6 +10,9 @@ evs_exclude.blender <- function(x, y){
 #'
 #' @export
 
-	expand.grid(x, y) |> apply(1, cbind) |> as.data.table() |> purrr::map(c) |> unname()
+	expand.grid(x, y, stringsAsFactors = FALSE) |>
+		purrr::array_branch(margin = 1) |>
+		purrr::reduce(rbind) |>
+		unname()
 }
 #

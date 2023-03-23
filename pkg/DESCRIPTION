@@ -2,7 +2,7 @@ Type: Package
 Package: event.vectors
 Title: Event Vectors
 Description: `event.vectors` provides a framework for capturing the relationships among points in time as well as events having duration.
-Version: 1.6.1
+Version: 1.6.2
 Author: Chionesu George <sapienti.Dei@outlook.com> [aut, cre]
 Maintainer: Chionesu George <sapienti.Dei@outlook.com>
 Depends: 
@@ -14,8 +14,6 @@ Imports:
     igraph,
     furrr,
     purrr (< 1.0.0), 
-    cachem (>= 1.0.6), 
-    memoise (>= 2.0.1), 
     data.table,
     book.of.utilities,
     rlang

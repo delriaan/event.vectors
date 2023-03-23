@@ -163,5 +163,5 @@ gc(full = TRUE)
 
 
 # usethis::use_pkgdown()
-# pkgdown::build_site()
+# pkgdown::build_site(pkg = "pkg", override = list(destination = "../docs"))
 
