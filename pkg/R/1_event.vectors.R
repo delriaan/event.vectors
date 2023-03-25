@@ -24,6 +24,7 @@
 #'    }
 #' @import data.table
 #' @import magrittr
+#' @export
 event.vectors <- { R6::R6Class(
 	classname = "event.vectors"
 	# _____ PUBLIC METHODS _____

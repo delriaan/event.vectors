@@ -2,6 +2,7 @@
 
 export(continuity)
 export(cross.time)
+export(event.vectors)
 export(evs_exclude.blender)
 import(data.table)
 import(magrittr)
