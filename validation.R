@@ -5,8 +5,9 @@ library(stringi)
 library(tictoc);
 library(future);
 library(magrittr);
+library(data.table)
 #
-dir(pattern = "^[1-4]{1}.+R$", recursive = TRUE) |> purrr::walk(source)
+# dir(pattern = "^[1-4]{1}.+R$", recursive = TRUE) |> purrr::walk(source)
 
 make.test_data <- function(j = 5, n = 5, m = 5, o = 1:10, dest = globalenv(), .debug = FALSE){
 #' Make Test Data for Validation
@@ -124,7 +125,7 @@ test.evs$evt_graphs$`1` |> igraph::edge.attributes()
 # ~ Validation #2 :: visNetwork::visIgraph() ====
 f2ab <- list(theta = 0.1, gravitationalConstant = -5000, centralGravity = 0.0,  avoidOverlap = 1, damping = 0.7);
 
-event_graph %>% {
+test.evs$evt_graphs$`1` %>% {
 		g = .
 		igraph::V(g)$title <- igraph::V(g)$trace |>
 			purrr::map_chr(~{
@@ -144,7 +145,7 @@ event_graph %>% {
 	htmltools::html_print(viewer = browseURL)
 
 # ~ Validation #3 :: continuity ----
-inspect <- continuity.dev(
+inspect <- continuity(
 	data = copy(test_data.01)[, `:=`(Z_1 = sample(letters, .N, TRUE), Z_2 = sample(LETTERS[1:5], .N, TRUE))]
 	, map_fields = c(join_key, Z_1, Z_2)
 	, time_fields = c(date.start, date.end)

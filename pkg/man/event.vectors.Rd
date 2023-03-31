@@ -145,7 +145,7 @@ Initialize the Event Vector Class}
 
 \item{\code{time.control}}{A 2-element list containing the minimum and maximum values allowed for total temporal span between two events}
 
-\item{\code{graph.control}}{An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph}
+\item{\code{graph.control}}{An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph and \code{<<-} to update \code{g}.}
 
 \item{\code{unit}}{(See \code{\link{cross.time}})}
 

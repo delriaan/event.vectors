@@ -148,7 +148,7 @@ event.vectors <- { R6::R6Class(
 			#'
 			#' @param ... (\code{\link[rlang]{dots_list}}) Logical expression that retain graph edges meeting the conditions
 			#' @param time.control A 2-element list containing the minimum and maximum values allowed for total temporal span between two events
-			#' @param graph.control An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph
+			#' @param graph.control An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph and \code{<<-} to update \code{g}.
 			#' @param unit (See \code{\link{cross.time}})
 			#' @param furrr_opts \code{\link[furrr]{furrr_options}} defaulted as \code{scheduling = Inf} and \code{seed = TRUE}: internal globals are also set and will be appended to values provided here
 			#' @param graph.only (logical | \code{FALSE}) \code{TRUE} assumes class member \code{$space} exists (possibly after external modification) and recreates member \code{$evt_graphs}
@@ -252,11 +252,15 @@ event.vectors <- { R6::R6Class(
 
 				# :: Create `self$evt_graphs` from `self$space` ----
 				message(sprintf("[%s] ... creating event graphs", Sys.time()));
-			  self$evt_graphs <- self$space %$% mget(ls()) |> furrr::future_imap(~{
-						graph.control
-						g = igraph::graph_from_data_frame(setcolorder(.x, c("from.src", "to.src")))
 
-						if (!rlang::is_empty(graph.control)){ for (i in graph.control){ eval(i) }}
+			  self$evt_graphs <- self$space %$% mget(ls()) |>
+					furrr::future_imap(~{
+						graph.control;
+						g <- igraph::graph_from_data_frame(setcolorder(.x, c("from.src", "to.src")));
+
+						if (!rlang::is_empty(graph.control)){
+							purrr::walk(graph.control, eval, envir = environment())
+						}
 						g
 					}, .options = furrr_opts) |> purrr::compact();
 
