@@ -1,12 +1,12 @@
 retrace.evs <- function(event_graph, evs){
-#' Retrace An Event
+#' Retrace Events to Source
 #'
-#' \code{retrace.evs} uses the input graph and reference \code{event.vectors} object to return the rows corresponding to the event vertices
+#' \code{retrace.evs} uses the input graph and reference \code{event.vectors} object to return the source data rows corresponding to the event vertices.
 #'
 #' @param event_graph A graph contained within \code{$evt_graphs} (use the \code{`[[`} primitive if using a numeric index; otherwise, use \code{`$`})
 #' @param evs An object of class \code{event.vectors}
 #'
-#' @return A list of rows that map to the source event data
+#' @return A list of distinct rows that map to the source event data.  Event graph vertex names can be used to subset the output.
 #'
 #' @export
   .haystack <- igraph::edge.attributes(event_graph) %$%
@@ -14,17 +14,17 @@ retrace.evs <- function(event_graph, evs){
                 purrr::modify_at(c("from.coord", "to.coord"), stringi::stri_split_regex, "([:])|( -> )", simplify = TRUE) |>
                 list2env(envir = new.env());
 
-  # `.events` should be an array with dimensions Nx2
-  .events <- .haystack$src.pair |> stri_split_fixed(" -> ", simplify = TRUE);
+  # `.events` should be an array with dimensions N x 2
+  .events <- .haystack$src.pair |> stringi::stri_split_fixed(" -> ", simplify = TRUE);
 
   .haystack$from.src <- .events[, 1];
   .haystack$to.src <- .events[, 2];
 
   .needle <- { rlang::exprs(
-    jk = mget(ls(pattern = "jk$")) |> reduce(c)
-    , src = mget(ls(pattern = "src$")) |> reduce(c)
-    , time_start_idx = mget(ls(pattern = "^from.+coord")) |> reduce(c)
-    , time_end_idx = mget(ls(pattern = "^to.+coord")) |> reduce(c)
+    jk = mget(ls(pattern = "jk$")) |> purrr::reduce(c)
+    , src = mget(ls(pattern = "src$")) |> purrr::reduce(c)
+    , time_start_idx = mget(ls(pattern = "^from.+coord")) |> purrr::reduce(c)
+    , time_end_idx = mget(ls(pattern = "^to.+coord")) |> purrr::reduce(c)
     )}
 
   purrr::map(.needle, eval, envir = .haystack) |>

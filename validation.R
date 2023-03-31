@@ -157,6 +157,9 @@ inspect <- continuity(
 
 View(inspect)
 #
+# ~ Validation #4 :: retrace.evs ====
+retrace.evs(test.evs$evt_graphs[[1]], test.evs)
+
 # ~ Cleanup ====
 rm(list = ls())
 plan(sequential);

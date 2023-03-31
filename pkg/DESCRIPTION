@@ -2,7 +2,7 @@ Type: Package
 Package: event.vectors
 Title: Event Vectors
 Description: `event.vectors` provides a framework for capturing the relationships among points in time as well as events having duration.
-Version: 1.6.5
+Version: 1.6.6
 Author: Chionesu George <sapienti.Dei@outlook.com> [aut, cre]
 Maintainer: Chionesu George <sapienti.Dei@outlook.com>
 Depends: 
