@@ -19,6 +19,12 @@
     <loc>/reference/cross.time.html</loc>
   </url>
   <url>
+    <loc>/reference/Event-Vectors-Class.html</loc>
+  </url>
+  <url>
+    <loc>/reference/Event-Vectors.html</loc>
+  </url>
+  <url>
     <loc>/reference/event.vector.space.html</loc>
   </url>
   <url>
@@ -38,5 +44,8 @@
   </url>
   <url>
     <loc>/reference/melt_time.html</loc>
+  </url>
+  <url>
+    <loc>/reference/retrace.evs.html</loc>
   </url>
 </urlset>

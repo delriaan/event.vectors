@@ -41,16 +41,16 @@ A \code{\link[data.table]{data.table}} object having the following fields:
 \item{\code{from.len: }}{The duration of time of each "from" event: units are one the scale of the smallest increment of time represented (e.g., calendar dates in days will have lengths expressed in days)}
 \item{\code{to.len: }}{The duration of time of each "to" event: units are one the scale of the smallest increment of time represented (e.g., calendar dates in days will have lengths expressed in days)}
 \item{\code{epsilon: }}{A complex number (e.g., \code{1337 + 0.90210i}) describing the relational changes from one event to another with interpretation based on whether or not the real and imaginary parts are \code{> 0}, \code{< 0}, or \code{ == 0}:
-	\tabular{lll}{
-	  Re \tab Im \tab Desc \cr
-	  {> 0} \tab {0} \tab Disjoint \cr
-	  {0} \tab {> 0} \tab Concurrency \cr
-	  {> 0} \tab {> 0} \tab Full Concurrency \cr
-	  {0} \tab {0} \tab Continuity \cr
-	  { } \tab {< 1} \tab \code{to} event shorter than \code{from} event \cr
-	  { } \tab {= 1} \tab \code{to} event same length as \code{from} event \cr
-	  { } \tab {> 1} \tab \code{to} event longer than \code{from} event \cr
-	}
+\tabular{lll}{
+Re \tab Im \tab Desc \cr
+{> 0} \tab {0} \tab Disjoint \cr
+{0} \tab {> 0} \tab Concurrency \cr
+{> 0} \tab {> 0} \tab Full Concurrency \cr
+{0} \tab {0} \tab Continuity \cr
+{ } \tab {< 1} \tab \code{to} event shorter than \code{from} event \cr
+{ } \tab {= 1} \tab \code{to} event same length as \code{from} event \cr
+{ } \tab {> 1} \tab \code{to} event longer than \code{from} event \cr
+}
 }
 \item{\code{epsilon.desc: }}{A plain-language description of \code{epsilon}}
 }

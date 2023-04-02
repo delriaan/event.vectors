@@ -1,16 +1,14 @@
-#' Event Vectors
+#' Event Vectors R6
 #'
 #' @description
 #' \code{event.vectors} is an R6 class object that creates a temporally-compared space of "\emph{event vectors}", each comprised of a 'from' and 'to' temporal marker.
 #'
 #' The time between these events is the focus of derivation: properly, the event vector is a complex number that encodes the relationship between the boundaries of the events, thus allowing one to describe this relationship in a concise manner.
 #'
-#' \cr
 #' @section Execution Workflow:
 #' The initial execution order should look something like the following ...
 #' \cr
 #' \code{ event.vectors$new(...)$configure(...)$make.evs_universe(...) }.  The ability to execute the preceding workflow out of order exists, but it is best to adhere to the provided flow the first time around.
-#' \cr
 #' \cr
 #' @section Class Member "Space":
 #' \code{$space} is a \code{\link[data.table]{data.table}} that is populated upon execution of \code{$make.evs_universe()}:

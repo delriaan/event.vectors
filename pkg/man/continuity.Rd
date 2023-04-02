@@ -17,7 +17,7 @@ continuity(
 \arguments{
 \item{data}{(object): The source dataset, including all non-sessioning fields desired}
 
-\item{map_fields}{(string): A comma-separated string literal containing field names that will partition `data`}
+\item{map_fields}{(string): A comma-separated string literal containing field names that will partition \code{data}}
 
 \item{time_fields}{(string): A comma-separated string literal containing field names to use as "start" and "stop" temporal indices.  If only one value is given, that value will be repeated as the "stop" index}
 
@@ -30,7 +30,7 @@ continuity(
 \item{show.all}{(logical | FALSE): Should the output include all of the columns of the output?}
 }
 \value{
-A data.table with columns <mapFields>, ..., timeOut, ISLAND, island_idx, where '...' is empty if `show.all` is FALSE
+A data.table with columns \if{html}{\out{<mapFields>}}, ..., timeOut, ISLAND, island_idx, where '...' is empty if \code{show.all} is FALSE
 }
 \description{
 \code{continuity} is conceptually based on the \href{https://www.red-gate.com/simple-talk/sql/t-sql-programming/the-sql-of-gaps-and-islands-in-sequences/}{'islands & gaps'} concept.
