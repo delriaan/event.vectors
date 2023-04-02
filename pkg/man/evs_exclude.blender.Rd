@@ -2,7 +2,7 @@
 % Please edit documentation in R/2_evs_exclude.blender.R
 \name{evs_exclude.blender}
 \alias{evs_exclude.blender}
-\title{EVSpace Event-Pair Exclusions}
+\title{Event-Pair Exclusions}
 \usage{
 evs_exclude.blender(x, y)
 }
@@ -15,5 +15,5 @@ evs_exclude.blender(x, y)
 A vector of pairs of event labels to be excluded in the call to \code{$exclude.mix()}
 }
 \description{
-\code{evs_exclude.blender} is a wrapper for \code{\link[base]{expand.grid}} with some post-processing via \code{\link[data.table]{data.table}} and \code{\link[purrr]{map}}
+\code{evs_exclude.blender} is a wrapper for \code{\link[base]{expand.grid}} with some post-processing via \code{\link[purrr]{array_branch}} and \code{\link[purrr]{reduce}}
 }

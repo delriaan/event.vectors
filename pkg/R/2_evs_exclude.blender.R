@@ -1,7 +1,7 @@
 evs_exclude.blender <- function(x, y){
-#' EVSpace Event-Pair Exclusions
+#' Event-Pair Exclusions
 #'
-#' \code{evs_exclude.blender} is a wrapper for \code{\link[base]{expand.grid}} with some post-processing via \code{\link[data.table]{data.table}} and \code{\link[purrr]{map}}
+#' \code{evs_exclude.blender} is a wrapper for \code{\link[base]{expand.grid}} with some post-processing via \code{\link[purrr]{array_branch}} and \code{\link[purrr]{reduce}}
 #'
 #' @param x See \code{\link[base]{expand.grid}}
 #' @param y See \code{\link[base]{expand.grid}}
