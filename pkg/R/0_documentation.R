@@ -1,4 +1,4 @@
-#' Event Vectors: A temporal framework
+#' Event Vectors
 #'
 #' @description
 #' Package `event.vectors` provides a framework for capturing the relationships among points in time as well as events having duration.  Some definitions should be kept in mind to understand the event vector framework:
@@ -7,5 +7,5 @@
 #'
 #' The vector central to `event.vectors` is a complex vector that concisely describes various temporal relations between events.  The entire framework lends itself to temporal graph constructs in addition to tabular representations.  This allows for execution of queries and statistical analysis against the dataset.
 #'
-#' @name event.vectors
+#' @name event.vectors-package
 NULL

@@ -1,4 +1,5 @@
-#' Event Vectors R6
+#' @title
+#' Event Vectors Class
 #'
 #' @description
 #' \code{event.vectors} is an R6 class object that creates a temporally-compared space of "\emph{event vectors}", each comprised of a 'from' and 'to' temporal marker.

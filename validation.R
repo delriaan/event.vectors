@@ -1,10 +1,11 @@
 # ~ Initialization ====
 # library(event.vectors);
-library(purrr)
-library(stringi)
 library(tictoc);
-library(future);
 library(magrittr);
+library(stringi)
+library(future);
+
+library(purrr)
 library(data.table)
 #
 # dir(pattern = "^[1-4]{1}.+R$", recursive = TRUE) |> purrr::walk(source)
@@ -73,6 +74,7 @@ tic.clear(); tic.clearlog();
 # ~ Validation #1 :: event.vectors ====
 plan(sequential);
 plan(tweak(multisession, workers = 7));
+
 tic("EVSpace Validation Object");
 test.evs <- { event.vectors$
 	new()$
@@ -168,5 +170,4 @@ gc(full = TRUE)
 # ----
 # usethis::use_pkgdown()
 # usethis::use_proprietary_license("Chionesu George")
-pkgdown::build_site(pkg = "pkg", examples = FALSE, override = list(destination = "../docs"))
-pkgdown::build_site_github_pages(pkg = "pkg", dest_dir = "../docs", clean = TRUE, new_process = TRUE)
+# pkgdown::build_site(pkg = "pkg", examples = FALSE, override = list(destination = "../docs"))

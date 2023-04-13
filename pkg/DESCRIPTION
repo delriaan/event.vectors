@@ -1,20 +1,19 @@
 Type: Package
 Package: event.vectors
-Title: Event Vectors
-Version: 1.7.0
+Title: A temporal graph framework
+Description: The `event.vectors` package provides a framework for capturing the relationships among points in time as well as events having duration.
+Version: 0.1.0
 Author: Chionesu George <sapienti.Dei@outlook.com> [aut, cre]
 Maintainer: Chionesu George <sapienti.Dei@outlook.com>
-Depends: 
-    R (>= 4.1.0)
-Imports: 
+Depends: R (>= 4.1.0)
+Imports: purrr (>= 1.0.0), 
+    book.of.utilities (>= 0.1.0),
     magrittr, 
-    lubridate,
     stringi, 
     igraph,
     furrr,
-    purrr (< 1.0.0), 
+    lubridate,
     data.table,
-    book.of.utilities (>= 1.1.0),
     rlang
 Suggests:
 	visNetwork
