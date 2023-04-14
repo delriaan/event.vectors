@@ -167,7 +167,7 @@ rm(list = ls())
 plan(sequential);
 gc(full = TRUE)
 
-# ----
+# pkgdown ----
 # usethis::use_pkgdown()
 # usethis::use_proprietary_license("Chionesu George")
 # pkgdown::build_site(pkg = "pkg", examples = FALSE, override = list(destination = "../docs"))

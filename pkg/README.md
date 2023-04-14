@@ -1,4 +1,4 @@
-# Event Vectors: A temporal framework
+# ![book](../img/network.png) Event Vectors: A temporal framework
 
 Package `event.vectors` provides a framework for capturing the relationships among points in time as well as events having duration.  Some definitions should be kept in mind to understand the event vector framework:
 
