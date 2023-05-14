@@ -9,3 +9,5 @@ Package `event.vectors` provides a framework for capturing the relationships amo
 The vector central to `event.vectors` is a complex vector that concisely describes various temporal relations between events.  The entire framework lends itself to temporal graph constructs in addition to tabular representations.  This allows for execution of queries and statistical analysis against the dataset.
 
 **Note**: Parallelism is supported by imports from the [furrr](https://www.rdocumentation.org/packages/furrr) package.  Scalability and parallelism plans have undergone limited testing.
+
+Use `remotes::install_github("delriaan/event.vectors", subdir = "pkg")` to install.
