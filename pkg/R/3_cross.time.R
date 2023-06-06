@@ -9,7 +9,7 @@
 #' @param e1 A numeric/date-coded vector containing the temporal upper boundary of the ending event duration
 #' @param control A length-2 sorted list with values indicating the range of allowable values for internal variable \code{beta} (the difference between ends of 'to' events and beginnings of 'from' events)
 #' @param chatty (logical | \code{FALSE}) Verbosity flag
-#' @param unit Conversion temporal units compatible with \code{lubridate}
+#' @param unit One of the \code{lubridate} \code{d<duration>}() functions
 #' @param ... (Not used)
 #'
 #' @returns A \code{\link[data.table]{data.table}} object having the following fields:
@@ -40,9 +40,25 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 ## Reference: https://www.r-bloggers.com/using-complex-numbers-in-r/
 ## Division by Pi/4 makes it easy to tell if one argument is larger than, smaller than, or the same magnitude as the other (same = Pi/4)
 ## All computations are in the direction of B.max to A.min when `events.ascending` is TRUE
-	.conversion <- if (unit %ilike% "^(we|mo|da|ye|se|mi|na|ho|pi).+s$"){
-										purrr::as_mapper(~lubridate::as.duration(.x %||% 0, unit = unit))
+	.durations <- list(
+		days = lubridate::ddays
+		, hours = lubridate::dhours
+		, microseconds = lubridate::dmicroseconds
+		, milliseconds = lubridate::dmilliseconds
+		, minutes = lubridate::dminutes
+		, months = lubridate::dmonths
+		, nanoseconds = lubridate::dnanoseconds
+		, picoseconds = lubridate::dpicoseconds
+		, seconds = lubridate::dseconds
+		, weeks = lubridate::dweeks
+		, years = lubridate::dyears
+		);
+
+	.unit_patterns <- grepl("^(we|mo|da|ye|se|mi|na|ho|pi)", unit, ignore.case = TRUE);
+	.conversion <- if (any(.unit_patterns)){
+										.durations[[which(.unit_patterns)]]
 									} else { as.numeric }
+
 	out.names <- { c("beta", "mGap"
 									 , "mSt", "mEd"
 									 , "from.len", "to.len"
@@ -50,14 +66,19 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 									 , "from_timeframe", "to_timeframe"
 									 )}
 
-	control <- purrr::imap(control, ~{
-			ifelse(is.infinite(.x), sign(.x) * 9000
-				, ifelse(rlang::is_empty(.x)
-						, c(-9000, 9000)[.y], .x))
-		})
+	beta			<- as.numeric(e1 - s0);
 
-	beta			<- as.numeric(e1 - s0)
-	x_filter  <- (beta <= control[[2]]) & (beta >= control[[1]]);
+	control <- purrr::imap(control, \(x, y){
+			ifelse(is.infinite(x)
+						 , sign(x) * .conversion(10 * abs(beta))
+						 , ifelse(rlang::is_empty(x)
+						 				 , c(-1,1)[y] * .conversion(10 * abs(beta))
+						 				 , x
+						 				 )
+						 )
+		});
+
+	x_filter  <- (.conversion(beta) <= control[[2]]) & (.conversion(beta) >= control[[1]]);
 	if (rlang::is_empty(beta)){ return(NULL) }
 
 	mGap			<- as.numeric(s1 - e0)
@@ -78,27 +99,27 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 		# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another
 		.out = (sqrt(as.complex(.out)) + sqrt(as.complex(mGap)^.tau)) |>
 						unlist() |>
-						purrr::modify_if(~Re(.x) |> is.infinite(), ~as.complex(0))
+						purrr::modify_if(\(x) is.infinite(Re(x)), \(x) as.complex(0))
 
 		if (rlang::is_empty(.out)){ complex() } else { .out }
 	}
 	# print(ls())
-	epsilon.desc <- purrr::as_mapper(~{
-		.eval_epsilon <- purrr::as_mapper(~{
+	epsilon.desc <- (\(i){
+		.eval_epsilon <- \(x){
 			ifelse(
-				is.na(.x) || !is.complex(.x)
+				is.na(x) || !is.complex(x)
 				, "NA"
 				, rlang::set_names(
-						c(((Re(.x) != 0) & (Im(.x) != 0)) | ((Re(.x) == 1) & (Im(.x) == 0))
-							, (Re(.x) == 0) & (Im(.x) != 0)
-							, (Re(.x) == 0) & (Im(.x) == 0)
-							, (!Re(.x) %in% c(0, 1)) & (Im(.x) == 0)
+						c(((Re(x) != 0) & (Im(x) != 0)) | ((Re(x) == 1) & (Im(x) == 0))
+							, (Re(x) == 0) & (Im(x) != 0)
+							, (Re(x) == 0) & (Im(x) == 0)
+							, (!Re(x) %in% c(0, 1)) & (Im(x) == 0)
 							)
 						, c("Full Concurrency", "Concurrency", "Continuity", "Disjoint")
 						) %>% .[.] |> names()
 					)
-			})
-		if (rlang::is_empty(.x)){ NULL } else { sapply(.x, .eval_epsilon) }
+			}
+		if (rlang::is_empty(i)){ NULL } else { sapply(i, .eval_epsilon) }
 	})(epsilon);
 	# print(ls())
 

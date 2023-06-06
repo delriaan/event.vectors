@@ -28,7 +28,7 @@ cross.time(
 
 \item{chatty}{(logical | \code{FALSE}) Verbosity flag}
 
-\item{unit}{Conversion temporal units compatible with \code{lubridate}}
+\item{unit}{One of the \code{lubridate} \code{d<duration>}() functions}
 
 \item{...}{(Not used)}
 }

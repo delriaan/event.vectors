@@ -2,7 +2,7 @@ Type: Package
 Package: event.vectors
 Title: A temporal graph framework
 Description: The `event.vectors` package provides a framework for capturing the relationships among points in time as well as events having duration.
-Version: 0.1.0
+Version: 0.1.1
 Author: Chionesu George <sapienti.Dei@outlook.com> [aut, cre]
 Maintainer: Chionesu George <sapienti.Dei@outlook.com>
 Depends: R (>= 4.1.0)

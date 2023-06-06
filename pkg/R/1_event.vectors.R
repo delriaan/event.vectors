@@ -51,7 +51,7 @@ event.vectors <- { R6::R6Class(
 			#'
       #' @param src.defs Strings or expressions that define the data to use (must return \code{\link{data.frame}}, \code{\link{data.table}}, or list)
       #' @param contexts An atomic vector of strings serving as labels for each data source
-      #' @param map.fields A list of column name vectors for each definition in \code{src.defs} providing data for the \emph{join key} (\code{jk}), \emph{start} (\code{time_start_idx}), and \emph{end} (\code{time_end_idx}) references. Provide names for elements in each vector to specify which data source field is mapped to each name (\code{jk}, \code{time_start_idx}, and \code{time_end_idx}).
+      #' @param map.fields A list of column name vectors for each definition in \code{src.defs} providing data for the \emph{join key} (\code{jk}), \emph{start} (\code{time_start_idx}), and \emph{end} (\code{time_end_idx}) references. Provide names for elements in each vector to specify which data source field is mapped to each name (\code{jk}, \code{time_start_idx}, and \code{time_end_idx}).\cr Regarding \emph{join key}: choose the columns having values that are shared across two or more event sources.
       #'
       #' @param src.mix \describe{
 			#'	\item{"combination":}{ The default: generates unique pairs of sources}
@@ -111,7 +111,7 @@ event.vectors <- { R6::R6Class(
 					# @def q_table sets the allowable comparisons before any calculations are done
 					private$q_table <- {
 						# .temp will be a matrix at this point
-						.temp = private$.params$config |> names() |> utils::combn(m = 2) %>% cbind(apply(., 2, rev)) |> t()
+						.temp <- private$.params$config |> names() |> utils::combn(m = 2) %>% cbind(apply(., 2, rev)) |> t()
 
 						# enforce 'src.mix'
 						if (!grepl("reflex|all", src.mix, ignore.case = TRUE)){ .temp %<>% .[.[, 1] != .[, 2], ] }
@@ -157,14 +157,14 @@ event.vectors <- { R6::R6Class(
 			make.evs_universe = function(..., time.control = list(-Inf, Inf), graph.control = NULL, unit = "", furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE), graph.only = FALSE, chatty = FALSE){
 			  # :: `make.event_key` is a function used to create sequential unique identifiers for events sources and time-markers ----
 			  make.event_key <- purrr::as_mapper(~{
-						root = .x
-						radix = .y
-						index = rep.int(NA, length(root));
+						root <- .x
+						radix <- .y
+						index <- rep.int(NA, length(root));
 
 						# Populate 'index' based on unique values of 'root'
 						purrr::walk(unique(root), ~{
-							out.x = root[which(root %in% .x)]
-							out.y = radix[which(root %in% .x)];
+							out.x <- root[which(root %in% .x)]
+							out.y <- radix[which(root %in% .x)];
 							index[which(root %in% .x)] <<- frank(out.y, ties.method = "dense")
 						})
 						index
@@ -173,18 +173,17 @@ event.vectors <- { R6::R6Class(
 			  furrr_opts$globals <- furrr_opts$globals |> c("graph.control", "self", "cross.time", "time.control", "units") |> unique();
 			  furrr_opts$packages <- furrr_opts$packages |> c("magrittr", "data.table") |> unique();
 
-			  # .src_mix <- self$.__enclos_env__$private$q_table;
 			  .src_mix <- self$.__enclos_env__$private$q_table;
 
 			  # :: Retrieve the essential columns from sources and create a compact intermediate data structure ----
 			  if (chatty){ message("Creating `.tmp_space` ...")}
-				.tmp_space <- purrr::imap(self$config, ~{
-												out = .x %$% {
+				.tmp_space <- purrr::imap(self$config, \(x, y){
+												out = x %$% {
 													mget(c("jk", "time_start_idx", "time_end_idx")) |>
 													purrr::map(rlang::eval_tidy) |>
 													as.data.table()
 												}
-												out[, src := .y]
+												out[, src := y]
 											}) |>
 										rbindlist() |>
 			              setkey(jk, time_start_idx, time_end_idx) |>
@@ -200,12 +199,13 @@ event.vectors <- { R6::R6Class(
 				  if (chatty){ message("Creating `self$space` (part 1) ...")}
 
 					# Step 1
-					self$space <- { as.data.table(merge(
+					self$space <- {
+						as.data.table(merge(
 							.tmp_space[(.tmp_space$src %in% .src_mix$from)] |>
-									purrr::compact()|>
+									purrr::compact() |>
 									purrr::set_names(c("jk", "f_start_idx", "f_end_idx", "f_src"))
 							, .tmp_space[(.tmp_space$src %in% .src_mix$to)] |>
-									purrr::compact()|>
+									purrr::compact() |>
 									purrr::set_names(c("jk", "t_start_idx", "t_end_idx", "t_src"))
 							, by = "jk")
 							)[(t_start_idx - f_start_idx) >= 0] |>
@@ -219,22 +219,23 @@ event.vectors <- { R6::R6Class(
 					edge_filter <- rlang::enquos(..., .named = FALSE, .ignore_empty = "all")
 					if (rlang::is_empty(edge_filter)){ edge_filter <- TRUE }
 
-					self$space <- furrr::future_map(self$space, ~{
+					self$space <- furrr::future_map(self$space, \(X){
 			  		# Call `cross.time()`
 						time.control; units; edge_filter;
 
-						xtime <- .x[, cross.time(s0 = f_start_idx, s1 = t_start_idx, e0 = f_end_idx, e1 = t_end_idx
-																		 , control = time.control, unit = unit)
+						xtime <- X[, cross.time(s0 = f_start_idx, s1 = t_start_idx
+																		, e0 = f_end_idx, e1 = t_end_idx
+																		, control = time.control, unit = unit)
 											 , by = .(jk, f_src, t_src)]
 
-						if (rlang::is_empty(xtime)){ NULL } else { #print(str(xtime))
+						if (rlang::is_empty(xtime)){ NULL } else {
 							xtime[
 						  # Enforce row filter rules before proceeding
-						  !is.na(epsilon) #& purrr::reduce(purrr::map(edge_filter, rlang::eval_tidy, data = rlang::as_data_mask(xtime)), `&`)
+						  !is.na(epsilon)
 						  ][
 						  # Impute sequencing on event sources: this has a direct impact when creating distinct vertex names during subsequent graph creation
 						  , c("f_src", "t_src") := list(list(f_src, from.coord), list(t_src, to.coord)) |>
-					  														map(~paste(.x[[1]], make.event_key(.x[[1]], .x[[2]]), sep = ":"))
+					  														map(\(k) paste(k[[1]], make.event_key(k[[1]], k[[2]]), sep = ":"))
 						  ][, src.pair := sprintf("%s -> %s", f_src, t_src)
 						  ][, setnames(.SD, c("f_src", "t_src"), c("from.src", "to.src"))
 						  ][, epsilon.desc := factor(
@@ -253,15 +254,16 @@ event.vectors <- { R6::R6Class(
 				message(sprintf("[%s] ... creating event graphs", Sys.time()));
 
 			  self$evt_graphs <- self$space %$% mget(ls()) |>
-					furrr::future_imap(~{
+					furrr::future_map(\(x){
 						graph.control;
-						g <- igraph::graph_from_data_frame(setcolorder(.x, c("from.src", "to.src")));
+						g <- igraph::graph_from_data_frame(setcolorder(x, c("from.src", "to.src")));
 
 						if (!rlang::is_empty(graph.control)){
-							purrr::walk(graph.control, eval, envir = environment())
+							purrr::walk(graph.control, \(i) eval(i, envir = environment()))
 						}
 						g
-					}, .options = furrr_opts) |> purrr::compact();
+					}, .options = furrr_opts) |>
+					purrr::compact();
 
 				self$space <- self$space %$% mget(ls()) |> reduce(rbind);
 

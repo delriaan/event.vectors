@@ -96,7 +96,7 @@ Initialize the Event Vector Class}
 
 \item{\code{contexts}}{An atomic vector of strings serving as labels for each data source}
 
-\item{\code{map.fields}}{A list of column name vectors for each definition in \code{src.defs} providing data for the \emph{join key} (\code{jk}), \emph{start} (\code{time_start_idx}), and \emph{end} (\code{time_end_idx}) references. Provide names for elements in each vector to specify which data source field is mapped to each name (\code{jk}, \code{time_start_idx}, and \code{time_end_idx}).}
+\item{\code{map.fields}}{A list of column name vectors for each definition in \code{src.defs} providing data for the \emph{join key} (\code{jk}), \emph{start} (\code{time_start_idx}), and \emph{end} (\code{time_end_idx}) references. Provide names for elements in each vector to specify which data source field is mapped to each name (\code{jk}, \code{time_start_idx}, and \code{time_end_idx}).\cr Regarding \emph{join key}: choose the columns having values that are shared across two or more event sources.}
 
 \item{\code{src.mix}}{\describe{
 \item{"combination":}{ The default: generates unique pairs of sources}
