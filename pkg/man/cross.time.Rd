@@ -11,7 +11,7 @@ cross.time(
   e1,
   control = list(-Inf, Inf),
   chatty = FALSE,
-  unit = "",
+  unit = NULL,
   ...
 )
 }

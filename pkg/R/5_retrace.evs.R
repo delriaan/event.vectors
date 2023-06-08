@@ -20,12 +20,13 @@ retrace.evs <- function(event_graph, evs){
   .haystack$from.src <- .events[, 1];
   .haystack$to.src <- .events[, 2];
 
-  .needle <- { rlang::exprs(
-    jk = mget(ls(pattern = "jk$")) |> purrr::reduce(c)
-    , src = mget(ls(pattern = "src$")) |> purrr::reduce(c)
-    , time_start_idx = mget(ls(pattern = "^from.+coord")) |> purrr::reduce(c)
-    , time_end_idx = mget(ls(pattern = "^to.+coord")) |> purrr::reduce(c)
-    )}
+  .needle <- {
+  	rlang::exprs(
+	    jk = mget(ls(pattern = "jk$")) |> purrr::reduce(c)
+	    , src = mget(ls(pattern = "src$")) |> purrr::reduce(c)
+	    , time_start_idx = mget(ls(pattern = "^from.+coord")) |> purrr::reduce(c)
+	    , time_end_idx = mget(ls(pattern = "^to.+coord")) |> purrr::reduce(c)
+	    )}
 
   purrr::map(.needle, eval, envir = .haystack) |>
     data.table::as.data.table() |>
@@ -53,6 +54,6 @@ retrace.evs <- function(event_graph, evs){
     # Resolve the row data
     rlang::list2(!!src := rlang::eval_tidy(attr(lazy_refs, "src.def"))[row_idx])
   }) |>
-  purrr::flatten() %>%
-  .[!duplicated(names(.))]
+	  purrr::flatten() %>%
+	  .[!duplicated(names(.))]
 }

@@ -36,74 +36,84 @@
 #'
 #' @name cross.time
 #' @export
-cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE, unit = "",  ...){
+cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE, unit = NULL,...){
 ## Reference: https://www.r-bloggers.com/using-complex-numbers-in-r/
 ## Division by Pi/4 makes it easy to tell if one argument is larger than, smaller than, or the same magnitude as the other (same = Pi/4)
 ## All computations are in the direction of B.max to A.min when `events.ascending` is TRUE
-	.durations <- list(
-		days = lubridate::ddays
-		, hours = lubridate::dhours
-		, microseconds = lubridate::dmicroseconds
-		, milliseconds = lubridate::dmilliseconds
-		, minutes = lubridate::dminutes
-		, months = lubridate::dmonths
-		, nanoseconds = lubridate::dnanoseconds
-		, picoseconds = lubridate::dpicoseconds
-		, seconds = lubridate::dseconds
-		, weeks = lubridate::dweeks
-		, years = lubridate::dyears
-		);
+	.unit_patterns <- grepl("^(we|mo|da|ye|se|mi|na|ho|pi)", unit, ignore.case = TRUE)
 
-	.unit_patterns <- grepl("^(we|mo|da|ye|se|mi|na|ho|pi)", unit, ignore.case = TRUE);
-	.conversion <- if (any(.unit_patterns)){
-										.durations[[which(.unit_patterns)]]
-									} else { as.numeric }
+	unit_desc <- unit;
+	unit <- if (any(.unit_patterns)){
+		list(days = lubridate::ddays(1)
+				, hours = lubridate::dhours(1)
+				, microseconds = lubridate::dmicroseconds(1)
+				, milliseconds = lubridate::dmilliseconds(1)
+				, minutes = lubridate::dminutes(1)
+				, months = lubridate::dmonths(1)
+				, nanoseconds = lubridate::dnanoseconds(1)
+				, picoseconds = lubridate::dpicoseconds(1)
+				, seconds = lubridate::dseconds(1)
+				, weeks = lubridate::dweeks(1)
+				, years = lubridate::dyears(1)
+				)[[which(.unit_patterns)]]
+		} else { 1 }
 
 	out.names <- { c("beta", "mGap"
 									 , "mSt", "mEd"
 									 , "from.len", "to.len"
 									 , "from.coord", "to.coord"
 									 , "from_timeframe", "to_timeframe"
+									 , "x_filter"
 									 )}
 
-	beta			<- as.numeric(e1 - s0);
+	beta <- lubridate::as.difftime(e1 - s0, units = unit_desc)/unit;
 
 	control <- purrr::imap(control, \(x, y){
-			ifelse(is.infinite(x)
-						 , sign(x) * .conversion(10 * abs(beta))
-						 , ifelse(rlang::is_empty(x)
-						 				 , c(-1,1)[y] * .conversion(10 * abs(beta))
-						 				 , x
-						 				 )
-						 )
-		});
+			ifelse(
+				is.infinite(x)
+				, sign(x) * 10 * abs(beta)
+				, ifelse(
+						rlang::is_empty(x)
+						, c(-1,1)[y] * 10 * abs(beta)
+						, lubridate::as.difftime(x, units = unit_desc) / unit
+						)
+			)
+	});
 
-	x_filter  <- (.conversion(beta) <= control[[2]]) & (.conversion(beta) >= control[[1]]);
+	x_filter  <- (beta <= control[[2]]) & (beta >= control[[1]]);
+
 	if (rlang::is_empty(beta)){ return(NULL) }
 
-	mGap			<- as.numeric(s1 - e0)
-	mSt 			<- as.numeric(s1 - s0)
-	mEd 			<- as.numeric(e1 - e0)
-	from.len	<- as.numeric(e0 - s0)
-	to.len		<- as.numeric(e1 - s1)
+	mGap			<- lubridate::as.difftime(s1 - e0, units = unit_desc) / unit
+	mSt 			<- lubridate::as.difftime(s1 - s0, units = unit_desc) / unit
+	mEd 			<- lubridate::as.difftime(e1 - e0, units = unit_desc) / unit
+	from.len	<- lubridate::as.difftime(e0 - s0, units = unit_desc) / unit
+	to.len		<- lubridate::as.difftime(e1 - s1, units = unit_desc) / unit
 	from.coord			<- purrr::map2_chr(as.character(s0), as.character(e0), paste, sep = ":")
 	to.coord  			<- purrr::map2_chr(as.character(s1), as.character(e1), paste, sep = ":")
-	from_timeframe	<- purrr::map2(s0, e0, lubridate::interval)
-	to_timeframe  	<- purrr::map2(s1, e1, lubridate::interval)
-	epsilon <- {
-		# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
-		.out = atan2(mEd, mSt) * atan2((mGap * beta), mGap)
-		.tau = sign(to.len - from.len)
+	from_timeframe	<- purrr::map2(s0, e0, \(x, y) if (rlang::is_empty(unit)){ list(x, y) } else { lubridate::interval(x, y) })
+	to_timeframe  	<- purrr::map2(s1, e1, \(x, y) if (rlang::is_empty(unit)){ list(x, y) } else { lubridate::interval(x, y) })
 
-		# Scale back down to an angle: `sqrt()` needs to have a complex argument for handling negative arguments
-		# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another
-		.out = (sqrt(as.complex(.out)) + sqrt(as.complex(mGap)^.tau)) |>
-						unlist() |>
-						purrr::modify_if(\(x) is.infinite(Re(x)), \(x) as.complex(0))
+	epsilon 	<- {
+			# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
+			ED <- as.numeric(mEd)
+			ST <- as.numeric(mSt)
+			GP <- as.numeric(mGap)
+			BT <- as.numeric(beta)
+			FM <- as.numeric(from.len)
+			TO <- as.numeric(to.len)
 
-		if (rlang::is_empty(.out)){ complex() } else { .out }
-	}
-	# print(ls())
+			.out = atan2(ED, ST) * atan2((GP * BT), GP)
+			.tau = sign(TO - FM)
+
+			# Scale back down to an angle: `sqrt()` needs to have a complex argument for handling negative arguments
+			# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another
+			.out = (sqrt(as.complex(.out)) + sqrt(as.complex(GP)^.tau)) |>
+							unlist() |>
+							purrr::modify_if(\(x) is.infinite(Re(x)), \(x) as.complex(0))
+
+			if (rlang::is_empty(.out)){ complex() } else { .out }
+		}
 	epsilon.desc <- (\(i){
 		.eval_epsilon <- \(x){
 			ifelse(
@@ -121,14 +131,10 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 			}
 		if (rlang::is_empty(i)){ NULL } else { sapply(i, .eval_epsilon) }
 	})(epsilon);
-	# print(ls())
 
-	beta	<- .conversion(beta);
-	mGap	<- .conversion(mGap);
-	mSt 	<- .conversion(mSt);
-	mEd 	<- .conversion(mEd);
-
-	c(out.names, "epsilon", "epsilon.desc") |> mget() |> as.data.table()
+	c(out.names, "epsilon", "epsilon.desc") |>
+	mget() |>
+	as.data.table()
 }
 
 # debug(cross.time)
