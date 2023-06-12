@@ -1,0 +1,76 @@
+---
+title: "Event Space and Graph Reduction"
+output: rmarkdown::html_vignette
+vignette: >
+ %\\VignetteIndexEntry{Event Space and Graph Reduction}
+ %\\VignetteIndexEngine{knitr::rmarkdown}
+ %\\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup}
+library(event.vectors)
+```
+
+# Event Space
+
+Given event space $\mathbb{E}$ with $k$ independent event groupings: $$
+\mathbb{E}:=\hat{e}_1 + \hat{e}_2+  \hat{e}_3 + \cdots + \hat{e}_k
+$$
+and corresponding heterogeneous data tables ($\mathbb{D} :=D_1,D_2,D_3,\cdots,D_k$) each having a "join-key" ($J$, a column or column tuple shared across $\mathbb{D}$), an event vector ($\overrightarrow{V_q}$) is formed having values indicating the existence or absence of selection over $D_k$ predicated on $q$ unique values $\forall J$: 
+
+$$
+\overrightarrow{V_q}:= 
+\exists \sigma_{j_q \in J}(D_k) \Rightarrow
+\begin{pmatrix}0\\1\end{pmatrix}_{q}\hat{e}_1 + 
+\begin{pmatrix}0\\1\end{pmatrix}_{q}\hat{e}_2 + 
+\begin{pmatrix}0\\1\end{pmatrix}_{q}\hat{e}_3 + 
+\cdots + 
+\begin{pmatrix}0\\1\end{pmatrix}_{q}\hat{e}_k \\
+q :=\text{ the q}^{th}\text{ distinct value in }J\enspace \forall \mathbb{D} \\
+\sigma_{j_q \in J}(D_k) \equiv \dot{D_{qk}}:=\text{ predicated selection operation in a relational algebra context}
+$$
+
+
+From each $\overrightarrow{V_q}$, $q$ subsets over $\mathbb{D}$ are derived as $\Gamma_q:=D_{k_q}|\overrightarrow{V_q}\ne\emptyset$. The number of records ($n$) resulting from selection across the data sets can be represented as an array of row vectors: 
+
+$$
+\Gamma_q\longrightarrow \text{Distinct row counts over}\dot{D_{k_q}}\Rightarrow\begin{array}
+((n_{11}&n_{12}&n_{13}&\cdots&n_{1k})\\
+(n_{21}&n_{22}&n_{23}&\cdots&n_{2k})\\
+(n_{31}&n_{32}&n_{33}&\cdots&n_{3k})\\
+\vdots&\vdots&\vdots&\vdots&\vdots\\
+(n_{q1}&n_{q2}&n_{q3}&\cdots&n_{qk})
+\end{array}
+$$
+
+# Graph Reduction
+
+Next, considering a [fully-connected](https://en.wikipedia.org/wiki/Complete_graph) graph having $\beta$ nodes and number of edges given as follows: $$
+\begin{align}
+K\rightarrow f(\beta) := {\beta\choose2} \equiv \frac{\beta(\beta-1)}{2}
+\end{align}
+$$
+ and taking into account that `event.vectors` creates separate graphs for each $q$, the number of edges per fully-connected graph $G_q$ is given as follows: 
+
+$$
+\beta_q := \sum_{i=1}^q\Gamma_i \Rightarrow (\beta_1,\beta_2,\beta_3,\cdots,\beta_q)\\
+K_q \rightarrow f(\beta_q) := {\beta_q\choose2}
+$$
+, which is also the number of comparisons to be carried out computationally.
+
+$K_q$ can be reduced by projecting a set of logically-reduced predicates (as mentioned earlier) to interim results before creating each of the $q$ graphs:
+
+$$
+P_m:m\text{ predicates}\Rightarrow
+\begin{pmatrix}0\\1\end{pmatrix}_m\\
+\dot\beta_q:=\forall i \in q\rightarrow\Gamma_i*\Pi (P_m|\dot D_{k_i})\\ 0 \le \dot\beta_q\le\beta_q
+$$ 
+This can quickly result in not only edge reduction but graph elimination for each $q$ ($\Gamma_q$ can easily become sparse).  Trial and error may needed to fine-tune how graphs are generated as well as improve execution performance which is why the `graph.control` argument is provided for `event.vectors::make.evs_universe()` to allow for operating on graphs after the fact.
+

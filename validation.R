@@ -73,7 +73,7 @@ tic.clear(); tic.clearlog();
 #
 # ~ Validation #1 :: event.vectors ====
 plan(sequential);
-plan(tweak(multisession, workers = 7));
+plan(tweak(multisession, workers = 3));
 	tic("EVSpace Validation Object");
 	test.evs <- { event.vectors$
 		new()$configure(
@@ -174,9 +174,9 @@ View(inspect)
 retrace.evs(test.evs$evt_graphs[[1]], test.evs)
 
 # ~ Cleanup ====
-rm(list = ls())
 plan(sequential);
 gc(full = TRUE)
+# rm(list = ls())
 
 # ~ pkgdown ----
 # usethis::use_pkgdown()

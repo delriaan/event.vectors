@@ -60,11 +60,15 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 
 	out.names <- { c("beta", "mGap"
 									 , "mSt", "mEd"
+									 , "epsilon", "epsilon.desc"
 									 , "from.len", "to.len"
 									 , "from.coord", "to.coord"
 									 , "from_timeframe", "to_timeframe"
-									 , "x_filter"
-									 )}
+									 , "x_filter")}
+
+	replicate(length(out.names), NULL, simplify = FALSE) |>
+		rlang::set_names(out.names) |>
+		list2env(envir = environment())
 
 	beta <- lubridate::as.difftime(e1 - s0, units = unit_desc)/unit;
 
@@ -84,31 +88,25 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 
 	if (rlang::is_empty(beta)){ return(NULL) }
 
-	mGap			<- lubridate::as.difftime(s1 - e0, units = unit_desc) / unit
-	mSt 			<- lubridate::as.difftime(s1 - s0, units = unit_desc) / unit
-	mEd 			<- lubridate::as.difftime(e1 - e0, units = unit_desc) / unit
-	from.len	<- lubridate::as.difftime(e0 - s0, units = unit_desc) / unit
-	to.len		<- lubridate::as.difftime(e1 - s1, units = unit_desc) / unit
-	from.coord			<- purrr::map2_chr(as.character(s0), as.character(e0), paste, sep = ":")
-	to.coord  			<- purrr::map2_chr(as.character(s1), as.character(e1), paste, sep = ":")
-	from_timeframe	<- purrr::map2(s0, e0, \(x, y) if (rlang::is_empty(unit)){ list(x, y) } else { lubridate::interval(x, y) })
-	to_timeframe  	<- purrr::map2(s1, e1, \(x, y) if (rlang::is_empty(unit)){ list(x, y) } else { lubridate::interval(x, y) })
+	mGap			<- lubridate::as.difftime(s1 - e0, units = unit_desc) / unit;
+	mSt 			<- lubridate::as.difftime(s1 - s0, units = unit_desc) / unit;
+	mEd 			<- lubridate::as.difftime(e1 - e0, units = unit_desc) / unit;
+
+	from.len	<- lubridate::as.difftime(e0 - s0, units = unit_desc) / unit;
+	to.len		<- lubridate::as.difftime(e1 - s1, units = unit_desc) / unit;
+	from.coord			<- purrr::map2_chr(as.character(s0), as.character(e0), paste, sep = ":");
+	to.coord  			<- purrr::map2_chr(as.character(s1), as.character(e1), paste, sep = ":");
+	from_timeframe	<- purrr::map2(s0, e0, \(x, y) if (rlang::is_empty(unit)){ list(x, y) } else { lubridate::interval(x, y) });
+	to_timeframe  	<- purrr::map2(s1, e1, \(x, y) if (rlang::is_empty(unit)){ list(x, y) } else { lubridate::interval(x, y) });
 
 	epsilon 	<- {
 			# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
-			ED <- as.numeric(mEd)
-			ST <- as.numeric(mSt)
-			GP <- as.numeric(mGap)
-			BT <- as.numeric(beta)
-			FM <- as.numeric(from.len)
-			TO <- as.numeric(to.len)
-
-			.out = atan2(ED, ST) * atan2((GP * BT), GP)
-			.tau = sign(TO - FM)
+			.out = atan2(as.numeric(mEd), as.numeric(mSt)) * atan2((as.numeric(mGap) * as.numeric(beta)), as.numeric(mGap))
+			.tau = sign(as.numeric(to.len) - as.numeric(from.len))
 
 			# Scale back down to an angle: `sqrt()` needs to have a complex argument for handling negative arguments
 			# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another
-			.out = (sqrt(as.complex(.out)) + sqrt(as.complex(GP)^.tau)) |>
+			.out = (sqrt(as.complex(.out)) + sqrt(as.complex(as.numeric(mGap))^.tau)) |>
 							unlist() |>
 							purrr::modify_if(\(x) is.infinite(Re(x)), \(x) as.complex(0))
 
@@ -132,9 +130,7 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 		if (rlang::is_empty(i)){ NULL } else { sapply(i, .eval_epsilon) }
 	})(epsilon);
 
-	c(out.names, "epsilon", "epsilon.desc") |>
-	mget() |>
-	as.data.table()
+	mget(out.names) |> as.data.table()
 }
 
 # debug(cross.time)

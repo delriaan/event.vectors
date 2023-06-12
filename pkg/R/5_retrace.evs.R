@@ -16,7 +16,6 @@ retrace.evs <- function(event_graph, evs){
 
   # `.events` should be an array with dimensions N x 2
   .events <- .haystack$src.pair |> stringi::stri_split_fixed(" -> ", simplify = TRUE);
-
   .haystack$from.src <- .events[, 1];
   .haystack$to.src <- .events[, 2];
 
@@ -28,32 +27,34 @@ retrace.evs <- function(event_graph, evs){
 	    , time_end_idx = mget(ls(pattern = "^to.+coord")) |> purrr::reduce(c)
 	    )}
 
+  # Find each "needle" in the "haystack"
   purrr::map(.needle, eval, envir = .haystack) |>
     data.table::as.data.table() |>
     purrr::pmap(~{
-    lazy_refs <- evs$config[[stringi::stri_replace_first_regex(..2, "[:][0-9]+", "")]];
-    src <- ..2;
+	    lazy_refs <- evs$config[[stringi::stri_replace_first_regex(..2, "[:][0-9]+", "")]];
+	    src <- ..2;
 
-    row_idx <- { lazy_refs %$%
-      purrr::map2(
-        .x = mget(c("jk", "time_start_idx", "time_end_idx"))
-        , .y = list(..1, ..3, ..4)
-        , ~which(rlang::eval_tidy(.x) == .y)
-        ) |>
-      unlist() |>
-      # Frequency Table
-      table() |>
-      # Sort decreasing
-      sort(decreasing = TRUE) |>
-      # Index of largest value is the correct row of the filtered source data
-      magrittr::extract(1) |>
-      names() |>
-      as.integer()
-    };
+	    # Determine which row from the source data maps to the arguments
+	    row_idx <- { lazy_refs %$%
+	      purrr::map2(
+	        .x = mget(c("jk", "time_start_idx", "time_end_idx"))
+	        , .y = list(..1, ..3, ..4)
+	        , ~which(rlang::eval_tidy(.x) == .y)
+	        ) |>
+	      unlist() |>
+	      # Frequency Table
+	      table() |>
+	      # Sort decreasing
+	      sort(decreasing = TRUE) |>
+	      # Index of largest value is the correct row of the filtered source data
+	      magrittr::extract(1) |>
+	      names() |>
+	      as.integer()
+	    }
 
-    # Resolve the row data
-    rlang::list2(!!src := rlang::eval_tidy(attr(lazy_refs, "src.def"))[row_idx])
-  }) |>
+	    # Resolve the row data
+	    rlang::list2(!!src := rlang::eval_tidy(attr(lazy_refs, "src.def"))[row_idx])
+	  }) |>
 	  purrr::flatten() %>%
 	  .[!duplicated(names(.))]
 }

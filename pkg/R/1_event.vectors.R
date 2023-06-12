@@ -161,19 +161,17 @@ event.vectors <- { R6::R6Class(
 			make.evs_universe = function(..., time.control = list(-Inf, Inf), graph.control = NULL, unit = NULL
 				, furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE)
 				, graph.only = FALSE, chatty = FALSE){
-			  # :: `make.event_key` is a function used to create sequential unique identifiers for events sources and time-markers ----
+			  # :: `make.event_key` is a function used to create sequential unique identifiers
+				# 	for events sources and time-markers ----
 			  make.event_key <- \(x, y){
-					root <- x
-					radix <- y
-					index <- rep.int(NA, length(root))
+					index <- rep.int(NA, length(root));
 
 					# Populate 'index' based on unique values of 'root'
-					purrr::walk(unique(root), \(i){
-						out.x <- root[which(root %in% i)]
-						out.y <- radix[which(root %in% i)]
-
-						index[which(root %in% i)] <<- frank(out.y, ties.method = "dense")
-					})
+					purrr::walk(unique(x), \(i){
+						# out.x <- root[which(root %in% i)];
+						.this_idx <- which(x %in% i);
+						index[.this_idx] <<- data.table::frank(y[.this_idx], ties.method = "dense");
+					});
 
 					index
 				};
@@ -193,24 +191,27 @@ event.vectors <- { R6::R6Class(
 
 			  .tmp_space <- purrr::imap(self$config, \(x, y){
 						out <- x %$% {
-							mget(c("jk", "time_start_idx", "time_end_idx")) |>
-							purrr::map(rlang::eval_tidy) |>
-							as.data.table()
+							data.table(
+								jk = rlang::eval_tidy(jk)
+								, time_start_idx = rlang::eval_tidy(time_start_idx)
+								, time_end_idx = rlang::eval_tidy(time_end_idx)
+								)
 						}
 						out[, src := y]
 					}) |>
 					rbindlist() |>
 	        setkey(jk, time_start_idx, time_end_idx) |>
-					setorder(jk, time_start_idx, time_end_idx) %>%
-					.[, f_src_exists := src %in% .src_mix[, from], by = jk] %>%
-					.[, t_src_exists := (src %in% .src_mix[, to]) & f_src_exists, by = jk] %>%
-					.[(f_src_exists & t_src_exists), !c("f_src_exists", "t_src_exists")] %>%
+					setorder(jk, time_start_idx, time_end_idx) %>% {
+						.[, f_src_exists := src %in% .src_mix[, from], by = jk][
+							, t_src_exists := (src %in% .src_mix[, to]) & f_src_exists, by = jk][
+							(f_src_exists & t_src_exists), !c("f_src_exists", "t_src_exists")
+							]
+					} |>
 					unique() |>
 					as.list();
 
 				# :: Use optimization from 'data.table' to create `self$space` ----
-
-				edge_filter <- rlang::enexprs(..., .named = FALSE, .ignore_empty = "all")
+				edge_filter <- rlang::enexprs(..., .named = FALSE, .ignore_empty = "all");
 
 				if (!graph.only){
 				  if (chatty){ message("Creating `self$space` (part 1) ...") }
@@ -224,19 +225,20 @@ event.vectors <- { R6::R6Class(
 							, .tmp_space[(.tmp_space$src %in% .src_mix$to)] |>
 									purrr::compact() |>
 									purrr::set_names(c("jk", "t_start_idx", "t_end_idx", "t_src"))
-							, by = "jk")
-							)[(t_start_idx - f_start_idx) >= 0] |>
+							, by = "jk"
+						))[(t_start_idx - f_start_idx) >= 0] |>
 				  	split(by = c("jk"));
 					}
 
 					# Step 2: Calling `cross.time()`
-				  if (chatty){ message("Creating `self$space` (part 2) ...")}
+				  if (chatty){ message("Creating `self$space` (part 2) ...") }
 
-					furrr_opts <- furrr::furrr_options(
-							scheduling = Inf, seed = TRUE
-							, packages = c("magrittr", "data.table", "rlang")
-							, globals = c("time.control", "units", "cross.time", "edge_filter")
-							);
+					furrr_opts <- { furrr::furrr_options(
+							scheduling	= Inf
+							, seed			= TRUE
+							, packages	= c("magrittr", "data.table", "rlang")
+							, globals 	= c("time.control", "units", "cross.time", "edge_filter")
+							)}
 
 					self$space <- furrr::future_map(self$space, \(X){
 			  		# Call `cross.time()`
@@ -275,10 +277,7 @@ event.vectors <- { R6::R6Class(
 										)
 						  ][(from.src != to.src)] # Remove loops (may result in removing all records)
 						}
-					}, .options = furrr_opts)
-
-					self$space |>
-						purrr::compact() -> self$space
+					}, .options = furrr_opts) |> purrr::compact()
 				}
 
 				# :: Create `self$evt_graphs` from `self$space` ----
