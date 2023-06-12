@@ -128,7 +128,7 @@ Initialize the Event Vector Class}
   ...,
   time.control = list(-Inf, Inf),
   graph.control = NULL,
-  unit = "",
+  unit = NULL,
   furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE),
   graph.only = FALSE,
   chatty = FALSE

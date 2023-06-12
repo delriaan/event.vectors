@@ -53,24 +53,26 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 
 	boundary_name	<- as.character(substitute(boundary_name));
 
-	optional_output <- { c("ISLAND"
-												, paste0(boundary_name, "_start_idx")
-												, paste0(boundary_name, "_end_idx")
-												, "island_idx"
-												) |>
-												rlang::set_names() |>
-												rlang::data_syms()}
+	optional_output <- {
+		c("ISLAND"
+			, paste0(boundary_name, "_start_idx")
+			, paste0(boundary_name, "_end_idx")
+			, "island_idx"
+			) |>
+			rlang::set_names() |>
+			rlang::data_syms()
+		}
 
 	output_fields <- { list(map_fields, if (archipelago) { optional_output[-4] }) |>
 										unique() |> purrr::reduce(append)}
 
 	timeout <- { switch(
-							class(rlang::enexpr(timeout))[1]
-							, "numeric" = rlang::expr(GAP > !!timeout)
-							, "call" = timeout
-							, "character" = str2lang(timeout)
-							, timeout
-							)}
+			class(rlang::enexpr(timeout))[1]
+			, "numeric" = rlang::expr(GAP > !!timeout)
+			, "call" = timeout
+			, "character" = str2lang(timeout)
+			, timeout
+			)}
 
 	# :: Result data 1 ----
 	outData <- c(map_fields, time_fields) |>
@@ -94,7 +96,7 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 			)
 	, by = c(names(map_fields))
 	];
-		#
+	#
 	# :: Result data 2 ----
 	map_fields <- names(map_fields);
 	outData[
@@ -109,7 +111,8 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 		, by = rec_idx
 		][
 		# Correct GAPS with overlapping boundaries { start[n] < stop[n-1] }
-		(GAP < 0), `:=`(start_idx  = start_idx + GAP, stop_idx = stop_idx  + GAP)
+		(GAP < 0)
+		, `:=`(start_idx  = start_idx + GAP, stop_idx = stop_idx  + GAP)
 		][(GAP < 0) | (is.na(GAP)), GAP := 0
 		][
 		, island_idx := book.of.utilities::count.cycles(eval(timeout), reset = FALSE)

@@ -8,7 +8,7 @@ library(future);
 library(purrr)
 library(data.table)
 #
-# dir(pattern = "^[1-4]{1}.+R$", recursive = TRUE) |> purrr::walk(source)
+# dir(pattern = "^[1-9]{1}.+R$", recursive = TRUE) |> purrr::walk(source)
 
 make.test_data <- function(j = 5, n = 5, m = 5, o = 1:10, dest = globalenv(), .debug = FALSE){
 #' Make Test Data for Validation
@@ -73,51 +73,62 @@ tic.clear(); tic.clearlog();
 #
 # ~ Validation #1 :: event.vectors ====
 plan(sequential);
-plan(tweak(multisession, workers = 7));
+plan(tweak(multisession, workers = 3));
+	tic("EVSpace Validation Object");
+	test.evs <- { event.vectors$
+		new()$configure(
+			src.defs = c(ls(pattern = "^test.+[0-9]$") |>
+									 	purrr::modify_at(3, ~paste0(.x, "[(join_key > 3)]")) |>
+									 	purrr::modify_at(1, ~paste0(.x, "[lubridate::month(date.start)==1]")) |>
+									 	rlang::parse_exprs()
+									 , ("BLAH$" %s+% ls(BLAH, pattern = "^test")[1:3]) |>
+									 	purrr::modify_at(3, ~paste0(.x, "[(join_key == 1)]")) |>
+									 	purrr::modify_at(2, ~paste0(.x, "[lubridate::month(date.start)==8]")) |>
+									 	rlang::parse_exprs()
+									 )
+			, contexts = rlang::parse_exprs("Event_" %s+% LETTERS[1:6])
+			, map.fields = replicate(n = 6, c("join_key", "date.start", "date.end"), simplify = FALSE)
+			, chatty = TRUE
+			);
+	}
 
-tic("EVSpace Validation Object");
-test.evs <- { event.vectors$
-	new()$
-	configure(
-		src.defs = c(ls(pattern = "^test.+[0-9]$") |>
-								 	purrr::modify_at(3, ~paste0(.x, "[(join_key > 3)]")) |>
-								 	purrr::modify_at(1, ~paste0(.x, "[lubridate::month(date.start)==1]")) |>
-								 	rlang::parse_exprs()
-								 , ("BLAH$" %s+% ls(BLAH, pattern = "^test")[1:3]) |>
-								 	purrr::modify_at(3, ~paste0(.x, "[(join_key == 1)]")) |>
-								 	purrr::modify_at(2, ~paste0(.x, "[lubridate::month(date.start)==8]")) |>
-								 	rlang::parse_exprs()
-								 )
-		, contexts = rlang::parse_exprs("Event_" %s+% LETTERS[1:6])
-		, map.fields = replicate(n = 6, c("join_key", "date.start", "date.end"), simplify = FALSE)
-		, chatty = TRUE
-		)$
-	make.evs_universe(
-		# , mSt >= quantile(mSt, 0.75)
-		# , abs(mGap) >= lubridate::days(5)
-		# , abs(mGap) <= lubridate::days(120)
-		, time.control = list(0, 100)
-		# , graph.control = { rlang::exprs(
-		# 			igraph::E(g)$title	<- igraph::ends(g, igraph::E(g)) %>% apply(1, paste, collapse = " -> ")
-		# 			, igraph::V(g)$color <- igraph::V(g)$name %>% stringi::stri_split_fixed(":", simplify = TRUE) %>% .[, 1L] %>% {
-		# 					x = .;
-		# 					y = purrr::set_names(unique(x), purrr::map_chr(unique(x), ~rgb(runif(1), runif(1), runif(1))))
-		# 					purrr::map_chr(x, ~names(y)[which(y == .x)])
-		# 				}
-		# 			, igraph::V(g)$src <- igraph::V(g)$name %>% stringi::stri_replace_first_regex("[:][0-9]+", "")
-		# 			)
-		# 	}
-		, units = "days"
+	test.evs$
+		make.evs_universe(
+		, mSt <= quantile(mSt, 0.75)
+		, abs(mGap) >= 5
+		, abs(mGap) <= 120
+		# , time.control = list(0, 100)
+		, graph.control = {
+				rlang::exprs(
+					igraph::E(g)$title	<- igraph::ends(g, igraph::E(g)) %>% apply(1, paste, collapse = " -> ")
+					, igraph::V(g)$color <- igraph::V(g)$name %>% stringi::stri_split_fixed(":", simplify = TRUE) %>% .[, 1L] %>% {
+							x = .;
+							y = purrr::set_names(unique(x), purrr::map_chr(unique(x), ~rgb(runif(1), runif(1), runif(1))))
+							purrr::map_chr(x, ~names(y)[which(y == .x)])
+						}
+					, igraph::V(g)$src <- igraph::V(g)$name %>% stringi::stri_replace_first_regex("[:][0-9]+", "")
+					)
+			}
+		, unit = "days"
 		, chatty = TRUE
 		)
-}
-toc(log = TRUE);
 
+	toc(log = TRUE);
+
+test.evs$space |> View()
+test.evs$space[(
+	TRUE &
+		(mSt <= quantile(mSt, 0.75)) &
+		(abs(mGap) >= 5) &
+		(abs(mGap) <= 120) &
+		TRUE
+	)]
 test.evs$config |> attributes();
 test.evs$.__enclos_env__$private$q_table;
 test.evs$.__enclos_env__$private$.params$config
-test.evs$space |> View()
-test.evs$space[, .(jk, from.coord, to.coord, src.pair, mSt, mGap, mEd, epsilon = as.character(epsilon))] %>% summarytools::dfSummary() |> summarytools::view(method = "browser");
+test.evs$space[, .(jk, from.coord, to.coord, src.pair, mSt, mGap, mEd, epsilon = as.character(epsilon))] |>
+	summarytools::dfSummary() |>
+	summarytools::view(method = "browser");
 test.evs$space[(jk == 4)] %>% View("Space: jk == 4");
 igraph::vertex.attributes(test.evs$evt_graphs$`1`);
 test.evs$evt_graphs$`1` |> igraph::V()
@@ -163,11 +174,11 @@ View(inspect)
 retrace.evs(test.evs$evt_graphs[[1]], test.evs)
 
 # ~ Cleanup ====
-rm(list = ls())
 plan(sequential);
 gc(full = TRUE)
+# rm(list = ls())
 
-# pkgdown ----
+# ~ pkgdown ----
 # usethis::use_pkgdown()
 # usethis::use_proprietary_license("Chionesu George")
 # pkgdown::build_site(pkg = "pkg", examples = FALSE, override = list(destination = "../docs"))

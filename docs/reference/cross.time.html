@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">event.vectors</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.0</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.3.1</span>
       </span>
     </div>
 
@@ -25,6 +25,16 @@
       <ul class="nav navbar-nav"><li>
   <a href="../reference/index.html">Reference</a>
 </li>
+<li class="dropdown">
+  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+    Articles
+     
+    <span class="caret"></span>
+  </a>
+  <ul class="dropdown-menu" role="menu"><li>
+      <a href="../articles/Event-Space-and-Graph-Reduction.html">Event Space and Graph Reduction</a>
+    </li>
+  </ul></li>
       </ul><ul class="nav navbar-nav navbar-right"></ul></div><!--/.nav-collapse -->
   </div><!--/.container -->
 </div><!--/.navbar -->
@@ -51,7 +61,7 @@
 <span>  <span class="va">e1</span>,</span>
 <span>  control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">-</span><span class="cn">Inf</span>, <span class="cn">Inf</span><span class="op">)</span>,</span>
 <span>  chatty <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  unit <span class="op">=</span> <span class="st">""</span>,</span>
+<span>  unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -83,7 +93,7 @@
 
 
 <dt>unit</dt>
-<dd><p>Conversion temporal units compatible with <code>lubridate</code></p></dd>
+<dd><p>One of the <code>lubridate</code> <code>d&lt;duration&gt;</code>() functions</p></dd>
 
 
 <dt>...</dt>
