@@ -109,7 +109,7 @@ event.vectors <- { R6::R6Class(
 								)}
 							if (chatty){ purrr::walk(qa_check, message)}
 
-							setattr(.temp, "src.def", .x)
+							data.table::setattr(.temp, "src.def", .x)
 						})
 
 					# @def q_table sets the allowable comparisons before any calculations are done
@@ -121,16 +121,16 @@ event.vectors <- { R6::R6Class(
 						if (!grepl("reflex|all", src.mix, ignore.case = TRUE)){ .temp %<>% .[.[, 1] != .[, 2], ] }
 
 						# enforce 'exclude.mix' after converting .temp to a 'data.table' object
-						.temp %<>% as.data.table() |> setnames(c("from", "to"));
-						.temp[!purrr::pmap_lgl(.temp, ~list(c(.x, .y)) %in% exclude.mix)] |> setkey(from, to)
+						.temp %<>% data.table::as.data.table() |> data.table::setnames(c("from", "to"));
+						.temp[!purrr::pmap_lgl(.temp, ~list(c(.x, .y)) %in% exclude.mix)] |> data.table::setkey(from, to)
 					}
 
 					private$.params$config %<>% {
-						setattr(., "src.mix", as.character(rlang::enexpr(src.mix))) |>
-						setattr("exclude.mix", sapply(exclude.mix, function(i){
+						data.table::setattr(., "src.mix", as.character(rlang::enexpr(src.mix))) |>
+						data.table::setattr("exclude.mix", sapply(exclude.mix, function(i){
 							paste0(if (length(i) == 1){ c(i, i) } else if(length(i) > 2) { i[1:2] } else { i }, collapse = ", ")
 						})) %>%
-						setattr("jk", {
+						data.table::setattr("jk", {
 							purrr::map(., ~.x$jk.vec |> rlang::eval_tidy()) |>
 								magrittr::freduce(list(unlist, unique, sort, purrr::set_names))
 							})
@@ -163,18 +163,23 @@ event.vectors <- { R6::R6Class(
 				, graph.only = FALSE, chatty = FALSE){
 			  # :: `make.event_key` is a function used to create sequential unique identifiers
 				# 	for events sources and time-markers ----
-			  make.event_key <- \(x, y){
-					index <- rep.int(NA, length(root));
+			  make.event_key <-  function(...){
+					from <- paste(...elt(1), ...elt(2), sep = "_")
+					to <- paste(...elt(3), ...elt(4), sep = "_")
 
-					# Populate 'index' based on unique values of 'root'
-					purrr::walk(unique(x), \(i){
-						# out.x <- root[which(root %in% i)];
-						.this_idx <- which(x %in% i);
-						index[.this_idx] <<- data.table::frank(y[.this_idx], ties.method = "dense");
-					});
+					from_to <- unique(sort(c(from, to))) |>
+						(\(x) rlang::set_names(data.table::frank(x, ties.method="dense"), x))()
 
-					index
-				};
+					event_index <- \(x){
+							book.of.utilities::count.cycles(!duplicated(x), reset = FALSE) %>%
+							stringi::stri_pad_left(width = as.integer(log10(max(., na.rm = TRUE))) + 1, pad = "0")
+						}
+
+					list(
+						paste(...elt(1), from_to[from] |> event_index(), sep = ":")
+						, paste(...elt(3), from_to[to] |> event_index(), sep = ":")
+						)
+				}
 
 			  furrr_opts$globals <- furrr_opts$globals |>
 			  	c("graph.control", "self", "cross.time", "time.control", "units") |>
@@ -191,7 +196,7 @@ event.vectors <- { R6::R6Class(
 
 			  .tmp_space <- purrr::imap(self$config, \(x, y){
 						out <- x %$% {
-							data.table(
+							data.table::data.table(
 								jk = rlang::eval_tidy(jk)
 								, time_start_idx = rlang::eval_tidy(time_start_idx)
 								, time_end_idx = rlang::eval_tidy(time_end_idx)
@@ -199,9 +204,9 @@ event.vectors <- { R6::R6Class(
 						}
 						out[, src := y]
 					}) |>
-					rbindlist() |>
-	        setkey(jk, time_start_idx, time_end_idx) |>
-					setorder(jk, time_start_idx, time_end_idx) %>% {
+					data.table::rbindlist() |>
+	        data.table::setkey(jk, time_start_idx, time_end_idx) |>
+					data.table::setorder(jk, time_start_idx, time_end_idx) %>% {
 						.[, f_src_exists := src %in% .src_mix[, from], by = jk][
 							, t_src_exists := (src %in% .src_mix[, to]) & f_src_exists, by = jk][
 							(f_src_exists & t_src_exists), !c("f_src_exists", "t_src_exists")
@@ -214,11 +219,10 @@ event.vectors <- { R6::R6Class(
 				edge_filter <- rlang::enexprs(..., .named = FALSE, .ignore_empty = "all");
 
 				if (!graph.only){
-				  if (chatty){ message("Creating `self$space` (part 1) ...") }
+				  if (chatty){ message("Creating `self$space`...") }
 
-					# Step 1: Splitting by 'jk'
 					self$space <- {
-						as.data.table(merge(
+						data.table::as.data.table(merge(
 							.tmp_space[(.tmp_space$src %in% .src_mix$from)] |>
 									purrr::compact() |>
 									purrr::set_names(c("jk", "f_start_idx", "f_end_idx", "f_src"))
@@ -226,64 +230,49 @@ event.vectors <- { R6::R6Class(
 									purrr::compact() |>
 									purrr::set_names(c("jk", "t_start_idx", "t_end_idx", "t_src"))
 							, by = "jk"
-						))[(t_start_idx - f_start_idx) >= 0] |>
-				  	split(by = c("jk"));
+						))[
+						(t_start_idx - f_start_idx) >= 0
+						, cbind(.SD, cross.time(s0 = f_start_idx, s1 = t_start_idx
+																		, e0 = f_end_idx, e1 = t_end_idx
+																		, control = time.control, unit = unit))
+						]
 					}
 
-					# Step 2: Calling `cross.time()`
-				  if (chatty){ message("Creating `self$space` (part 2) ...") }
+				  if (chatty){ message("Finalizing `self$space`...") }
 
-					furrr_opts <- { furrr::furrr_options(
+					edge_filter <- edge_filter |> as.character() |> paste(collapse = " & ") |>
+						rlang::parse_expr() |> rlang::eval_tidy(data = self$space);
+
+					self$space <- { self$space[
+							# Enforce row filter rules before proceeding: note that this pre-derives a Boolean vector in order
+							#		to make debugging easier and to ensure the integrity of the operation.
+							(edge_filter)
+							][
+						  # Impute sequencing on event sources: this has a direct impact when creating distinct vertex names during subsequent graph creation
+						  , c("f_src", "t_src") := make.event_key(f_src, from.coord, t_src, to.coord)
+						  , by = jk
+						  ][, src.pair := sprintf("%s -> %s", f_src, t_src)
+						  ][, data.table::setnames(.SD, c("f_src", "t_src"), c("from.src", "to.src"))
+						  ][, epsilon.desc := factor(epsilon.desc, levels = c("NA", "Full Concurrency", "Concurrency", "Continuity", "Disjoint"), ordered = TRUE)
+						  ][
+						  # Remove loops (may result in removing all records)
+					  	(from.src != to.src)
+					  	, .(jk, from.src, to.src, beta, mGap, mSt, mEd, epsilon, epsilon.desc, from.len, to.len, from.coord, to.coord, src.pair, x_filter)
+						  ]
+					}
+				}
+
+				# :: Create `self$evt_graphs` from `self$space` ----
+				message(sprintf("[%s] ... creating event graphs", Sys.time()));
+				furrr_opts <- { furrr::furrr_options(
 							scheduling	= Inf
 							, seed			= TRUE
 							, packages	= c("magrittr", "data.table", "rlang")
 							, globals 	= c("time.control", "units", "cross.time", "edge_filter")
 							)}
 
-					self$space <- furrr::future_map(self$space, \(X){
-			  		# Call `cross.time()`
-						time.control; unit;
-
-						xtime <- X[, cross.time(
-													s0 = f_start_idx, s1 = t_start_idx
-													, e0 = f_end_idx, e1 = t_end_idx
-													, control = time.control, unit = unit # <- Supplied by the function arguments
-													)
-											, by = .(jk, f_src, t_src) # <- Corresponds to the configured 'map.fields'
-											]
-
-						# Check for instances where `xtime` is empty due to qualification on the output of `cross.time()`
-						if (rlang::is_empty(xtime) || rlang::is_empty(xtime[!is.na(epsilon)])){
-							NULL # <- NULL is filtered out in the list of results, so passing NULL is safest here
-						} else {
-							# Enforce row filter rules before proceeding: note that this pre-derives a Boolean vector in order
-							#		to make debugging easier and to ensure the integrity of the operation.
-							edge_filter <- edge_filter |>
-								as.character() |>
-								paste(collapse = " & ") |>
-								rlang::parse_expr() |>
-								rlang::eval_tidy(data = xtime)
-
-							xtime[(edge_filter)][
-						  # Impute sequencing on event sources: this has a direct impact when creating distinct vertex names during subsequent graph creation
-						  , c("f_src", "t_src") := list(list(f_src, from.coord), list(t_src, to.coord)) |>
-					  														map(\(k) paste(k[[1]], make.event_key(k[[1]], k[[2]]), sep = ":"))
-						  ][, src.pair := sprintf("%s -> %s", f_src, t_src)
-						  ][, setnames(.SD, c("f_src", "t_src"), c("from.src", "to.src"))
-						  ][, epsilon.desc := factor(
-										epsilon.desc
-										, levels = c("NA", "Full Concurrency", "Concurrency", "Continuity", "Disjoint")
-										, ordered = TRUE
-										)
-						  ][(from.src != to.src)] # Remove loops (may result in removing all records)
-						}
-					}, .options = furrr_opts) |> purrr::compact()
-				}
-
-				# :: Create `self$evt_graphs` from `self$space` ----
-				message(sprintf("[%s] ... creating event graphs", Sys.time()));
-
-			  self$evt_graphs <- self$space %$% mget(ls()) |>
+			  self$evt_graphs <- self$space[(x_filter)] |>
+			  	split(by = "jk") |>
 					furrr::future_map(\(x){
 						graph.control;
 
@@ -297,10 +286,7 @@ event.vectors <- { R6::R6Class(
 					}, .options = furrr_opts) |>
 					purrr::compact();
 
-				self$space <- self$space %$% mget(ls()) |> reduce(rbind);
-			  self$space[(x_filter), !"x_filter"]
-
-				# :: Return ----
+			  # :: Return ----
 				message(sprintf("[%s] The event vectors are ready for analysis", Sys.time()));
 				invisible(self);
 			}

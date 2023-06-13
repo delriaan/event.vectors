@@ -127,7 +127,7 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 		if (rlang::is_empty(i)){ NULL } else { sapply(i, .eval_epsilon) }
 	})(epsilon);
 
-	mget(out.names) |> as.data.table()
+	mget(out.names) |> data.table::as.data.table()
 }
 
 # debug(cross.time)
