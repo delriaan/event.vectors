@@ -74,46 +74,47 @@ tic.clear(); tic.clearlog();
 # ~ Validation #1 :: event.vectors ====
 plan(sequential);
 plan(tweak(multisession, workers = 3));
-	tic("EVSpace Validation Object");
-	test.evs <- { event.vectors$
-		new()$configure(
-			src.defs = c(ls(pattern = "^test.+[0-9]$") |>
-									 	purrr::modify_at(3, ~paste0(.x, "[(join_key > 3)]")) |>
-									 	purrr::modify_at(1, ~paste0(.x, "[lubridate::month(date.start)==1]")) |>
-									 	rlang::parse_exprs()
-									 , ("BLAH$" %s+% ls(BLAH, pattern = "^test")[1:3]) |>
-									 	purrr::modify_at(3, ~paste0(.x, "[(join_key == 1)]")) |>
-									 	purrr::modify_at(2, ~paste0(.x, "[lubridate::month(date.start)==8]")) |>
-									 	rlang::parse_exprs()
-									 )
-			, contexts = rlang::parse_exprs("Event_" %s+% LETTERS[1:6])
-			, map.fields = replicate(n = 6, c("join_key", "date.start", "date.end"), simplify = FALSE)
-			, chatty = TRUE
-			);
-	}
-
-	test.evs$
-		make.evs_universe(
-		, mSt <= quantile(mSt, 0.75)
-		, abs(mGap) >= 5
-		, abs(mGap) <= 120
-		# , time.control = list(0, 100)
-		, graph.control = {
-				rlang::exprs(
-					igraph::E(g)$title	<- igraph::ends(g, igraph::E(g)) %>% apply(1, paste, collapse = " -> ")
-					, igraph::V(g)$color <- igraph::V(g)$name %>% stringi::stri_split_fixed(":", simplify = TRUE) %>% .[, 1L] %>% {
-							x = .;
-							y = purrr::set_names(unique(x), purrr::map_chr(unique(x), ~rgb(runif(1), runif(1), runif(1))))
-							purrr::map_chr(x, ~names(y)[which(y == .x)])
-						}
-					, igraph::V(g)$src <- igraph::V(g)$name %>% stringi::stri_replace_first_regex("[:][0-9]+", "")
-					)
-			}
-		, unit = "days"
+tic("EVSpace Validation Object");
+test.evs <- { event.vectors$
+	new()$configure(
+		src.defs = c(ls(pattern = "^test.+[0-9]$") |>
+								 	purrr::modify_at(3, ~paste0(.x, "[(join_key > 3)]")) |>
+								 	purrr::modify_at(1, ~paste0(.x, "[lubridate::month(date.start)==1]")) |>
+								 	rlang::parse_exprs()
+								 , ("BLAH$" %s+% ls(BLAH, pattern = "^test")[1:3]) |>
+								 	purrr::modify_at(3, ~paste0(.x, "[(join_key == 1)]")) |>
+								 	purrr::modify_at(2, ~paste0(.x, "[lubridate::month(date.start)==8]")) |>
+								 	rlang::parse_exprs()
+								 )
+		, contexts = rlang::parse_exprs("Event_" %s+% LETTERS[1:6])
+		, map.fields = replicate(n = 6, c("join_key", "date.start", "date.end"), simplify = FALSE)
 		, chatty = TRUE
-		)
+		);
+}
 
-	toc(log = TRUE);
+rstudioapi::navigateToFile("SANDBOX.R")
+
+test.evs$make.evs_universe(
+	mSt <= quantile(mSt, 0.75)
+	, abs(mGap) >= 5
+	, abs(mGap) <= 120
+	# , time.control = list(0, 100)
+	, graph.control = {
+			rlang::exprs(
+				igraph::E(g)$title	<- igraph::ends(g, igraph::E(g)) %>% apply(1, paste, collapse = " -> ")
+				, igraph::V(g)$color <- igraph::V(g)$name %>% stringi::stri_split_fixed(":", simplify = TRUE) %>% .[, 1L] %>% {
+						x = .;
+						y = purrr::set_names(unique(x), purrr::map_chr(unique(x), ~rgb(runif(1), runif(1), runif(1))))
+						purrr::map_chr(x, ~names(y)[which(y == .x)])
+					}
+				, igraph::V(g)$src <- igraph::V(g)$name %>% stringi::stri_replace_first_regex("[:][0-9]+", "")
+				)
+		}
+	, unit = "days"
+	, chatty = TRUE
+	)
+
+toc(log = TRUE);
 
 test.evs$space |> View()
 test.evs$space[(

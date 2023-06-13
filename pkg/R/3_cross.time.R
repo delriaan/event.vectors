@@ -63,7 +63,6 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 									 , "epsilon", "epsilon.desc"
 									 , "from.len", "to.len"
 									 , "from.coord", "to.coord"
-									 , "from_timeframe", "to_timeframe"
 									 , "x_filter")}
 
 	replicate(length(out.names), NULL, simplify = FALSE) |>
@@ -94,10 +93,8 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 
 	from.len	<- lubridate::as.difftime(e0 - s0, units = unit_desc) / unit;
 	to.len		<- lubridate::as.difftime(e1 - s1, units = unit_desc) / unit;
-	from.coord			<- purrr::map2_chr(as.character(s0), as.character(e0), paste, sep = ":");
-	to.coord  			<- purrr::map2_chr(as.character(s1), as.character(e1), paste, sep = ":");
-	from_timeframe	<- purrr::map2(s0, e0, \(x, y) if (rlang::is_empty(unit)){ list(x, y) } else { lubridate::interval(x, y) });
-	to_timeframe  	<- purrr::map2(s1, e1, \(x, y) if (rlang::is_empty(unit)){ list(x, y) } else { lubridate::interval(x, y) });
+	from.coord			<- paste(as.character(s0), as.character(e0), sep = ":");
+	to.coord  			<- paste(as.character(s1), as.character(e1), sep = ":");
 
 	epsilon 	<- {
 			# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
