@@ -25,7 +25,7 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 #' @export
 
 	force(data);
-	data <- as.data.table(data);
+	data <- data.table::as.data.table(data);
 
 	# :: Helper function to ensure length-2 ----
 	check_len <- purrr::as_mapper(~if (rlang::has_length(.x, 1)){ c(.x, .x) } else { .x });
@@ -77,7 +77,7 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 	# :: Result data 1 ----
 	outData <- c(map_fields, time_fields) |>
 		purrr::map(rlang::eval_tidy, data = data) |>
-		as.data.table(names(c(map_fields, time_fields[1])));
+		data.table::as.data.table(names(c(map_fields, time_fields[1])));
 
 	outData[
 	, # +{stop_idx, rec_idx, last_rec_idx} | Upper time index; record index; last record index flag
@@ -96,13 +96,15 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 			)
 	, by = c(names(map_fields))
 	];
+
 	#
 	# :: Result data 2 ----
 	map_fields <- names(map_fields);
+
 	outData[
 		, seg := 1:length(rec_idx), by = c(map_fields)
 		][ # Gap precursor: column-wise sequential differences within start and stop indices using `diff()`
-		, c("delta_start", "delta_stop") := purrr::map(list(start_idx, stop_idx), ~diff(c(first(.x), .x)))
+		, c("delta_start", "delta_stop") := purrr::map(list(start_idx, stop_idx), ~diff(c(data.table::first(.x), .x)))
 		, by = c(map_fields)
 		][
 		# Gap: From one record to the next in a partitioned, ordered set: { stop[n] - stop[n-1] } - [stop - start]
@@ -122,15 +124,14 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 		# Derive values for  ISLAND, episode_start_idx, and episode_end_idx by grouping: G ~ map_fields + island_idx
 		, c(names(optional_output[-4])) := list(
 				# ISLAND
-				max(as.numeric(stop_idx), na.rm = TRUE) - min(as.numeric(start_idx), na.rm = TRUE)
+				max(stop_idx, na.rm = TRUE) - min(start_idx, na.rm = TRUE)
 				# episode_start_idx
-				, min(as.numeric(start_idx), na.rm = TRUE)
+				, min(start_idx, na.rm = TRUE)
 				# episode_end_idx
-				, max(as.numeric(stop_idx), na.rm = TRUE)
+				, max(stop_idx, na.rm = TRUE)
 				)
 		, by = eval(c(map_fields, "island_idx"))
 		][, partition := .GRP, by = c(map_fields)
 		][(ISLAND == 0), ISLAND := 1
 		][, .SD[, if (show.all) {c(1:(names(.SD) |> length())) } else { names(output_fields)  }, with = FALSE] |> unique()]
-	# mget(ls())
 }

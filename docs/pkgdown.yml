@@ -2,6 +2,8 @@ pandoc: 2.19.2
 pkgdown: 2.0.7
 pkgdown_sha: ~
 articles:
+  Continuity-Example: Continuity-Example.html
   Event-Space-and-Graph-Reduction: Event-Space-and-Graph-Reduction.html
-last_built: 2023-06-12T14:49Z
+  Event-Vectors-Examples: Event-Vectors-Examples.html
+last_built: 2023-06-13T23:15Z
 

@@ -1,4 +1,3 @@
-retrace.evs <- function(event_graph, evs){
 #' Retrace Events to Source
 #'
 #' \code{retrace.evs} uses the input graph and reference \code{event.vectors} object to return the source data rows corresponding to the event vertices.
@@ -9,6 +8,7 @@ retrace.evs <- function(event_graph, evs){
 #' @return A list of distinct rows that map to the source event data.  Event graph vertex names can be used to subset the output.
 #'
 #' @export
+retrace.evs <- function(event_graph, evs){
   .haystack <- igraph::edge.attributes(event_graph) %$%
                 mget(c("jk", "src.pair", "from.coord", "to.coord")) |>
                 purrr::modify_at(c("from.coord", "to.coord"), stringi::stri_split_regex, "([:])|( -> )", simplify = TRUE) |>
@@ -35,11 +35,11 @@ retrace.evs <- function(event_graph, evs){
 	    src <- ..2;
 
 	    # Determine which row from the source data maps to the arguments
-	    row_idx <- { lazy_refs %$%
-	      purrr::map2(
-	        .x = mget(c("jk", "time_start_idx", "time_end_idx"))
-	        , .y = list(..1, ..3, ..4)
-	        , ~which(rlang::eval_tidy(.x) == .y)
+	    row_idx <- {
+	    	purrr::map2(
+					lazy_refs %$% mget(c("jk", "time_start_idx", "time_end_idx"))
+	        , list(..1, ..3, ..4)
+	        , \(x, y) which(rlang::eval_tidy(x) == y)
 	        ) |>
 	      unlist() |>
 	      # Frequency Table

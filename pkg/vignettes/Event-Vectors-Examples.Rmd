@@ -1,13 +1,34 @@
-# dir(pattern = "^[1-9]{1}.+R$", recursive = TRUE) |> purrr::walk(source)
+---
+title: "Event Vectors Examples"
+output: rmarkdown::html_vignette
+vignette: >
+ %\\VignetteIndexEntry{Event Vectors Examples}
+ %\\VignetteIndexEngine{knitr::rmarkdown}
+ %\\VignetteEncoding{UTF-8}
+---
 
-# ~ Initialization ====
-# library(event.vectors);
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, warning=FALSE}
+library(event.vectors)
 library(magrittr);
 library(future);
 library(stringi, include.only = "%s+%")
 library(tictoc);
 library(purrr)
 
+plan(sequential);
+plan(tweak(multisession, workers = 3));
+```
+
+# Initialization
+
+```{r INITIALIZATION, echo=FALSE, warning=FALSE}
 make.test_data <- function(j = 5, n = 5, m = 5, o = 1:10, dest = globalenv(), .debug = FALSE){
 #' Make Test Data for Validation
 #'
@@ -67,11 +88,11 @@ make.test_data(j = 50, n = 3, m = 5, o = c(5, 20), dest = BLAH, .debug = !TRUE);
 set.seed(sample(100000, 1));
 make.test_data(j = 50, n = 3, m = 5, o = c(5, 20), dest = .GlobalEnv, .debug = !TRUE);
 tictoc::tic.clear(); tictoc::tic.clearlog();
+```
 
-plan(sequential);
-plan(tweak(multisession, workers = 3));
-#
-# ~ Validation #1 :: event.vectors ====
+# `event.vectors` Execution
+
+```{r EVENT_VECTORS, warning=FALSE}
 tictoc::tic("EVSpace Validation Object");
 test.evs <- { event.vectors$
 	new()$configure(
@@ -108,24 +129,13 @@ test.evs$make.evs_universe(
 	, unit = "days"
 	, chatty = TRUE
 	)
-
+plan(sequential);
 tictoc::toc(log = TRUE);
+```
 
-test.evs$space |> View()
+# Visualization Example
 
-test.evs$config |> attributes();
-test.evs$.__enclos_env__$private$q_table;
-test.evs$.__enclos_env__$private$.params$config
-test.evs$space[, .(jk, from.coord, to.coord, src.pair, mSt, mGap, mEd, epsilon = as.character(epsilon))] |>
-	summarytools::dfSummary() |>
-	summarytools::view(method = "browser");
-test.evs$space[(jk == 4)] %>% View("Space: jk == 4");
-igraph::vertex.attributes(test.evs$evt_graphs$`1`);
-test.evs$evt_graphs$`1` |> igraph::V()
-test.evs$evt_graphs$`1` |> igraph::E()
-test.evs$evt_graphs$`1` |> igraph::edge.attributes()
-
-# ~ Validation #2 :: visNetwork::visIgraph() ====
+```{r EVENT_VECTORS_VISUALIZATION, warning=FALSE}
 f2ab <- list(theta = 0.1, gravitationalConstant = -5000, centralGravity = 0.0,  avoidOverlap = 1, damping = 0.7);
 
 test.evs$evt_graphs$`1` %>% {
@@ -141,36 +151,12 @@ test.evs$evt_graphs$`1` %>% {
 					kableExtra::kable_styling()
 			})
 		g
-	} %>%
-	visNetwork::visIgraph(physics = TRUE, type = "full") %>%
-	visNetwork::visPhysics(solver = "forceAtlas2Based", timestep = 0.05) %>%
-	visNetwork::visOptions(width = "1600", height = "1024") %>%
-	visNetwork::visNodes(opacity = 0.5) %>%
-	htmltools::html_print(viewer = browseURL)
+	} |>
+	visNetwork::visIgraph(physics = TRUE, type = "full") |>
+	visNetwork::visPhysics(solver = "forceAtlas2Based", timestep = 0.05) |>
+	visNetwork::visOptions(width = "1600", height = "1024") |>
+	visNetwork::visNodes(opacity = 0.5) |>
+	htmlwidgets::saveWidget("event_viz.html")
+```
 
-# ~ Validation #3 :: continuity ----
-inspect <- data.table::copy(test_data.01)[, `:=`(Z_1 = sample(letters, .N, TRUE), Z_2 = sample(LETTERS[1:5], .N, TRUE))] |>
-		continuity(
-			map_fields = c(join_key, Z_1)
-			, time_fields = c(date.start, date.end)
-			, boundary_name = episode
-			, timeout = 10
-			, archipelago = TRUE
-			, show.all = TRUE
-			)
-
-View(inspect)
-#
-# ~ Cleanup ====
-plan(sequential);
-gc(full = TRUE)
-# rm(list = ls())
-
-# ~ pkgdown ----
-# usethis::use_pkgdown()
-# usethis::use_proprietary_license("Chionesu George")
-pkgdown::build_site(pkg = "pkg", examples = FALSE, override = list(destination = "../docs"))
-# pkgdown::build_article("Continuity-Example", pkg = "pkg")
-# pkgdown::build_article("Event-Vectors-Examples", pkg = "pkg")
-# pkgdown::build_article("Event-Space-and-Graph-Reduction", pkg = "pkg")
-
+Click [here](./event_viz.html) to view a visualized graph from the created object.
