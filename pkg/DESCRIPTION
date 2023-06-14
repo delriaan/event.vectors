@@ -25,3 +25,4 @@ Suggests:
 Roxygen: list(markdown = TRUE)
 License: file LICENSE
 VignetteBuilder: knitr
+URL: https://github.com/delriaan/event.vectors/, https://delriaan.github.io/event.vectors/
