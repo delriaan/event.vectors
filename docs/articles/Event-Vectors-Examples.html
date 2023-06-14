@@ -61,7 +61,14 @@
   </ul>
 </li>
       </ul>
-<ul class="nav navbar-nav navbar-right"></ul>
+<ul class="nav navbar-nav navbar-right">
+<li>
+  <a href="https://github.com/delriaan/event.vectors/" class="external-link">
+    <span class="fab fa-github fa-lg"></span>
+     
+  </a>
+</li>
+      </ul>
 </div>
 <!--/.nav-collapse -->
   </div>
@@ -77,7 +84,7 @@
       <h1 data-toc-skip>Event Vectors Examples</h1>
             
       
-      
+      <small class="dont-index">Source: <a href="https://github.com/delriaan/event.vectors/blob/HEAD/../vignettes/Event-Vectors-Examples.Rmd" class="external-link"><code>../vignettes/Event-Vectors-Examples.Rmd</code></a></small>
       <div class="hidden name"><code>Event-Vectors-Examples.Rmd</code></div>
 
     </div>
@@ -85,7 +92,7 @@
     
     
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va">event.vectors</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://github.com/delriaan/event.vectors/" class="external-link">event.vectors</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://magrittr.tidyverse.org" class="external-link">magrittr</a></span><span class="op">)</span>;</span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://future.futureverse.org" class="external-link">future</a></span><span class="op">)</span>;</span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://stringi.gagolewski.com/" class="external-link">stringi</a></span>, include.only <span class="op">=</span> <span class="st">"%s+%"</span><span class="op">)</span></span>
@@ -102,7 +109,7 @@
 <div class="section level2">
 <h2 id="initialization">Initialization<a class="anchor" aria-label="anchor" href="#initialization"></a>
 </h2>
-<pre><code><span><span class="co">#&gt; &lt;environment: 0x000001b82da0e750&gt;</span></span>
+<pre><code><span><span class="co">#&gt; &lt;environment: 0x000001d3a0c79738&gt;</span></span>
 <span><span class="co">#&gt; &lt;environment: R_GlobalEnv&gt;</span></span></code></pre>
 </div>
 <div class="section level2">
@@ -127,7 +134,7 @@
 <span>        , chatty <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span>        <span class="op">)</span>;</span>
 <span><span class="op">}</span></span>
-<span><span class="co">#&gt; [2023-06-13 19:16:16.99203] Initializing the event vector class</span></span>
+<span><span class="co">#&gt; [2023-06-13 22:50:34.459734] Initializing the event vector class</span></span>
 <span><span class="co">#&gt; Validating source `test_data.01[lubridate::month(date.start) == 1]`</span></span>
 <span><span class="co">#&gt; test_data.01[lubridate::month(date.start) == 1] exists: TRUE</span></span>
 <span><span class="co">#&gt; - $join_key exists: TRUE</span></span>
@@ -186,11 +193,11 @@
 <span><span class="co">#&gt; Creating `.tmp_space` ...</span></span>
 <span><span class="co">#&gt; Creating `self$space`...</span></span>
 <span><span class="co">#&gt; Finalizing `self$space`...</span></span>
-<span><span class="co">#&gt; [2023-06-13 19:16:24.074205] ... creating event graphs</span></span>
-<span><span class="co">#&gt; [2023-06-13 19:16:36.538602] The event vectors are ready for analysis</span></span>
+<span><span class="co">#&gt; [2023-06-13 22:50:41.493075] ... creating event graphs</span></span>
+<span><span class="co">#&gt; [2023-06-13 22:50:50.978929] The event vectors are ready for analysis</span></span>
 <span><span class="fu"><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></span><span class="op">(</span><span class="va">sequential</span><span class="op">)</span>;</span>
 <span><span class="fu">tictoc</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tictoc/man/tic.html" class="external-link">toc</a></span><span class="op">(</span>log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>;</span>
-<span><span class="co">#&gt; EVSpace Validation Object: 19.54 sec elapsed</span></span></code></pre></div>
+<span><span class="co">#&gt; EVSpace Validation Object: 16.53 sec elapsed</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="visualization-example">Visualization Example<a class="anchor" aria-label="anchor" href="#visualization-example"></a>
