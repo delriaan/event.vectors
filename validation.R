@@ -162,8 +162,8 @@ prescribed_timeout <- continuity(
 			, show.all = TRUE
 			);
 
-str(inspect);
-View(inspect);
+str(prescribed_timeout);
+View(prescribed_timeout);
 
 # debug(signal_processor)
 
@@ -177,7 +177,7 @@ tune_timeout <- break_signal(
 
 tune_timeout@best_k
 
-inspect2 <- continuity(
+tuned_timeout <- continuity(
 	data = obs_data
 	, map_fields = c(join_key, Z_1)
 	, time_fields = c(date.start, date.end)
@@ -187,8 +187,8 @@ inspect2 <- continuity(
 	);
 
 
-View(inspect2);
-str(inspect2);
+View(tuned_timeout);
+str(tuned_timeout);
 
 #
 # ~ Cleanup ====
@@ -203,4 +203,7 @@ pkgdown::build_site(pkg = "pkg", examples = FALSE, override = list(destination =
 # pkgdown::build_article("Continuity-Example", pkg = "pkg")
 # pkgdown::build_article("Event-Vectors-Examples", pkg = "pkg")
 # pkgdown::build_article("Event-Space-and-Graph-Reduction", pkg = "pkg")
+pkgdown::build_article("Break-Signal", pkg = "pkg")
+
+
 

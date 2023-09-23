@@ -2,9 +2,9 @@
 title: "Continuity Example"
 output: rmarkdown::html_vignette
 vignette: >
- %\\VignetteIndexEntry{Continuity Example}
- %\\VignetteIndexEngine{knitr::rmarkdown}
- %\\VignetteEncoding{UTF-8}
+ %\VignetteIndexEntry{Continuity Example}
+ %\VignetteIndexEngine{knitr::rmarkdown}
+ %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}

@@ -10,7 +10,7 @@ continuity(
   time_fields,
   timeout = 0,
   boundary_name = "window",
-  archipelago = FALSE,
+  archipelago = TRUE,
   show.all = FALSE
 )
 }

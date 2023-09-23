@@ -2,9 +2,9 @@
 title: "Event Vectors Examples"
 output: rmarkdown::html_vignette
 vignette: >
- %\\VignetteIndexEntry{Event Vectors Examples}
- %\\VignetteIndexEngine{knitr::rmarkdown}
- %\\VignetteEncoding{UTF-8}
+ %\VignetteIndexEntry{Event Vectors Examples}
+ %\VignetteIndexEngine{knitr::rmarkdown}
+ %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}

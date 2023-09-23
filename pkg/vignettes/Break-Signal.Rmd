@@ -1,0 +1,16 @@
+---
+title: Break Signal
+output: rmarkdown::html_vignette
+vignette: >
+ %\VignetteIndexEntry{Break Signal}
+ %\VignetteIndexEngine{knitr::rmarkdown}
+ %\VignetteEncoding{UTF-8}
+---
+
+```{r, include=FALSE, echo=FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+	)
+```
+

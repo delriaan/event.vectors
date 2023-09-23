@@ -31,6 +31,9 @@
     <loc>/LICENSE-text.html</loc>
   </url>
   <url>
+    <loc>/reference/break_signal.html</loc>
+  </url>
+  <url>
     <loc>/reference/continuity.html</loc>
   </url>
   <url>
@@ -50,5 +53,8 @@
   </url>
   <url>
     <loc>/reference/retrace.evs.html</loc>
+  </url>
+  <url>
+    <loc>/reference/signal_processor.html</loc>
   </url>
 </urlset>

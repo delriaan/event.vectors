@@ -2,9 +2,9 @@
 title: "Event Space and Graph Reduction"
 output: rmarkdown::html_vignette
 vignette: >
- %\\VignetteIndexEntry{Event Space and Graph Reduction}
- %\\VignetteIndexEngine{knitr::rmarkdown}
- %\\VignetteEncoding{UTF-8}
+ %\VignetteIndexEntry{Event Space and Graph Reduction}
+ %\VignetteIndexEngine{knitr::rmarkdown}
+ %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}

@@ -286,10 +286,10 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 		data.table::setnames(c("dy", "p")) |>
 		purrr::modify_at("dy", as.numeric);
 
-	response.pmf[, info := -log(p)];
+	spsUtil::quiet(response.pmf[, info := -log(p)]);
 
 	# Merge `response.pmf` into `grouped_response`
-	grouped_response[response.pmf, on = "dy", `:=`(p = p, info = info), by = .EACHI];
+	spsUtil::quiet(grouped_response[response.pmf, on = "dy", `:=`(p = i.p, info = i.info), by = .EACHI]);
 
 	# :: Parallelism topography (depends on user argument `cl_size`) ====
 	.logi_vec <- (cl_size > 1L) & (data.table::uniqueN(grouped_response$g) > 1);

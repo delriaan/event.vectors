@@ -1,4 +1,4 @@
-continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name = "window", archipelago = FALSE, show.all = FALSE){
+continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name = "window", archipelago = TRUE, show.all = FALSE){
 #' Continuity Creator
 #'
 #'  \code{continuity} is conceptually based on the \href{https://www.red-gate.com/simple-talk/sql/t-sql-programming/the-sql-of-gaps-and-islands-in-sequences/}{'islands & gaps'} concept.
@@ -18,6 +18,7 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 #' @param show.all (logical | FALSE): Should the output include all of the columns of the output?
 #'
 #' @importFrom book.of.utilities %tf%
+#'
 #' @return A data.table with columns <mapFields>, ..., timeOut, ISLAND, island_idx, where '...' is empty if `show.all` is FALSE
 #'
 #' @family Data Generation
@@ -83,8 +84,12 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 	, # +{stop_idx, rec_idx, last_rec_idx} | Upper time index; record index; last record index flag
 		`:=`(
 			stop_idx = {
-				if (identical(time_fields[[1]], time_fields[[2]])){
+				if (identical(
+							rlang::eval_tidy(time_fields[[1]], data = data)
+							, rlang::eval_tidy(time_fields[[2]], data = data)
+							)){
 		    	.logi_vec = diff(c(0, start_idx)) |> as.integer() < eval(timeout);
+
 		    	.choices = c(shift(start_idx, fill = last(start_idx) + eval(timeout), type = "lead")) %tf%
 		    							c(start_idx + eval(timeout))
 		    	# output value test
