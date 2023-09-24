@@ -1,4 +1,4 @@
-# dir(pattern = "^[1-9]{1}.+R$", recursive = TRUE) |> purrr::walk(source)
+# dir(pattern = "^[a-z]{1}[_].+R$", recursive = TRUE) |> purrr::walk(source)
 
 # ~ Initialization ====
 # library(event.vectors);
@@ -149,17 +149,46 @@ test.evs$evt_graphs$`1` %>% {
 	htmltools::html_print(viewer = browseURL)
 
 # ~ Validation #3 :: continuity ----
-inspect <- data.table::copy(test_data.01)[, `:=`(Z_1 = sample(letters, .N, TRUE), Z_2 = sample(LETTERS[1:5], .N, TRUE))] |>
-		continuity(
-			map_fields = c(join_key, Z_1)
+obs_data <- data.table::rbindlist(list(test_data.01, test_data.02, test_data.03), use.names = FALSE)[, `:=`(Z_1 = sample(letters, .N, TRUE), Z_2 = sample(LETTERS[1:5], .N, TRUE))] |>
+	data.table::setkey(join_key, src, date.start);
+
+# >>> PRESCRIPTED TIMEOUT
+prescribed_timeout <- continuity(
+			data = obs_data
+			, map_fields = c(join_key, src)
 			, time_fields = c(date.start, date.end)
 			, boundary_name = episode
 			, timeout = 10
-			, archipelago = TRUE
 			, show.all = TRUE
-			)
+			);
 
-View(inspect)
+str(prescribed_timeout);
+View(prescribed_timeout);
+
+# debug(signal_processor)
+
+# >>> TUNED TIMEOUT
+tune_timeout <- break_signal(
+	y = obs_data$date.start
+	, grp = obs_data[, paste(join_key, src, sep = ":")]
+	, obs_ctrl = list(min_size = 5L, max_k = 120)
+	) |>
+	signal_processor(cl_size = 8, .debug = !TRUE);
+
+tune_timeout@best_k
+
+tuned_timeout <- continuity(
+	data = obs_data
+	, map_fields = c(join_key, Z_1)
+	, time_fields = c(date.start, date.end)
+	, boundary_name = episode
+	, timeout = tune_timeout@best_k
+	, show.all = TRUE
+	);
+
+View(tuned_timeout);
+str(tuned_timeout);
+
 #
 # ~ Cleanup ====
 plan(sequential);
@@ -169,8 +198,14 @@ gc(full = TRUE)
 # ~ pkgdown ----
 # usethis::use_pkgdown()
 # usethis::use_proprietary_license("Chionesu George")
+Sys.setenv(CSS = dir(paste0(getwd(), "/../resources"), pattern = "css$", full.names = TRUE))
+Sys.setenv(L2HTML = dir(paste0(getwd(), "/../resources"), pattern = "list2html", full.names = TRUE, recursive = TRUE))
+
 pkgdown::build_site(pkg = "pkg", examples = FALSE, override = list(destination = "../docs"))
 # pkgdown::build_article("Continuity-Example", pkg = "pkg")
 # pkgdown::build_article("Event-Vectors-Examples", pkg = "pkg")
 # pkgdown::build_article("Event-Space-and-Graph-Reduction", pkg = "pkg")
+# pkgdown::build_article("Break-Signal", pkg = "pkg")
+
+
 

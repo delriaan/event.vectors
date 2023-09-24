@@ -10,7 +10,7 @@ continuity(
   time_fields,
   timeout = 0,
   boundary_name = "window",
-  archipelago = FALSE,
+  archipelago = TRUE,
   show.all = FALSE
 )
 }
@@ -33,6 +33,6 @@ continuity(
 A data.table with columns \if{html}{\out{<mapFields>}}, ..., timeOut, ISLAND, island_idx, where '...' is empty if \code{show.all} is FALSE
 }
 \description{
-\code{continuity} is conceptually based on the \href{https://www.red-gate.com/simple-talk/sql/t-sql-programming/the-sql-of-gaps-and-islands-in-sequences/}{'islands & gaps'} concept.
+\code{continuity} is based on the \href{https://www.red-gate.com/simple-talk/sql/t-sql-programming/the-sql-of-gaps-and-islands-in-sequences/}{'islands & gaps'} concept.  Use case for \code{continuity} is to roll up a sequence consisting of smaller duration into a larger epoch governed by some meaningful separation between \eqn{n_\text{lower}} and \eqn{{n - 1}_\text{upper}} segments.
 }
 \concept{Data Generation}

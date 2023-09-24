@@ -1,0 +1,564 @@
+---
+title: Break Signal
+	
+self-contained: true
+self-contained-math: true
+output-file: Break-Signal.html
+
+number-sections: true
+code-fold: true
+code-link: true
+code-overflow: wrap
+
+format: 
+ html:
+  page-layout: article
+  grid: 
+   content-mode: full
+   body-width: "960px"
+   margin-width: "640px"
+   gutter-width: "5px"
+
+include-in-header: 
+ text: "<script type='text/javascript' src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.min.js?config=TeX-AMS-MML_CHTML'></script>"
+---
+
+```{r}
+#| label: SETUP
+#| code-summary: Setup
+#| cache: false
+#| echo: false
+#| warning: false
+
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+.req_libs <- list(
+    github = list(libs = c("book.of.workflow", "book.of.utilities", "architect"))
+    , cran = list(libs = c("data.table", "purrr", "magrittr", "future", "S7", "htmltools", "spsUtil", "parallelly", "parallel", "plotly", "entropy"), url = "CRAN")
+    );
+  
+.req_libs$github$url <- sapply(.req_libs$github$libs, \(i) sprintf("https://github.com/delriaan/%s", i));
+
+# Verify CRAN libraries
+missing_libs <- .req_libs$cran$libs |> 
+  (\(x) x[!x %in% rownames(installed.packages())])();
+
+if (!rlang::is_empty(missing_libs)){
+    cat(sprintf("Please install package '%s' from CRAN", missing_libs) , sep = "\n");
+    stop();
+  }
+
+# Verify GitHub libraries
+missing_libs <- .req_libs$github$libs |> 
+  rlang::set_names(.req_libs$github$url) |>
+  (\(x) x[!x %in% rownames(installed.packages())])();
+
+if (!rlang::is_empty(missing_libs)){
+    cat(sprintf("Please install package '%s' from GitHub <%s>", missing_libs, names(missing_libs))
+        , sep = "\n");
+    stop();
+  }
+
+spsUtil::quiet(book.of.workflow::load_unloaded(!!!.req_libs$github$libs, !!!.req_libs$cran$libs));
+
+# Load objects
+knitr::opts_knit$set(root.dir = "../../../resources");
+knitr::opts_knit$get("root.dir") |> paste0("/R/list2html.R") |> source();
+
+plotly_schema <- plotly::schema(jsonedit = FALSE);
+plotly_layout <- function(p, ...){
+  default_args <- list(
+    p = p
+    , plot_bgcolor = "#DDDDDD"
+    , xaxis = list(showgrid = FALSE)
+    , yaxis = list(showgrid = FALSE)
+    );
+  
+  user_args <- rlang::list2(...);
+  
+  if (hasName(user_args, "xaxis")){ user_args$xaxis <- purrr::discard_at(user_args$xaxis, "showgrid"); }
+  if (hasName(user_args, "yaxis")){ user_args$yaxis <- purrr::discard_at(user_args$yaxis, "showgrid"); }
+  if (hasName(user_args, "plot_bgcolor")){ default_args <- purrr::discard_at(default_args, "plot_bgcolor"); }
+  
+  do.call(plotly::layout, args = purrr::list_merge(default_args, !!!user_args));
+}
+
+
+make.test_data <- function(j = 5, n = 5, m = 5, o = 1:10, dest = globalenv(), .debug = FALSE){
+#' Make Test Data for Validation
+#'
+#' \code{make.test_data} creates several \code{\link[data.table]{data.table}} objects to be used to validate the package functionality
+#' @param j (integer | 5L) The number of unique values for 'k' to generate
+#' @param n (integer | 5L) The number of sources to create (maximum of 10)
+#' @param m (integer | 5L) The maximum number of columns to generate for each created object (maximum of 15): each column represents an attribute not related to time
+#' @param o (integer[] | 1:10) A vector of integers sampled to create end dates from a randomly-generated start date
+#' @param dest (environment) The destination environment object
+#' @param .debug (logical | \code{FALSE}) When \code{TRUE}, additional debugging items are printed
+#'
+#' @return One to \code{n} \code{\link[data.table]{data.table}} objects prefixed as 'test_data'.
+#'
+	j = max(c(3, abs(as.integer(j))));
+	n = max(c(3, abs(as.integer(n)))); ifelse(n > 10, 10, n);
+	m = max(c(3, abs(as.integer(m)))); ifelse(m > 15, 15, m);
+	o = { ifelse(rlang::has_length(o, 1L)
+						 , yes = 1:10
+						 , no = ifelse(any(o <= 0)
+						 							, yes = abs(o)
+						 							, no = ifelse(rlang::has_length(o, 2L)
+						 														, yes = `:`(o[1], o[2]) |> sort()
+						 														, no =  o))
+						 )}
+
+	sequence(n) %>%
+	purrr::set_names(paste0("test_data.", stringi::stri_pad_left(., width = 2, pad = "0")))|>
+	purrr::map(~{
+		set.seed(sample(.Random.seed, 1));
+		.src = LETTERS[[.x]];
+
+		.out = purrr::map_dfr(c(1:j), ~list(join_key = rep.int(.x, sample(10:100, 1, TRUE)), src = .src)) %>% data.table::as.data.table();
+
+		.init_date = c(as.Date(sprintf(
+				"%s-%s-%s"
+				, rep.int(data.table::year(Sys.Date()), nrow(.out))
+				, sample(stringi::stri_pad_left(1:12, width = 2, pad = "0"), nrow(.out), TRUE)
+				, sample(stringi::stri_pad_left(1:28, width = 2, pad = "0"), nrow(.out), TRUE)
+				)));
+
+		.out[
+			, c("date.start", "date.end") := list(.init_date, .init_date + rpois(n = length(join_key), lambda = sample(o, length(join_key), TRUE)))
+			][
+			, paste0("X_", stringi::stri_pad_left(sample(30, m), width = 2, pad = "0")) := purrr::map(1:m, ~sample(runif(1E6), .N, TRUE))
+			][
+			runif(length(join_key)) > 0.65
+			] %>%
+			data.table::setkey(join_key, src, date.start, date.end) %>%
+			data.table::setcolorder(c("join_key", "date.start", "date.end", "src"))
+		}) %>%
+	list2env(envir = dest);
+}
+
+set.seed(sample(100000, 1));
+spsUtil::quiet(make.test_data(j = 50, n = 3, m = 5, o = c(5, 20)));
+
+obs_data <- data.table::rbindlist(list(test_data.01, test_data.02, test_data.03), use.names = FALSE)[
+  , `:=`(Z_1 = sample(letters, .N, TRUE), Z_2 = sample(LETTERS[1:5], .N, TRUE))
+  ] |>
+	data.table::setkey(join_key, src, date.start);
+
+tags$style(readLines(knitr::opts_knit$get("root.dir") |> paste0("/markdown.css")) |> paste(collapse = "\n"));
+```
+
+## Purpose
+
+Functions `break_signal()` and `signal_processor()` are designed to select the best break of a *"signal"*, observed differences in the values of an ordered sequence.  A *"break"* is simply a change in sign of the differences: the _"best"_ break is the one that indicates the process that generates of observations has changed state. Consider the following examples to help motivate the line of inquiry:
+
+**Example 1**: Cold & flu season
+
+> Cold and flu season does not have specific beginning and ending dates, however there are generalized times of the year and metrics that serve as heuristics. Autumn and Spring generally serve as the beginning and ending, respectively, of the season with the time in between typically accompanied by increased case counts and geo-spatial concentration which can be successively differenced by some fixed unit such as days or square miles.
+
+**Example 2**: Rush hour traffic
+
+> "Rush hour" does not have specific beginning and end times, but there are generally accepted times of day and characteristics that indicate when "rush hour" is in effect: increased traffic per unit distance coupled with decreased speed per unit time. However, these parameters (traffic and speed) change all the time, so there must be some other heuristic that differentiates "rush hour" from the normal ebb and flow of traffic.
+
+**Example 3**: Emergency Department (ED) utilization
+
+> An individual may demonstrate ED utilization characterized by periods of waxing and waning usage over the course of a year. A review of expenditures for this individual would provide dates of admission and discharge, but rolling those dates up into an "episode" could prove to be a challeng. Defining days between readmissions as the heuristic for identifying a new episode is challenging if the goal is to discover the most likely root cause, especially when generalizing across a population, each individual have their own distribution of ebbs and flows.
+
+Note that in each of the examples, terms such as "normal", "general", "typical" are used and provide some intuition of how to indicate a break in the signal.
+
+## Hypothesis
+
+The hypothesis is that given a set of _ordered_ values ($Y$) on an interval or ratio measurement scale, possibly being _partitioned_ by a set of other attributes, the sign changes in successive differences in values along $Y$ ($\Delta{Y}_i$) can be used to infer changes of state in the generative process by probabilistic analysis of changes in information ($I$) and associated values of $\Delta{Y}_i$ over those changes of state.
+
+**Assumptions**
+
+-  $Y$ is monotonic on an interval or ratio scale
+-  $Y$ may be optionally be mapped to $i$ partitions (naturally occurring or prescribed groups) by Cartesian combinations of covariates $X_n$ where they exist: $G_i:=\big\{X_1 \wedge X_2 \wedge\dots\wedge X_n\big\}_i$. _[Note: $Y_i$ will be used moving forward since, if there are no covariates or if all covariates are constant, $i$ is simply $1$.]_
+-  $\Delta{Y}_i$ is _strictly_ defined as $\big(Y_{\eta +1} - Y_\eta\big)_q \enspace \Big|_{q = 1}^i$ 
+-  $\Delta{Y}_i$ is not necessarily monotonic.
+-  The _cumulative summation_ of $\Delta{Y}_i$ is characterized by a _geometric_ probability mass function $p(1-p)^x$, with $x:=f(\Delta{Y}_i)$ and $p:=g(I_i, \Delta{Y}_i)$
+
+## Algorithm {#sec-algorithm}
+
+(Refer to the section @sec-building-blocks for equation and symbolic definitions.)
+
+### Part I {#sec-algorithm-part-1}
+
+For each $\big\{B_i; \Phi_i\big\}$:
+
+#### Step 1<br><sup>Pooled Info</sup>{#sec-algorithm-step-1}
+
+Calculate the total information from the cumulative proportionality of $B^\dagger_i$ (@eq-group-cycle-duration) conditioned by group (subscript $i$) and within-group break cycle ($B_i$, @eq-group-break-cycles):
+
+> $$
+> I_i := 
+> \sum_{q = 1}^z - \log_2 (\omega_q \enspace |\enspace B = B_i)
+> , \enspace 0 < \omega_z \le 1 
+> \longrightarrow \big<I_1 \enspace I_2\enspace\dots\enspace I_z\big>_i \\ 
+> \enspace \\
+> \omega_i := \bigg(
+> \frac
+> {\sum_{q = 1}^z \chi_{z \le q} }
+> {\sum_{q = 1}^z \chi_q} \Bigg|\enspace B = B_i \bigg)
+> \longrightarrow \big<\omega_1 \enspace \omega_2 \enspace \dots \enspace \omega_z \big>_i \\
+> \enspace \\ 
+> \chi_{i} :=
+> \beta^\dagger_z \enspace | \enspace (\Phi_q \le \delta_q,\enspace B_i) \Big|_{q = 1}^z 
+> \longrightarrow \big<\chi_1\enspace\chi_2\enspace\dots\enspace\chi_z\big>_i
+> $$ {#eq-group-information}
+
+(see @eq-group-differences for $\Phi_q$)
+
+#### Step 2<br><sup>Information PMF</sup>{#sec-algorithm-step-2}
+
+Separately calculate the geometric (negative binomial with $r = 1$) probability mass function ($g_i$) over $P(K_N)$ (@eq-global-break-frequency-proportion) by within-group cycle ($B_i$):
+
+> $$ 
+> g_i := p_i (1 - p_i)^{k_i}
+> \longrightarrow \big<g_1\enspace g_2\enspace \dots\enspace g_z\big>_i\\
+> \enspace \\ 
+> p_i:= n^{-1} \sum_{q = 1}^{n = ||\Phi_i||} \Big\{P(K_N) \enspace |\enspace K_N\cap \Phi_i \Big\}_{q\le n} 
+> \longrightarrow \big<p_1\enspace p_2\enspace \dots\enspace p_n\big>_i \\
+> \enspace \\ 
+> k_i:= \frac
+> {\sum_{q = 1}^j \phi_{j \le q} }
+> {\sum_{q = 1}^j \phi_q}, \enspace \phi_j \in \Phi_i
+> \longrightarrow \big<x_1\enspace x_2\enspace \dots\enspace x_z\big>_i, \enspace k_i \in B^\dagger_i
+> $$ {#eq-geometric-pmf}
+
+In the preceding equation, for each within-group cycle (@eq-group-break-cycles):
+
+-   $p_i$ is a cumulative proportionality of $P(K_N)$ conditioned by each $\Phi_i$
+
+-   $k_i$ is a cumulative summation of $\Phi_i$. Since the $g_i$ returns the probability of $k$ attempts before the first success, the cumulative summation of each $\Phi_i$ serves as a proxy for an "attempt" (which is why the original data must be ordered before calculating $\Phi$). In this regard, $k_i$ operates under a similar context as survival time .
+
+The consequence is that $g_i$ is a vector of draws from the geometric PMF conditioned by each $\Phi_i$ and (implicitly) $B_i$. Over all groups and their respective cycles, what one ends up with is a likelihood space mapped to cycle duration and the sequential breaks within each cycle.
+
+#### Step 3<br><sup>Information Measures & Score</sup>{#sec-algorithm-step-3}
+
+Calculate the squared deviations of within-group cycle information ($I_i$, @eq-group-information) from global information ($I_N$, @eq-break-information) conditioned on $\Phi_i$ and the associated scoring vector $K^\dagger_i$ (defined below):
+
+> $$
+> \Theta_i := \big[(I_N \enspace \big|\enspace K_N \cap \Phi_i \ne \emptyset) - I_i \big]^2 
+> \longrightarrow \big< \theta_1 \enspace \theta_2 \enspace \dots \enspace \theta_n \big>_i
+> $$ {#eq-information-deviation}
+>
+> $$
+> K^\dagger_i:= g_i \Theta_i \longrightarrow \big< \kappa_1 \enspace \kappa_2 \enspace \dots \enspace \kappa_n \big>_i
+> $$ {#eq-group-break-information-likelihood}
+
+Next, calculate the effective slope and curvature of $\Theta_i$ for each within-group cycle:
+
+> $$
+> \Theta_i^{'} := \frac{d}{dn}\theta_n\enspace\big|\enspace B_i
+> $$ {#eq-information-deviation-slope}
+>
+> $$
+> \Theta_i^{''}:= \frac{d^2}{dn}\theta_n\enspace\big|\enspace B_i
+> $$ {#eq-information-deviation-curvature}
+
+### Part II {#sec-algorithm-part-2}
+
+#### Data & Hyper-parameters{#sec-algorithm-part-3-data-hyperparams}
+
+**Data**
+
+At this point, we have the following by group:
+
+> $$
+> \mathbb{D}_{R,C}: D_i \ni \big\{
+> k
+> ;\enspace B
+> ;\enspace B^\dagger
+> ;\enspace K^\dagger
+> ;\enspace I_N|\enspace \exists K_N\cap\phi
+> ;\enspace I
+> ;\enspace g
+> ;\enspace \Theta
+> ;\enspace \Theta^{'}
+> ;\enspace \Theta^{''}
+> \big\}_i 
+> $$ {#eq-observation-data-tuple}
+
+$R$ and $C$ are the row and column indices, respectively, for tabular data $\mathbb{D}$. Moving forward, the groups will be ignored as they are no longer relevant.
+
+**Hyper-parameters**
+
+Three hyper-parameters are required to produce the final result:
+
+-   $k_{max}$: The upper limit for breaks to allow under consideration. This should primarily be set to control the effecte of extreme values that appear frequently enough to be non-trivial but are due to confounding factors not related to the generative process under study.
+
+-   ${k\_size}_{min}$: The minimum observation size at each $k$. At this point, $k$ can be considered as a class having a number of observations. Levels of $k$ having too small a number have the potential to bias the algorithm towards these levels, problematic when $k$ is numerically large but highly improbable.
+
+-   $\text{n_folds}$: The steps outlined in @sec-algorithm-step-4 and @sec-algorithm-step-5 are executed in a context similar to cross-validation.  If $\text{n_folds}=1$, $\text{n_folds}$ is set to the lesser of five ($5$) or the number of unique groups in $\mathbb{D}$.
+
+#### Step 4<br><sup>Scoring, Mean Info, and Derivatives</sup>{#sec-algorithm-step-4}
+
+$\mathbb{D}$ is filtered by row where the following is true:
+
+> $$
+> k_i \le k_{max} \enspace\wedge\enspace \Theta^{'} \ge 0\enspace\wedge\enspace \Theta^{''} \le 0
+> $$ {#eq-data-filter-criteria}
+
+The result is augmented by deriving an information-based score ($\Omega$) as well as the weighted-mean information ($\bar{I}$) of $\Theta_i$ conditioned on $K_N$.
+
+Given q: $q \in \big\{1, 2, \dots, N\big\}$:
+
+> $$
+> \enspace \\
+> \Omega^k_R := \Big(K^\dagger \enspace | \enspace \big\{g_i = \text{max}_{g_i},\enspace K_q = k_R \big\} \Big)
+> \longrightarrow \big<\omega_1\enspace\omega_2\enspace\dots\enspace\omega_R\big>^k
+> $$ {#eq-break-information-score} $$
+> \bar I_R^k:= \frac{\sum_{q = 1}^N{g_q}{I_R}}{\sum_{q = 1}^N g_q} \enspace\|\enspace K_q = k_R \longrightarrow \big<i_1\enspace i_2\enspace\dots\enspace i_R\big>^k 
+> $$ {#eq-weighted-mean-break-information}
+
+Note: the superscript $k$ is an indicator that the metric is indexed by values in $k$ --- it is not an exponent.
+
+<br> Next, the slope and curvature of $\Omega_R^k$ and $\bar I_R^k$ with respect $k$ are derived which maps the scores and mean information to values in $k$:
+
+> $$
+> \frac{\partial}{\partial{k}} \big\{\Omega_R^k;\enspace \bar I_R^k\big\} \Rightarrow \big\{{\Omega_R^k}^{'};\enspace {{\bar I_R^k}}^{'}\big\} 
+> \enspace \\
+> \frac{\partial}{\partial{k}} \big\{\Omega_R^k;\enspace \bar I_R^k\big\} \Rightarrow \big\{{\Omega_R^k}^{''};\enspace {{\bar I_R^k}}^{''}\big\} 
+> $$
+
+#### Step 5<br><sup>Within-fold Scores, Optimal and Alternate Breaks</sup>{#sec-algorithm-step-5}
+
+The final scoring vector is defined as follows:
+
+> $$
+> \Gamma_R^k:=
+> -\lambda({\bar I_R^k}^{''}) \times \lambda({\Omega_R^k}^{''}) \enspace\Big|_{q = 1}^R
+> \longrightarrow
+> \big<\gamma^k_1\enspace\gamma^k_2\enspace\dots\enspace\gamma^k_q\big>\enspace\big|_{q=1}^R\\
+> \lambda:= f(x)\to \frac {x}{x_{max}}
+> $$ {#eq-total-break-information-score}
+
+The optimal break ($k$) is the one that maximizes $\Gamma_R^k$ (maximizing ${\Omega_R^k}^{''}$ and minimizing ${\bar I_R^k}^{''}$) with alternatives as those values where the score is some distance $\zeta$ from the maximized $\Gamma_R^k$:
+
+> $$
+  > \hat{k} :=k\enspace|\enspace\gamma_q^k = \Gamma_{max}
+> $$ {#eq-optimal-break} $$
+> \ddot{k}:=k\enspace|\enspace\gamma_q^k \ge \big(\Gamma_{max}-\zeta\big)
+> $$ {#eq-alternate-breaks}
+
+
+#### Step 6<br><sup>Final Score, Optimal and Alternate Breaks</sup>{#sec-algorithm-step-6}
+Over $\text{n_folds}$ of generated and scored data, we have $k_n:=\big<k_1\enspace k_2\enspace \dots k_n \big>$ from which the optimal $k$ is "greedily" chosen as the most frequently-occurring $k_n$: $\text{arg}_{_k}\text{max}\enspace{\#}k_n\big|_{q = 1}^n$.
+
+## Implementation {#sec-implementation-example}
+
+### Computing Workspace {#sec-computing-workpace}
+
+```{r}
+#| echo: false
+#| cache: false
+#| code-summary: R Libraries
+list2html(.req_libs |> imap(\(x, y){ x$libs })) |> tagList()
+```
+
+Github-hosted R libraries can be installed using `remotes::install_github("delriaan/<library>", subdir = "pkg").`
+
+**Prepared observation data sample**:
+
+Data were synthesized to serve as observation data (a sample of which follows):  
+
+```{r}
+#| echo: false
+#| cache: false
+obs_data |> head(10)
+```
+
+### Prescriptive vs. Tuned {#sec-prescr-tuned}
+
+```{r}
+#| label: PRESCRIPTIVE_TUNED_DATA
+#| code-summary: Prescriptive timeout vs. tuned
+#| echo: true
+#| cache: false
+#| warning: false
+#| message: false
+#| cache-rebuild: true
+
+# PRESCRIPTED TIMEOUT ====
+prescribed_timeout_islands <- event.vectors::continuity(
+		data = obs_data
+		, map_fields = c(join_key, src)
+		, time_fields = c(date.start, date.end)
+		, boundary_name = episode
+		, timeout = 10
+		, show.all = TRUE
+		);
+
+# TUNED TIMEOUT ====
+tuned_timeout <- event.vectors::break_signal(
+  	y = obs_data$date.start
+  	, grp = obs_data[, paste(join_key, src, sep = ":")]
+  	, obs_ctrl = list(min_size = 5L, max_k = 120)
+  	) |>
+  	event.vectors::signal_processor(cl_size = 8, .debug = !TRUE);
+
+tuned_timeout_islands <- event.vectors::continuity(
+  	data = obs_data
+  	, map_fields = c(join_key, Z_1)
+  	, time_fields = c(date.start, date.end)
+  	, boundary_name = episode
+  	, timeout = tuned_timeout@best_k
+  	, show.all = TRUE
+  	);
+```
+
+**Tuned Timeout Visualization**
+
+```{r}
+#| echo: false
+#| cache: false
+#| warning: false
+#| message: false
+compare_viz <- list(PRESCRIBED = prescribed_timeout_islands, TUNED = tuned_timeout_islands) |>
+  purrr::imap(\(X, nm){
+  	xtra_label <- ifelse(nm == "TUNED", glue::glue("tuned timeout: {tuned_timeout@best_k}"), "prescribed timeout: 10");
+  
+  	viz_data <- { architect::define(
+  			purrr::modify_at(X, c("GAP", "ISLAND"), as.numeric)[(GAP > 0)]
+  			, h_island = entropy::entropy(ISLAND, unit = "log2") ~ GAP
+  			, h_gap = entropy::entropy(GAP, unit = "log2") ~ ISLAND
+  			, h_total = h_island + h_gap
+  			, var_island = var(ISLAND, na.rm = TRUE) ~ GAP
+  			, ~ISLAND + GAP + h_island + h_gap + h_total + var_island
+  			, .SD[!(is.na(h_total) | is.na(var_island))]
+  			) |> unique()
+  		}
+  
+  	viz_data %>%
+  		plotly::plot_ly(
+  			x = ~GAP
+  			, y = ~h_island
+  			, z = ~ISLAND
+  			, colors = { 
+    			  rgb(
+    					alpha = (\(x) exp(x)/sum(exp(x)))(-50:50)
+    					, red = (\(x){
+    						c(exp(x)/sum(exp(x))
+    							, book.of.features::sigmoid(x, center = median) * rep.int(.75, length(x))
+    							, rep.int(.75, length(x))
+    						) |> matrix(ncol = 3L)
+    					})(100:1)
+  				  )}
+  			, type = "contour"
+  			# , height = 620
+  			) |>
+  		plotly::config(mathjax = "cdn", displayModeBar = FALSE) |>
+  		plotly::colorbar(title = list(text = glue::glue("<span style='font-family:Georgia; '>ISLAND <br>({xtra_label})</span>"))) %>% 
+      plotly_layout(
+        yaxis = list(title = list(text = plotly::TeX("\\text{Entropy: }H(\\text{ISLAND})")))
+        , paper_bgcolor = "#DDDDDD"
+        , plot_bgcolor = "#FEEEFF"
+        )
+  });
+
+tuned_timeout@plot |> 
+  plotly_layout(width = 760, paper_bgcolor = "#DDDDDD", plot_bgcolor = "#FEEEFF") |> 
+  widgetframe::frameableWidget();
+```
+
+<br>
+**Prescribed Islands and Associated Entropy**
+
+```{r}
+#| echo: false
+#| cache: false
+#| warning: false
+#| message: false
+compare_viz[[1]] |> widgetframe::frameableWidget()
+```
+
+<br>
+**Tuned Islands and Associated Entropy**
+
+```{r}
+#| echo: false
+#| cache: false
+#| warning: false
+#| message: false
+compare_viz[[2]] |> widgetframe::frameableWidget()
+```
+
+## Appendix {#sec-appendix}
+
+### Building Blocks {#sec-building-blocks}
+
+#### $X|G$ 
+
+[Indexed groups]{#indexed-groups} derived from Cartesian combinations of selected features:
+
+> $$
+> X|G_i\to\Omega_i \in \mathbb{R}\\
+> G_i:= \{g_1 \wedge g_2 \wedge \cdots \wedge g_\iota\}
+> $$ {#eq-observation-groups}
+
+#### $\Phi_i$ 
+
+Within-group sequential differences:
+
+> $$
+> \Phi_i:=\Delta{X}|G_i \longrightarrow \big<\phi_1 \enspace \phi_2 \enspace \cdots \enspace \phi_j\big>_i \\ 
+> \enspace \\
+> j:= ||X_i||-1\\
+> \enspace\\
+> \Phi_i \in \big\{0, 1, 2, \dots, \infty\big\}
+> $$ {#eq-group-differences}
+
+#### $B_i, B^\dagger_i$ 
+
+Within-group break cycles and cycle duration:
+
+> $$
+> \forall \gamma \in 
+> \Bigg\{
+> 1
+> ,\enspace \Big\{\matrix{
+> \delta_{j + 1} \ge 0\to \emptyset \\
+> \delta_{j + 1} < 0 \to j
+> }
+> \Bigg\}_i \\ 
+> B_i:=
+> \Big\{
+> \big\{1, \gamma_1\big\}, \enspace
+> \big\{\gamma_1 + 1, \gamma_2 \big\},\enspace
+> \cdots, \enspace
+> \big\{\gamma_z, j\big\}
+> \Big\}_i 
+> \longrightarrow \big<\beta_1 \enspace\beta_2 \enspace\cdots \enspace\beta_z\big>_i 
+> $$ {#eq-group-break-cycles}
+>
+> $$
+> B^\dagger_i:= \sum\Phi_i|B_i
+> $$ {#eq-group-cycle-duration}
+
+Note: $B_i$ may be censored due to measure methodology or lack of available data.
+
+#### $P(K_N)$ 
+
+Global difference occurrence probabilities. $P(K_N)$ is derived as proportion frequency table over unique values in $\Phi_i$ (@eq-group-differences):
+
+> $$
+> P(K_N):= 
+> N^{-1}\sum_{n = 1}^N \sum_{\alpha=1}^i\big|\big|
+> K_n \cap 
+> \big<\phi_1 \enspace \phi_2 \enspace \cdots \enspace \phi_j\big>_\alpha
+> \big|\big| \\
+> \longrightarrow \big<P_1 \enspace P_2 \enspace \dots \enspace P_N \big>
+> $$ {#eq-global-break-frequency-proportion}
+
+, where $K_N$ is the set of $N$ unique values $\forall \Phi$ (essentially, all possible values)
+
+#### $I_N$ 
+
+Global information vector in "bits":
+
+> $$
+> I_N:=-log_2[P(K_N)] \longrightarrow \big<I_1 \enspace I_2 \enspace \dots \enspace I_N \big>
+> $$ {#eq-break-information}

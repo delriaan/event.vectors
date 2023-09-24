@@ -2,20 +2,18 @@
 title: "Event Space and Graph Reduction"
 output: rmarkdown::html_vignette
 vignette: >
- %\\VignetteIndexEntry{Event Space and Graph Reduction}
- %\\VignetteIndexEngine{knitr::rmarkdown}
- %\\VignetteEncoding{UTF-8}
+ %\VignetteIndexEntry{Event Space and Graph Reduction}
+ %\VignetteIndexEngine{knitr::rmarkdown}
+ %\VignetteEncoding{UTF-8}
 ---
 
 ```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
+knitr::opts_chunk$set(collapse = TRUE,comment = "#>")
 ```
 
 ```{r setup}
 library(event.vectors)
+htmltools::tags$style(readLines(Sys.getenv("CSS")) |> paste(collapse = "\n")) |> htmltools::tagList()
 ```
 
 # Event Space
@@ -36,7 +34,6 @@ $$
 q :=\text{ the q}^{th}\text{ distinct value in }J\enspace \forall \mathbb{D} \\
 \sigma_{j_q \in J}(D_k) \equiv \dot{D_{qk}}:=\text{ predicated selection operation in a relational algebra context}
 $$
-
 
 From each $\overrightarrow{V_q}$, $q$ subsets over $\mathbb{D}$ are derived as $\Gamma_q:=D_{k_q}|\overrightarrow{V_q}\ne\emptyset$. The number of records ($n$) resulting from selection across the data sets can be represented as an array of row vectors: 
 

@@ -4,6 +4,9 @@
     <loc>/404.html</loc>
   </url>
   <url>
+    <loc>/articles/Break-Signal.html</loc>
+  </url>
+  <url>
     <loc>/articles/Continuity-Example.html</loc>
   </url>
   <url>
@@ -31,6 +34,9 @@
     <loc>/LICENSE-text.html</loc>
   </url>
   <url>
+    <loc>/reference/break_signal.html</loc>
+  </url>
+  <url>
     <loc>/reference/continuity.html</loc>
   </url>
   <url>
@@ -50,5 +56,8 @@
   </url>
   <url>
     <loc>/reference/retrace.evs.html</loc>
+  </url>
+  <url>
+    <loc>/reference/signal_processor.html</loc>
   </url>
 </urlset>
