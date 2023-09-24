@@ -7,24 +7,13 @@ vignette: >
  %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
-knitr::opts_chunk$set(
-  collapse = TRUE,
-  comment = "#>"
-)
-```
-
-```{r setup}
-library(event.vectors)
+```{r, echo=FALSE, warning=FALSE}
+library(stringi, include.only = "%s+%");
 library(magrittr);
-library(future);
-library(stringi, include.only = "%s+%")
-library(purrr)
-```
-
-# Initialization
-
-```{r CONTINUITY_INIT, warning=FALSE}
+library(purrr);
+library(event.vectors);
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", message = FALSE, warning=FALSE);
+htmltools::tags$style(readLines(Sys.getenv("CSS")) |> paste(collapse = "\n")) |> htmltools::tagList();
 make.test_data <- function(j = 5, n = 5, m = 5, o = 1:10, dest = globalenv(), .debug = FALSE){
 #' Make Test Data for Validation
 #'
@@ -41,19 +30,24 @@ make.test_data <- function(j = 5, n = 5, m = 5, o = 1:10, dest = globalenv(), .d
 	j = max(c(3, abs(as.integer(j))));
 	n = max(c(3, abs(as.integer(n)))); ifelse(n > 10, 10, n);
 	m = max(c(3, abs(as.integer(m)))); ifelse(m > 15, 15, m);
-	o = { ifelse(rlang::has_length(o, 1L)
-						 , yes = 1:10
-						 , no = ifelse(any(o <= 0)
-						 							, yes = abs(o)
-						 							, no = ifelse(rlang::has_length(o, 2L)
-						 														, yes = `:`(o[1], o[2]) |> sort()
-						 														, no =  o))
-						 )}
+	o = { ifelse(
+					rlang::has_length(o, 1L)
+					, yes = 1:10
+					, no = ifelse(
+							any(o <= 0)
+						 	, yes = abs(o)
+						 	, no = ifelse(
+						 			rlang::has_length(o, 2L)
+						 			, yes = `:`(o[1], o[2]) |> sort()
+						 			, no =  o
+						 			))
+				)
+		}
 
 	sequence(n) %>%
 	purrr::set_names(paste0("test_data.", stringi::stri_pad_left(., width = 2, pad = "0")))|>
 	purrr::map(~{
-		set.seed(sample(.Random.seed, 1));
+		set.seed(90210);
 		.src = LETTERS[[.x]];
 
 		.out = purrr::map_dfr(c(1:j), ~list(join_key = rep.int(.x, sample(10:100, 1, TRUE)), src = .src)) %>% data.table::as.data.table();
@@ -78,34 +72,37 @@ make.test_data <- function(j = 5, n = 5, m = 5, o = 1:10, dest = globalenv(), .d
 	list2env(envir = dest);
 }
 
-BLAH <- new.env();
-set.seed(sample(100000, 1));
-make.test_data(j = 50, n = 3, m = 5, o = c(5, 20), dest = BLAH, .debug = !TRUE);set.seed(sample(100000, 1));
-set.seed(sample(100000, 1));
-make.test_data(j = 50, n = 3, m = 5, o = c(5, 20), dest = .GlobalEnv, .debug = !TRUE);
-
 ```
 
-# Example Run
+# Example 
+
+Starting with synthesized data, a `timeout` of 10 (days) will be used to roll up series of start and end dates into larger epochs.
+
+The data will be processed under imputed groups defined by columns `join_key` and `src`.
 
 ```{r CONTINUITY_RUN, warning=FALSE}
-data.table::copy(test_data.01)[, `:=`(Z_1 = sample(letters, .N, TRUE), Z_2 = sample(LETTERS[1:5], .N, TRUE))] |>
+make.test_data(j = 50, n = 1, m = 5, o = c(5, 20), dest = .GlobalEnv, .debug = !TRUE);
+
+data.table::copy(test_data.01) |>
 	continuity(
-		map_fields = c(join_key, Z_1)
+		map_fields = c(join_key, src)
 		, time_fields = c(date.start, date.end)
 		, boundary_name = episode
 		, timeout = 10
 		, archipelago = TRUE
-		, show.all = TRUE
-		) |> 
+		, show.all = !TRUE
+		) %>%
 	DT::datatable(
-		filter = "top"
-		, options = list(dom = "Bfrtip", buttons = c('csv', 'excel'))
-		, extensions = "Buttons"
-		, width = 1154
-		, height = 960
-		) |>
-	htmlwidgets::saveWidget("continuity_data_table.html")
+		options = list(
+				dom = "rtip"
+				, scroller = TRUE
+				, scrollY = 200
+				)
+		, rownames = FALSE
+		, extensions = c("Responsive", "Scroller")
+		, width = 1154 *.8
+		, height = 800 * .9
+		)
 ```
 
-Click [here](./continuity_data_table.html) to view the output.
+Is the timeout choice of `10` the best choice given the grouping tuple ($\big\{\text{join_key};\enspace \text{Z_1}\big\}_i$)?  Answering that requires comparing imputed "islands" to some independent, adjudicating set of data or domain expert that can provide an assessment of reasonableness.  An alternative method would be to set the timeout by means of statistical analysis.  See [Break Signal](Break-Signal.html) for an example.

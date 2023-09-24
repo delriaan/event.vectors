@@ -1,72 +1,3 @@
-# S7 Properties
-class_properties <- { list(
-	y = S7::new_union(S7::class_numeric, S7::class_factor, S7::class_integer)
-	, k = S7::new_property(class = S7::new_union(S7::class_numeric, S7::class_factor, S7::class_integer), default = 0)
-	, grp = S7::class_any
-	, obs_ctrl = S7::new_property(class = S7::class_list, default = list(min_size = 1L, max_k = 2L))
-	, best_k = S7::new_property(class = S7::class_numeric, default = numeric())
-	, alt_k = S7::new_property(class = S7::class_numeric, default = numeric())
-	, k_sz = S7::new_property(class = S7::class_numeric, default = numeric())
-	, score = S7::new_property(class = S7::class_numeric, default = numeric())
-	, data = S7::new_property(class = S7::class_any, default = NULL)
-	, plot = S7::new_property(class = S7::class_function, getter = function(self){
-			plotly::plot_ly(
-				data = self@data
-				, split = ~k
-				, x = ~(\(i){ i[i != 0] <- sign(i[i != 0]) * log10(abs(i[i != 0])); i })(d2_Idev_wmean)
-				, y = ~d2_kscore
-				, size = ~tot_score * (1 + (2 * (k %in% self@alt_k)) + (4 * (k == self@best_k)))
-				, stroke = I("#000000")
-				, hovertext = ~glue::glue("<b>k:</b> {k}{ifelse(k == self@best_k, '<sup> Best</sup>', ifelse(k %in% self@alt_k, '<sup> Alt</sup>', ''))}<br><b>Score:</b> {round(tot_score, 4)}")
-				, type = "scatter"
-				, mode = "markers"
-				, width = 720
-				, height = 600
-				) |>
-				plotly::config(mathjax = "cdn") |>
-				plotly::layout(
-					margin = list(t = -5, b = -5)
-					, title = list(text = plotly::TeX("\\text{Break Score vs. Weighted-Mean Squared Information Deviation}_{\\text{ Size }\\to \\text{Total Score}}"))
-					, xaxis = list(
-						title = list(
-							text = plotly::TeX("\\bar{I}^{''}_{\\text{log}_{10}}"))
-						, showgrid = FALSE
-						)
-					, yaxis = list(
-						title = list(
-							text = plotly::TeX("{\\Omega^k}^{''}"))
-						, showgrid = FALSE
-						)
-					, legend = list(title = list(text = plotly::TeX("\\enspace\\enspace{k}")))
-					)
-		})
-	)}
-
-#' Break Signal
-#'
-#' Functions \code{break_signal()} and \code{signal_processor()} are designed to select the best break of a “signal”, observed differences in the values of an ordered sequence. A “break” is simply a change in sign of the differences: the “best” break is the one that indicates the process that generates of observations has changed state.
-#'
-#' @slot y The un-transformed, monotonically ordered vector
-#' @slot grp A vector containing group assignments along \code{y}
-#' @slot obs_ctrl (list) Observation data control list having the following recognized elements:\cr
-#' \itemize{
-#' \item{\code{kmax}: The upper limit for breaks to allow under consideration. This should primarily be set to control the effecte of extreme values that appear frequently enough to be non-trivial but are due to confounding factors not related to the generative process under study.}
-#' \item{\code{k_size_min}: The minimum observation size at each k to allow}
-#' }
-#'
-#' @slot best_k,alt_k (numeric) Entropy-based optimized (and next best) break in the signal (passively set by \code{\link{signal_processor}})
-#' @slot k_sz (numeric) The observation size at each \code{k} (passively set by \code{\link{signal_processor}})
-#' @slot score (numeric[]) The scoring vector at each \code{k} (passively set by \code{\link{signal_processor}})
-#' @slot data The generated data for which scores are generated (passively set by \code{\link{signal_processor}})
-#' @slot plot A \code{\link[plotly]{plot_ly}} visualization after break optimization (passively set by \code{\link{signal_processor}})
-#'
-#' @export
-break_signal <- S7::new_class(
-	name = "break_signal"
-	, package = "event.vectors"
-	, properties = class_properties
-	);
-
 signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALSE){
 	#' Signal Processor
 	#'
@@ -107,7 +38,7 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 		signal_data <- data.table::data.table(
 			dy = i
 			, cyl = book.of.utilities::count.cycles(is_signal_break, reset = FALSE)
-			)[, series := sum(dy), by = cyl]
+		)[, series := sum(dy), by = cyl]
 
 		inform <- \(x, z){
 			# Use each value of `x` (differences) to condition `z` (series) when `x` is
@@ -165,10 +96,10 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 						 # Encode information ====
 						 , info_encoder(dy, info.only = FALSE))
 			, by = grp
-			][
+		][
 			# Assign CV folds gy group identifier ====
 			fold_map, on = "grp", fold_id := fold_id, by = .EACHI
-			];
+		];
 
 		# Generate and score data by fold exclusion ====
 		fold_map$fold_id |>
@@ -218,55 +149,55 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 		#
 		#
 		algo_output[
-		# Filter criteria ====
-		(k <= obs_ctrl$max_k) &
-			(k > 0) &
-			(d_Idev >= 0) & # Increasing or constant
-			(d2_Idev <= 0) # Concave or local maximum
-		, .(
-			# Break score (k_score): information deviation equation/model ====
-			k_score = (\(g, EX){
-				EX[g == max(g, na.rm = TRUE)] |>
-					mean(na.rm = TRUE) |>
-					magrittr::multiply_by(.N >= obs_ctrl$min_size) |>
-					magrittr::add(1) |>
-					log(base = 2)
-			})(g = geo_pmf, EX = geo_pmf * Idev)
-			# Observations per `k` ====
-			, k_sz = .N
-			, geo_pmf.max = max(geo_pmf, na.rm = TRUE)
-			# PMF-weighted mean of break information deviation ====
-			# This derives the expected value of squared information deviation (`Idev`)
-			#   and is used to find the optimal `k`
-			, Idev_wmean = weighted.mean(Idev, geo_pmf, na.rm = TRUE)
+			# Filter criteria ====
+			(k <= obs_ctrl$max_k) &
+				(k > 0) &
+				(d_Idev >= 0) & # Increasing or constant
+				(d2_Idev <= 0) # Concave or local maximum
+			, .(
+				# Break score (k_score): information deviation equation/model ====
+				k_score = (\(g, EX){
+					EX[g == max(g, na.rm = TRUE)] |>
+						mean(na.rm = TRUE) |>
+						magrittr::multiply_by(.N >= obs_ctrl$min_size) |>
+						magrittr::add(1) |>
+						log(base = 2)
+				})(g = geo_pmf, EX = geo_pmf * Idev)
+				# Observations per `k` ====
+				, k_sz = .N
+				, geo_pmf.max = max(geo_pmf, na.rm = TRUE)
+				# PMF-weighted mean of break information deviation ====
+				# This derives the expected value of squared information deviation (`Idev`)
+				#   and is used to find the optimal `k`
+				, Idev_wmean = weighted.mean(Idev, geo_pmf, na.rm = TRUE)
 			)
-		, by = k
+			, by = k
 		][
-		# Interim row filter and data subset preparation ====
-		(k_score > 0)
-		, .SD[order(k, k_score)] |> unique()
+			# Interim row filter and data subset preparation ====
+			(k_score > 0)
+			, .SD[order(k, k_score)] |> unique()
 		][
-		# Slope (d'/dk) ====
-		, `:=`(d_kscore = c(0, diff(k_score))/c(1, diff(k))
-					, d_Idev_wmean = c(0, diff(Idev_wmean))/c(1, diff(k))
-					)
+			# Slope (d'/dk) ====
+			, `:=`(d_kscore = c(0, diff(k_score))/c(1, diff(k))
+						 , d_Idev_wmean = c(0, diff(Idev_wmean))/c(1, diff(k))
+			)
 		][
-		# Curvature (d"/dk) ====
-		, `:=`(d2_kscore = c(0, diff(d_kscore))
-					, d2_Idev_wmean = c(0, diff(d_Idev_wmean))
-					)
+			# Curvature (d"/dk) ====
+			, `:=`(d2_kscore = c(0, diff(d_kscore))
+						 , d2_Idev_wmean = c(0, diff(d_Idev_wmean))
+			)
 		][
-		# Total Score ===
-		# `tot_score` is the mutual relative proportionality of curvatures over `k` and `Idev_wmean`
-		, `:=`(tot_score = (1 - book.of.utilities::ratio(abs(d2_Idev_wmean), type = "of.max", d = 6)) *
-					 	book.of.utilities::ratio(d2_kscore, type = "of.max", d = 6))
+			# Total Score ===
+			# `tot_score` is the mutual relative proportionality of curvatures over `k` and `Idev_wmean`
+			, `:=`(tot_score = (1 - book.of.utilities::ratio(abs(d2_Idev_wmean), type = "of.max", d = 6)) *
+						 	book.of.utilities::ratio(d2_kscore, type = "of.max", d = 6))
 		][
-		, `:=`(
+			, `:=`(
 				# "Best" and alternate break values derivation ====
 				best_k = k[tot_score == max(tot_score, na.rm = TRUE)] |> unique()
 				, alt_k = k * (book.of.utilities::ratio(tot_score, type = "cumulative", d = 6) >= 0.9) *
 					(tot_score != max(tot_score, na.rm = TRUE))
-				)
+			)
 		];
 	}
 
@@ -296,9 +227,9 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 
 	if (.logi_vec){
 		# Global assignment to allow for manual termination
-		cl <- parallelly::makeClusterPSOCK(workers = cl_size, autoStop = TRUE);
+		assign("cl", parallelly::makeClusterPSOCK(workers = cl_size, autoStop = TRUE), envir = environment());
 
-		parallel::clusterSetRNGStream(cl = cl);
+		parallel::clusterSetRNGStream(cl = cl, sample(-1E5:1E5, 1));
 
 		parallel::clusterExport(
 			cl = cl
@@ -329,26 +260,33 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 	if (.debug){ browser(); }
 
 	.temp <- if (.logi_vec){
-			spsUtil::quiet({
-				parallel::clusterEvalQ(cl = cl, exec_algorithm(data.table::copy(grouped_response), nfolds = nfolds)) |>
-					purrr::compact() |>
-					data.table::rbindlist()
-			})
-		} else {
-			exec_algorithm(data.table::copy(grouped_response), nfolds = nfolds);
-		}
+		spsUtil::quiet({
+			parallel::clusterEvalQ(cl = cl, exec_algorithm(data.table::copy(grouped_response), nfolds = nfolds)) |>
+				purrr::compact() |>
+				data.table::rbindlist()
+		})
+	} else {
+		exec_algorithm(data.table::copy(grouped_response), nfolds = nfolds);
+	}
 
 	# :: Greedy selection of `best_k` ====
-	scored_result <- .temp[(best_k == max(na.rm = TRUE, table(best_k) |> sort(decreasing = TRUE) |> names() |> data.table::first()))];
+	scored_result <- .temp[(best_k == {
+			table(best_k) |> sort(decreasing = TRUE) |>
+			names() |> data.table::first() |>
+			as.numeric() |> max(na.rm = TRUE)
+		})];
 
 	# :: Assign scored results to S7 object, clean up, and return the object invisibly ====
 	object@obs_ctrl <- obs_ctrl;
 	object@best_k <- scored_result[1, best_k];
-	object@alt_k <- scored_result[(alt_k > 0), alt_k |> sort()];
+	object@alt_k <- .temp[!(best_k %in% object@best_k) & (k > 1), unique(best_k)];
 	object@k_sz <- scored_result$k_sz;
 	object@score <- scored_result$k_score;
 	object@data <- scored_result;
 
-	if (!rlang::is_empty(cl_size) & ("cl" %in% ls())){ parallel::stopCluster(cl); }
+	if (!rlang::is_empty(cl_size) & ("cl" %in% ls())){
+		parallel::stopCluster(cl);
+		rm(cl);
+	}
 	return(invisible(object));
 }
