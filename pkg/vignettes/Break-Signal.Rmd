@@ -152,7 +152,9 @@ Note that in each of the examples, terms such as "normal", "general", "typical" 
 
 # Hypothesis
 
-The hypothesis is that given a set of _ordered_ values ($Y$) on an interval or ratio measurement scale, possibly being _partitioned_ by a set of other attributes, the sign changes in successive differences in values along $Y$ ($\Delta{Y}_i$) can be used to infer changes of state in the generative process by probabilistic analysis of changes in information ($I$) and associated values of $\Delta{Y}_i$ over those changes of state.
+The hypothesis is that given a set of _ordered_ values ($Y$), possibly being _partitioned_ by a set of other attributes, the sign changes in successive differences in values along $Y$ ($\Delta{Y}_i$) can be used to infer changes of state in the generative process by probabilistic analysis of changes in self-information ($I$) and associated values of $\Delta{Y}_i$ over those changes of state. Self-information is desirable as opposed to entropy because the hypothesis is that "surprising" values of ($\Delta{Y}_i$) maximize the likelihood that a change of state has been detected.
+
+_[**Note**: "self-information" will be refered to as simply "information" for convenience.]_
 
 **Assumptions**
 
@@ -172,20 +174,19 @@ For each
 $B_i;$ <sup>[Eq. 3b](#eq-group-cycle-duration)</sup>; 
 $\Phi_i$ <sup>[Eq. 2](#eq-group-differences)</sup>:
 
-## [Step 1]{#sec-algorithm-step-1} <br><sup>Pooled Info</sup>
+### [Step 1]{#sec-algorithm-step-1} <br><sup>Group Information</sup>
 
-Calculate the total information from the cumulative proportionality of $B^\dagger_i$ conditioned by group (subscript $i$) and within-group break cycle $B_i$ <sup>[Eq. 3ba](#eq-group-break-cycles)</sup>:
+Calculate the _[geometric mean](https://en.wikipedia.org/wiki/Geometric_mean)_ of information from the proportionality of $B^\dagger_i$ ($\omega_z$ below) conditioned by group (subscript $i$) and within-group break cycle $B_i$ <sup>[Eq. 3ba](#eq-group-break-cycles)</sup>:
 
 > $$
 > I_i := 
-> \sum_{q = 1}^z - \log_2 (\omega_q \enspace |\enspace B = B_i)
+> \Big[\Pi_{q = 1}^z - \log_2 (\omega_q \enspace |\enspace B = B_i)\Big]^{\frac{1}{z}}
 > , \enspace 0 < \omega_z \le 1 
 > \longrightarrow \big<I_1 \enspace I_2\enspace\dots\enspace I_z\big>_i \\ 
 > \enspace \\
-> \omega_i := \bigg(
-> \frac
-> {\sum_{q = 1}^z \chi_{z \le q} }
-> {\sum_{q = 1}^z \chi_q} \Bigg|\enspace B = B_i \bigg)
+> \omega_i := \big|\big|\chi_z\big|\big|^{-1} \bigg(
+> {\sum_{q = 1}^z \chi_q}
+> \bigg)
 > \longrightarrow \big<\omega_1 \enspace \omega_2 \enspace \dots \enspace \omega_z \big>_i \\
 > \enspace \\ 
 > \chi_{i} :=
@@ -194,7 +195,7 @@ Calculate the total information from the cumulative proportionality of $B^\dagge
 > $$ 
 
 
-## [Step 2]{#sec-algorithm-step-2} <br><sup>Information PMF</sup>
+### [Step 2]{#sec-algorithm-step-2} <br><sup>Information PMF</sup>
 
 Separately calculate the geometric (negative binomial with $r = 1$) probability mass function ($g_i$) over $P(K_N)$ <sup>[Eq. 4](#eq-global-break-frequency-proportion)</sup> by within-group cycle ($B_i$):
 
@@ -219,7 +220,7 @@ In the preceding equation, for each within-group cycle <sup>[Eq. 3a](#eq-group-b
 
 The consequence is that $g_i$ is a vector of draws from the geometric PMF conditioned by each $\Phi_i$ and (implicitly) $B_i$. Over all groups and their respective cycles, what one ends up with is a likelihood space mapped to cycle duration and the sequential breaks within each cycle.
 
-## [Step 3]{#sec-algorithm-step-3} <br><sup>Information Measures & Score</sup>
+### [Step 3]{#sec-algorithm-step-3} <br><sup>Information Measures & Score</sup>
 
 Calculate the squared deviations of within-group cycle information $I_i$ <sup>[Step 1](#sec-algorithm-step-1)</sup> from global information $I_N$ <sup>[Eq. 5](#eq-break-information)</sup> conditioned on $\Phi_i$ and the associated scoring vector $K^\dagger_i$ (defined below):
 
@@ -277,7 +278,7 @@ Three hyper-parameters are required to produce the final result:
 
 -   $\text{n_folds}$: The steps outlined in [Step 4](#sec-algorithm-step-4) and [Step 5](#sec-algorithm-step-5) are executed in a context similar to cross-validation.  If $\text{n_folds}=1$, $\text{n_folds}$ is set to the lesser of five ($5$) or the number of unique groups in $\mathbb{D}$.
 
-## [Step 4]{#sec-algorithm-step-4} <br><sup>Scoring, Mean Info, and Derivatives</sup>
+### [Step 4]{#sec-algorithm-step-4} <br><sup>Scoring, Mean Info, and Derivatives</sup>
 
 $\mathbb{D}$ is filtered by row where the following is true:
 
@@ -307,7 +308,7 @@ Note: the superscript $k$ is an indicator that the metric is indexed by values i
 > \frac{\partial}{\partial{k}} \big\{\Omega_R^k;\enspace \bar I_R^k\big\} \Rightarrow \big\{{\Omega_R^k}^{''};\enspace {{\bar I_R^k}}^{''}\big\} 
 > $$
 
-## [Step 5]{#sec-algorithm-step-5} <br><sup>Within-fold Scores, Optimal and Alternate Breaks</sup>
+### [Step 5]{#sec-algorithm-step-5} <br><sup>Within-fold Scores, Optimal and Alternate Breaks</sup>
 
 The final scoring vector is defined as follows:
 
@@ -329,7 +330,7 @@ The optimal break ($k$) is the one that maximizes $\Gamma_R^k$ by maximizing ${\
 > $$
 
 
-## [Step 6]{#sec-algorithm-step-6} <br><sup>Final Score, Optimal and Alternate Breaks</sup>
+### [Step 6]{#sec-algorithm-step-6} <br><sup>Final Score, Optimal and Alternate Breaks</sup>
 Over $\text{n_folds}$ of generated and scored data, we have $k_n:=\big<k_1\enspace k_2\enspace \dots k_n \big>$ from which the optimal $k$ is "greedily" chosen as the most frequently-occurring $k_n$: $\text{arg}_{_k}\text{max}\enspace{\#}k_n\big|_{q = 1}^n$.
 
 # [Implementation]{#sec-implementation-example}
@@ -484,11 +485,20 @@ compare_data |>
 
 <br>
 
-### Grouped Input
+# [Final Considerations]{#sec-final-considerations}
 
-A final point of consideration is the choice of features used to group the original response. The set of selected features should reflect the natural grouping of features related to the generative process under study.  This is especially the case when the features are ontologically hierarchical, in which case, the level of the hierarchy should be chosen based on domain/subject matter expertise.  
+Two very important pre-algorithm factors about the underlying data directly affect the derivation of optimal break in the signal:
 
+**Grouping Feature Selection**
+
+The choice of features used to group the original response should reflect the natural grouping of features related to the generative process under study.  This is especially the case when the features are ontologically hierarchical, in which case, the level of the hierarchy should be chosen based on domain/subject matter expertise.  
+
+>
 For example, a health plan considering claims data may group a cohort by the features member, provider, and service: $\\big\{X_\alpha;\enspace X_\beta;\enspace X_\gamma\big\}$ yielding $\alpha\times{\beta}\times{\gamma}= i$ possible groupings.  The actual groups are less than this due to the actual experiences of the members &Rightarrow; $f\big(X_\beta,X_\gamma; X_\alpha\big):=\big\{X_\beta\mapsto X_\gamma \big\}\big|X_\alpha$.
+
+**"Spotty" Signal**
+
+When the input vector is already characterized by large values of $\Phi_i$ (resulting in a _left-skewed_ probability mass distribution), the optimal break will be small and likely of little practical value. The reason goes back to one of the earlier-stated assumptions that the cumulative summation of $\Phi_i$ is geometrically distributed which is clearly _right-skewed_. Therefore, in addition to grouping feature selection, consideration regarding whether or not the data is appropriate for the use case should be given. A future version of `break_signal()` will provide some form of heuristic to check for appropriateness, but this is a long-term goal.
 
 <hr style="width:100%; height:5px; "/>
 
