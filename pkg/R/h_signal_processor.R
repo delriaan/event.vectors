@@ -17,7 +17,7 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 
 	obs_ctrl <- object@obs_ctrl |>
 		purrr::modify_at("min_size", \(x) magrittr::set_attr(x, "label", "Minimum grouped size to process")) |>
-		purrr::modify_at("max_k", \(x) magrittr::set_attr(x, "label", "Maximum break allowed: \nrequires domain knowledge as this is an emperical-analytic task"))
+		purrr::modify_at("max_k", \(x) magrittr::set_attr(x, "label", "Maximum break allowed: \nrequires domain knowledge as this is an emperical-analytic task"));
 
 	# :: Function definitions ====
 	# Information encoder
@@ -38,27 +38,26 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 		signal_data <- data.table::data.table(
 			dy = i
 			, cyl = book.of.utilities::count.cycles(is_signal_break, reset = FALSE)
-		)[, series := sum(dy), by = cyl]
+			)[, series := sum(dy), by = cyl]
 
-		inform <- \(x, z){
-			# Use each value of `x` (differences) to condition `z` (series) when `x` is
-			# less than or equal to the current value `i`.  The result is converted
-			# into an information bit.
-			sapply(x, \(i){
-				book.of.utilities::ratio(x <= i, type = "cumulative", d = 6) |>
-					log(base = 2) |>
-					magrittr::multiply_by(-1) |>
-					sum(na.rm = TRUE)
-			})
+		inform <- \(x){
+			table(x) |>
+				unlist() |>
+				book.of.utilities::ratio(type = "of.sum", d = 6) |>
+				log(2) |>
+				magrittr::multiply_by(-1) %>%
+				.[order(as.numeric(names(.)))] |>
+				as.vector() |>
+				book.of.utilities::calc.geo_mean()
 		}
 
 		if (info.only){
-			signal_data[, .(info = inform(dy, series)), by = cyl][, .(info)]
+			signal_data[, .(info = inform(dy)), by = cyl][, .(info)]
 		} else {
 			if (data.only){
 				signal_data[, !c("dy")]
 			} else {
-				signal_data[, info := inform(dy, series), by = cyl][, !c("dy")]
+				signal_data[, info := inform(dy), by = cyl][, !c("dy")]
 			}
 		}
 	}
@@ -96,10 +95,13 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 						 # Encode information ====
 						 , info_encoder(dy, info.only = FALSE))
 			, by = grp
-		][
+			][
 			# Assign CV folds gy group identifier ====
-			fold_map, on = "grp", fold_id := fold_id, by = .EACHI
-		];
+			fold_map
+			, on = "grp"
+			, fold_id := fold_id
+			, by = .EACHI
+			];
 
 		# Generate and score data by fold exclusion ====
 		fold_map$fold_id |>
@@ -108,33 +110,31 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 			purrr::map(\(exclude_fold_id){
 				X[(!fold_id %in% exclude_fold_id)][
 					, `:=`(
-						# Within-group cumulative "attempts" subsequently passed to geometric PMF calculation ====
-						k = cumsum(dy)
-						, grp.info = (\(arg){
-							if (any(is.infinite(arg))){
-								arg[is.infinite(arg)] <- max(arg[!is.infinite(arg)]);
-							}
-							arg;
-						})(grp.info)
-					)
+							# Within-group cumulative "attempts" subsequently passed to geometric PMF calculation ====
+							k = cumsum(dy)
+							, grp.info = (\(arg){
+										if (any(is.infinite(arg))){ arg[is.infinite(arg)] <- max(arg[!is.infinite(arg)]);	}
+										arg;
+									})(grp.info)
+						)
 					, by = .(cyl, grp)
-				][
+					][
 					# Within-group geometric PMF and break information deviation ====
 					, `:=`(geo_pmf = geo_pmf(x = k, p = p)
 								 , Idev = (info - grp.info)^2
 					)
 					, by = .(cyl, grp)
-				][
+					][
 					, .(cyl, grp, series, k, info, geo_pmf, Idev)
-				][
+					][
 					# Within-group break-cycle information deviation slope ====
 					, d_Idev := c(0, diff(Idev))
 					, by = .(cyl, grp)
-				][
+					][
 					# Within-group break-cycle information deviation curvature ====
 					, d2_Idev := c(0, diff(d_Idev))
 					, by = .(cyl, grp)
-				] |>
+					] |>
 					score_algorithm_output()
 			}) |>
 			# Combine data and return
@@ -143,11 +143,6 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 
 	# Scoring function definition
 	score_algorithm_output <- function(algo_output){
-		# Score Algorithm Output
-		#
-		# @param algo_output The algorithm output created from \code{exec_algorithm}
-		#
-		#
 		algo_output[
 			# Filter criteria ====
 			(k <= obs_ctrl$max_k) &
@@ -156,13 +151,21 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 				(d2_Idev <= 0) # Concave or local maximum
 			, .(
 				# Break score (k_score): information deviation equation/model ====
-				k_score = (\(g, EX){
-					EX[g == max(g, na.rm = TRUE)] |>
-						mean(na.rm = TRUE) |>
+				k_score = (\(g, idv){
+					# @param g Geometric PMF vector
+					# @param idv Value vector
+
+					# `g x idv` below yields the expectation of `idv`
+					# The conditional `g == max(g)` is used because arguments `g` and `idv`
+					#		are vector inputs over the entire data set.  While a maximal `g`
+					# 	exists, it is mapped to different values along `idv`
+					# The geometric mean (`calc.geo_mean()`) is chosen as `idv` is logarithmic.
+					(g * idv)[g == max(g, na.rm = TRUE)] |>
+						book.of.utilities::calc.geo_mean() |>
 						magrittr::multiply_by(.N >= obs_ctrl$min_size) |>
 						magrittr::add(1) |>
 						log(base = 2)
-				})(g = geo_pmf, EX = geo_pmf * Idev)
+				})(g = geo_pmf, idv = Idev)
 				# Observations per `k` ====
 				, k_sz = .N
 				, geo_pmf.max = max(geo_pmf, na.rm = TRUE)
@@ -170,57 +173,61 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 				# This derives the expected value of squared information deviation (`Idev`)
 				#   and is used to find the optimal `k`
 				, Idev_wmean = weighted.mean(Idev, geo_pmf, na.rm = TRUE)
-			)
+				)
 			, by = k
-		][
+			][
 			# Interim row filter and data subset preparation ====
 			(k_score > 0)
 			, .SD[order(k, k_score)] |> unique()
-		][
+			][
 			# Slope (d'/dk) ====
 			, `:=`(d_kscore = c(0, diff(k_score))/c(1, diff(k))
-						 , d_Idev_wmean = c(0, diff(Idev_wmean))/c(1, diff(k))
-			)
-		][
+						, d_Idev_wmean = c(0, diff(Idev_wmean))/c(1, diff(k))
+						)
+			][
 			# Curvature (d"/dk) ====
 			, `:=`(d2_kscore = c(0, diff(d_kscore))
-						 , d2_Idev_wmean = c(0, diff(d_Idev_wmean))
-			)
-		][
+						, d2_Idev_wmean = c(0, diff(d_Idev_wmean))
+						)
+			][
 			# Total Score ===
 			# `tot_score` is the mutual relative proportionality of curvatures over `k` and `Idev_wmean`
 			, `:=`(tot_score = (1 - book.of.utilities::ratio(abs(d2_Idev_wmean), type = "of.max", d = 6)) *
-						 	book.of.utilities::ratio(d2_kscore, type = "of.max", d = 6))
-		][
+						 	book.of.utilities::ratio(d2_kscore, type = "of.max", d = 6)
+						 )
+			][
 			, `:=`(
-				# "Best" and alternate break values derivation ====
-				best_k = k[tot_score == max(tot_score, na.rm = TRUE)] |> unique()
-				, alt_k = k * (book.of.utilities::ratio(tot_score, type = "cumulative", d = 6) >= 0.9) *
-					(tot_score != max(tot_score, na.rm = TRUE))
-			)
-		];
+					# "Best" and alternate break values derivation ====
+					best_k = k[tot_score == max(tot_score, na.rm = TRUE)] |> unique()
+					, alt_k = k * (book.of.utilities::ratio(tot_score, type = "cumulative", d = 6) >= 0.9) *
+						(tot_score != max(tot_score, na.rm = TRUE))
+					)
+			];
 	}
 
 	# :: Grouped differentials of the observed measurements ====
-	grouped_response <- split(y, f = y_grp) |>
-		lapply(\(i) list(dy = c(0, diff(as.numeric(i))))) %>%
-		.[sapply(., \(x) length(unlist(x)) >= obs_ctrl$min_size)] |>
-		data.table::rbindlist(idcol = "grp") |>
-		dplyr::filter(dy > 0)
+	grouped_response <- { split(y, f = y_grp) |>
+			lapply(\(i) list(dy = c(0, diff(as.numeric(i))))) %>%
+			.[sapply(., \(x) length(unlist(x)) >= obs_ctrl$min_size)] |>
+			data.table::rbindlist(idcol = "grp") |>
+			dplyr::filter(dy > 0)
+		}
 
 	object@k <- grouped_response$dy;
 
-	# :: Proportional response values & information encoding ====
-	response.pmf <- table(grouped_response$dy) %>% magrittr::divide_by(sum(., na.rm = TRUE));
-	response.pmf <- response.pmf[as.numeric(names(response.pmf)) |> order()] |>
-		data.table::as.data.table() |>
-		data.table::setnames(c("dy", "p")) |>
-		purrr::modify_at("dy", as.numeric);
-
-	spsUtil::quiet(response.pmf[, info := -log(p)]);
+	# :: Global proportional response values & information encoding ====
+	response.pmf <- table(grouped_response$dy) |> (\(X){
+			X <- X/sum(X, na.rm = TRUE);
+			# magrittr::divide_by(sum(., na.rm = TRUE));
+		# response.pmf <- response.pmf[as.numeric(names(response.pmf)) |> order()] |>
+			data.table::as.data.table(X[order(as.numeric(names(X)))])[
+			, data.table::setnames(.SD, c("dy", "p")) |>
+				purrr::modify_at("dy", as.numeric)
+			][, info := -log(p)]
+		})();
 
 	# Merge `response.pmf` into `grouped_response`
-	spsUtil::quiet(grouped_response[response.pmf, on = "dy", `:=`(p = i.p, info = i.info), by = .EACHI]);
+	spsUtil::quiet(grouped_response[response.pmf, on = "dy", `:=`(p = p, info = info), by = .EACHI]);
 
 	# :: Parallelism topography (depends on user argument `cl_size`) ====
 	.logi_vec <- (cl_size > 1L) & (data.table::uniqueN(grouped_response$g) > 1);

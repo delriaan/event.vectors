@@ -201,11 +201,11 @@ gc(full = TRUE)
 Sys.setenv(CSS = dir(paste0(getwd(), "/../resources"), pattern = "css$", full.names = TRUE))
 Sys.setenv(L2HTML = dir(paste0(getwd(), "/../resources"), pattern = "list2html", full.names = TRUE, recursive = TRUE))
 
-pkgdown::build_site(pkg = "pkg", examples = FALSE, override = list(destination = "../docs"))
 # pkgdown::build_article("Continuity-Example", pkg = "pkg")
 # pkgdown::build_article("Event-Vectors-Examples", pkg = "pkg")
 # pkgdown::build_article("Event-Space-and-Graph-Reduction", pkg = "pkg")
 # pkgdown::build_article("Break-Signal", pkg = "pkg")
+pkgdown::build_site(pkg = "pkg", examples = FALSE, override = list(destination = "../docs"))
 
 
 
