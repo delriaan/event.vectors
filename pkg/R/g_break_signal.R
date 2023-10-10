@@ -50,8 +50,8 @@ class_properties <- { list(
 #' @slot grp A vector containing group assignments along \code{y}
 #' @slot obs_ctrl (list) Observation data control list having the following recognized elements:\cr
 #' \itemize{
-#' \item{\code{kmax}: The upper limit for breaks to allow under consideration. This should primarily be set to control the effecte of extreme values that appear frequently enough to be non-trivial but are due to confounding factors not related to the generative process under study.}
-#' \item{\code{k_size_min}: The minimum observation size at each k to allow}
+#' \item{\code{k_max}: The upper limit for breaks to allow under consideration. This should primarily be set to control the effects of extreme values that appear frequently enough to be non-trivial but are due to confounding factors not related to the generative process under study.}
+#' \item{\code{min_size}: The minimum observation size at each k to allow}
 #' }
 #'
 #' @slot best_k,alt_k (numeric) Entropy-based optimized (and next best) break in the signal (passively set by \code{\link{signal_processor}})

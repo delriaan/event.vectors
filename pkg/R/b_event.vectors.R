@@ -216,7 +216,7 @@ event.vectors <- { R6::R6Class(
 					as.list();
 
 				# :: Use optimization from 'data.table' to create `self$space` ----
-				edge_filter <- rlang::enexprs(..., .named = FALSE, .ignore_empty = "all");
+				edge_filter <- rlang::enexprs(..., .named = FALSE, .ignore_empty = "all") |> c(TRUE);
 
 				if (!graph.only){
 				  if (chatty){ message("Creating `self$space`...") }

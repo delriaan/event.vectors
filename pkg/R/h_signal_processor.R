@@ -15,6 +15,14 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 	y <- object@y;
 	y_grp <- object@grp;
 
+	if (!all(c("min_size", "max_k") %in% names(obs_ctrl))){
+		.nms <- c("min_size", "max_k");
+		msg <- paste0(
+						"`obs_ctrl` should be a list with named elements 'min_size' and 'max_k': missing "
+						, paste(setdiff(.nms, names(obs_ctrl)) |> sprintf(fmt = "'%s'"), collapse = ", ")
+						);
+		stop(msg);
+	}
 	obs_ctrl <- object@obs_ctrl |>
 		purrr::modify_at("min_size", \(x) magrittr::set_attr(x, "label", "Minimum grouped size to process")) |>
 		purrr::modify_at("max_k", \(x) magrittr::set_attr(x, "label", "Maximum break allowed: \nrequires domain knowledge as this is an emperical-analytic task"));
