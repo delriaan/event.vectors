@@ -28,7 +28,7 @@ Functions \code{break_signal()} and \code{signal_processor()} are designed to se
 
 \item{\code{obs_ctrl}}{(list) Observation data control list having the following recognized elements:\cr
 \itemize{
-\item{\code{k_max}: The upper limit for breaks to allow under consideration. This should primarily be set to control the effects of extreme values that appear frequently enough to be non-trivial but are due to confounding factors not related to the generative process under study.}
+\item{\code{max_k}: The upper limit for breaks to allow under consideration. This should primarily be set to control the effects of extreme values that appear frequently enough to be non-trivial but are due to confounding factors not related to the generative process under study.}
 \item{\code{min_size}: The minimum observation size at each k to allow}
 }}
 
