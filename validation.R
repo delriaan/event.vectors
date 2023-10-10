@@ -109,6 +109,22 @@ test.evs$make.evs_universe(
 	, chatty = TRUE
 	)
 
+test.evs$make.evs_universe(
+	graph.control = {
+			rlang::exprs(
+				igraph::E(g)$title	<- igraph::ends(g, igraph::E(g)) %>% apply(1, paste, collapse = " -> ")
+				, igraph::V(g)$color <- igraph::V(g)$name %>% stringi::stri_split_fixed(":", simplify = TRUE) %>% .[, 1L] %>% {
+						x = .;
+						y = purrr::set_names(unique(x), purrr::map_chr(unique(x), ~rgb(runif(1), runif(1), runif(1))))
+						purrr::map_chr(x, ~names(y)[which(y == .x)])
+					}
+				, igraph::V(g)$src <- igraph::V(g)$name %>% stringi::stri_replace_first_regex("[:][0-9]+", "")
+				)
+		}
+	, unit = "days"
+	, chatty = TRUE
+	)
+
 tictoc::toc(log = TRUE);
 
 test.evs$space |> View()
@@ -179,7 +195,7 @@ tune_timeout@best_k
 
 tuned_timeout <- continuity(
 	data = obs_data
-	, map_fields = c(join_key, Z_1)
+	, map_fields = c("join_key", "Z_1")
 	, time_fields = c(date.start, date.end)
 	, boundary_name = episode
 	, timeout = tune_timeout@best_k

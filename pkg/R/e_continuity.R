@@ -5,9 +5,9 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 #'
 #' @param data (object): The source dataset, including all non-sessioning fields desired
 #'
-#' @param map_fields (string): A comma-separated string literal containing field names that will partition `data`
+#' @param map_fields (string): A vector of strings or symbols indicating the field names that will partition `data`
 #'
-#' @param time_fields (string): A comma-separated string literal containing field names to use as "start" and "stop" temporal indices.  If only one value is given, that value will be repeated as the "stop" index
+#' @param time_fields (string): A vector of strings or symbols indicating the field names to use as "start" and "stop" temporal indices.  If only one value is given, that value will be repeated as the "stop" index
 #'
 #' @param timeout The largest allowable 'gap' in a series of time values before a new 'island' begins: can be a quoted expression that conditionally determines the value.
 #'
