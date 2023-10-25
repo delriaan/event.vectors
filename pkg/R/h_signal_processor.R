@@ -15,11 +15,11 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 	y <- object@y;
 	y_grp <- object@grp;
 
-	if (!all(c("min_size", "max_k") %in% names(obs_ctrl))){
+	if (!all(c("min_size", "max_k") %in% names(object@obs_ctrl))){
 		.nms <- c("min_size", "max_k");
 		msg <- paste0(
 						"`obs_ctrl` should be a list with named elements 'min_size' and 'max_k': missing "
-						, paste(setdiff(.nms, names(obs_ctrl)) |> sprintf(fmt = "'%s'"), collapse = ", ")
+						, paste(setdiff(.nms, names(object@obs_ctrl)) |> sprintf(fmt = "'%s'"), collapse = ", ")
 						);
 		stop(msg);
 	}
