@@ -214,8 +214,13 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 	}
 
 	# :: Grouped differentials of the observed measurements ====
-	grouped_response <- { split(y, f = y_grp) |>
-			lapply(\(i) list(dy = c(0, diff(as.numeric(i))))) %>%
+	grouped_response <- {
+		split(y, f = y_grp) |>
+			lapply(\(i){
+				# <2023.10.31> Added a 'length-1' check on argument `i` to prevent
+				# empty values from returning when the split size is length-1.
+				list(dy = if (rlang::has_length(i, 1)){ i } else { c(0, diff(as.numeric(i))) })
+			}) %>%
 			.[sapply(., \(x) length(unlist(x)) >= obs_ctrl$min_size)] |>
 			data.table::rbindlist(idcol = "grp") |>
 			dplyr::filter(dy > 0)
@@ -226,8 +231,7 @@ signal_processor <- function(object, ..., nfolds = 1, cl_size = 1, .debug = FALS
 	# :: Global proportional response values & information encoding ====
 	response.pmf <- table(grouped_response$dy) |> (\(X){
 			X <- X/sum(X, na.rm = TRUE);
-			# magrittr::divide_by(sum(., na.rm = TRUE));
-		# response.pmf <- response.pmf[as.numeric(names(response.pmf)) |> order()] |>
+
 			data.table::as.data.table(X[order(as.numeric(names(X)))])[
 			, data.table::setnames(.SD, c("dy", "p")) |>
 				purrr::modify_at("dy", as.numeric)
