@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">event.vectors</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.3.1102</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.3.1107</span>
       </span>
     </div>
 
@@ -69,7 +69,7 @@
     </div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">signal_processor</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span>, nfolds <span class="op">=</span> <span class="fl">1</span>, cl_size <span class="op">=</span> <span class="fl">1</span>, .debug <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">signal_processor</span><span class="op">(</span><span class="va">object</span>, nfolds <span class="op">=</span> <span class="fl">1</span>, cl_size <span class="op">=</span> <span class="fl">1</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -78,12 +78,12 @@
 <dd><p>A "break_signal" <code>S7</code> object</p></dd>
 
 
-<dt>...</dt>
-<dd><p>(Ignored)</p></dd>
-
-
 <dt>nfolds</dt>
 <dd><p>Number of folds to use during data generation and scoring</p></dd>
+
+
+<dt>...</dt>
+<dd><p>Arguments for internal use</p></dd>
 
 
 <dt>cl</dt>
@@ -94,7 +94,7 @@
     <h2>Value</h2>
     
 
-<p>The original "break_signal" object with prescribed slots populated from the results of processing the "signal" (see <code><a href="break_signal.html">break_signal</a></code>)</p>
+<p>The modified "break_signal" object with prescribed slots populated from the results of processing the "signal" (see <code><a href="break_signal.html">break_signal</a></code>)</p>
     </div>
 
   </div>

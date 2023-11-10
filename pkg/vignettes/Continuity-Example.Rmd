@@ -8,12 +8,16 @@ vignette: >
 ---
 
 ```{r, echo=FALSE, warning=FALSE}
+knitr::opts_chunk$set(collapse = TRUE, comment = "#>", message = FALSE, warning=FALSE);
+
 library(stringi, include.only = "%s+%");
 library(magrittr);
 library(purrr);
 library(event.vectors);
-knitr::opts_chunk$set(collapse = TRUE, comment = "#>", message = FALSE, warning=FALSE);
-htmltools::tags$style(readLines(Sys.getenv("CSS")) |> paste(collapse = "\n")) |> htmltools::tagList();
+
+source("list2html.R");
+htmltools::tags$style(readLines("markdown.css") |> paste(collapse = "\n")) |> htmltools::tagList();
+
 make.test_data <- function(j = 5, n = 5, m = 5, o = 1:10, dest = globalenv(), .debug = FALSE){
 #' Make Test Data for Validation
 #'
@@ -71,18 +75,27 @@ make.test_data <- function(j = 5, n = 5, m = 5, o = 1:10, dest = globalenv(), .d
 		}) %>%
 	list2env(envir = dest);
 }
+make.test_data(j = 50, n = 1, m = 5, o = c(5, 20), dest = .GlobalEnv, .debug = !TRUE);
 
 ```
 
-# Example 
+## Synthesized Data 
 
-Starting with synthesized data, a `timeout` of 10 (days) will be used to roll up series of start and end dates into larger epochs.
+```{r SYNTH_DATA}
+test_data.01[, join_key:src] |>
+	DT::datatable(
+		options = list(dom = "rtip")
+		, rownames = FALSE
+		, extensions = c("Responsive", "Scroller")
+		) |>
+	DT::formatStyle(columns =1:4, textAlign = "center")
+```
 
-The data will be processed under imputed groups defined by columns `join_key` and `src`.
+
+## Continuity Results
+Using a `timeout` of 10 (days) and imputed groups defined by columns `join_key` and `src`, the data was consolidated into a series of larger epochs marked by _start_ and _end_ dates. The data will be processed under.
 
 ```{r CONTINUITY_RUN, warning=FALSE}
-make.test_data(j = 50, n = 1, m = 5, o = c(5, 20), dest = .GlobalEnv, .debug = !TRUE);
-
 data.table::copy(test_data.01) |>
 	continuity(
 		map_fields = c(join_key, src)
@@ -91,18 +104,15 @@ data.table::copy(test_data.01) |>
 		, timeout = 10
 		, archipelago = TRUE
 		, show.all = !TRUE
-		) %>%
+		) |>
 	DT::datatable(
-		options = list(
-				dom = "rtip"
-				, scroller = TRUE
-				, scrollY = 200
-				)
+		options = list(dom = "rtip")
 		, rownames = FALSE
 		, extensions = c("Responsive", "Scroller")
-		, width = 1154 *.8
-		, height = 800 * .9
-		)
+		) |>
+	DT::formatStyle(columns = 1:5, textAlign = "center")
 ```
 
-Is the timeout choice of `10` the best choice given the grouping tuple ($\big\{\text{join_key};\enspace \text{Z_1}\big\}_i$)?  Answering that requires comparing imputed "islands" to some independent, adjudicating set of data or domain expert that can provide an assessment of reasonableness.  An alternative method would be to set the timeout by means of statistical analysis.  See [Break Signal](Break-Signal.html) for an example.
+## A Final Note
+
+There is an additional consideration that is not addressed by the `continuity` function: Is the timeout choice of `10` the best choice given the data?  Answering that requires comparing imputed "islands" to some independent, adjudicating set of data or domain expert that can provide an assessment of reasonableness.  An alternative method would be to set the timeout by means of statistical analysis.  See [Break Signal](Break-Signal.html) for an example.

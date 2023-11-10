@@ -4,19 +4,19 @@
 \alias{signal_processor}
 \title{Signal Processor}
 \usage{
-signal_processor(object, ..., nfolds = 1, cl_size = 1, .debug = FALSE)
+signal_processor(object, nfolds = 1, cl_size = 1, ...)
 }
 \arguments{
 \item{object}{A "break_signal" \code{\link{S7}} object}
 
-\item{...}{(Ignored)}
-
 \item{nfolds}{Number of folds to use during data generation and scoring}
+
+\item{...}{Arguments for internal use}
 
 \item{cl}{Cluster object created from package \code{parallelly}}
 }
 \value{
-The original "break_signal" object with prescribed slots populated from the results of processing the "signal" (see \code{\link{break_signal}})
+The modified "break_signal" object with prescribed slots populated from the results of processing the "signal" (see \code{\link{break_signal}})
 }
 \description{
 Signal Processor

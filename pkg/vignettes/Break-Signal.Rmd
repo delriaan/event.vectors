@@ -8,19 +8,16 @@ vignette: >
  %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include=FALSE, echo=FALSE}
+```{r SETUP, echo=FALSE, warning=FALSE}
 knitr::opts_chunk$set(collapse = TRUE,comment = "#>", echo = FALSE, warning = FALSE, cache = FALSE);
-```
 
-```{r SETUP}
-htmltools::tags$style(readLines(Sys.getenv("CSS")) |> paste(collapse = "\n")) |> htmltools::tagList();
+source("list2html.R");
+htmltools::tags$style(readLines("markdown.css") |> paste(collapse = "\n")) |> htmltools::tagList();
 
 htmltools::tags$script(
 	type = 'text/javascript'
 	, src = 'https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.7/latest.min.js?config=TeX-AMS-MML_CHTML'
 	) |> htmltools::tagList();
-
-source(Sys.getenv("L2HTML"));
 
 .req_libs <- list(
     github = list(libs = c("book.of.workflow", "book.of.utilities", "architect"))
@@ -417,7 +414,8 @@ tuned_timeout_islands <- event.vectors::continuity(
 	, tuned_timeout_islands[(GAP > 0), .(join_key, src, rec_idx, tuned_timeout_island = ISLAND)]
 	);
 
-tuned_timeout@plot |> 
+tuned_timeout@plot |>
+	plotly::style(marker = list(size = 10)) |>
   plotly_layout(
   	width = 720, margin = list(b = -10)
   	, paper_bgcolor = "#DDDDDD", plot_bgcolor = "#FEEEFF"

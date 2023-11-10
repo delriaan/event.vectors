@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">event.vectors</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.3.1102</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.3.1107</span>
       </span>
     </div>
 
@@ -120,7 +120,7 @@
 <span>        , chatty <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span>        <span class="op">)</span>;</span>
 <span><span class="op">}</span></span>
-<span><span class="co">#&gt; [2023-09-24 21:37:42.608901] Initializing the event vector class</span></span>
+<span><span class="co">#&gt; [2023-11-10 16:24:40.142822] Initializing the event vector class</span></span>
 <span><span class="co">#&gt; Validating source `test_data.01[lubridate::month(date.start) == 1]`</span></span>
 <span><span class="co">#&gt; test_data.01[lubridate::month(date.start) == 1] exists: TRUE</span></span>
 <span><span class="co">#&gt; - $join_key exists: TRUE</span></span>
@@ -179,11 +179,11 @@
 <span><span class="co">#&gt; Creating `.tmp_space` ...</span></span>
 <span><span class="co">#&gt; Creating `self$space`...</span></span>
 <span><span class="co">#&gt; Finalizing `self$space`...</span></span>
-<span><span class="co">#&gt; [2023-09-24 21:37:46.761296] ... creating event graphs</span></span>
-<span><span class="co">#&gt; [2023-09-24 21:37:57.99184] The event vectors are ready for analysis</span></span>
+<span><span class="co">#&gt; [2023-11-10 16:24:44.024883] ... creating event graphs</span></span>
+<span><span class="co">#&gt; [2023-11-10 16:24:56.745624] The event vectors are ready for analysis</span></span>
 <span><span class="fu">plan</span><span class="op">(</span><span class="va">sequential</span><span class="op">)</span>;</span>
 <span><span class="fu">tictoc</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tictoc/man/tic.html" class="external-link">toc</a></span><span class="op">(</span>log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>;</span>
-<span><span class="co">#&gt; EVSpace Validation Object: 15.39 sec elapsed</span></span></code></pre></div>
+<span><span class="co">#&gt; EVSpace Validation Object: 16.61 sec elapsed</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="visualization-example">Visualization Example<a class="anchor" aria-label="anchor" href="#visualization-example"></a>
@@ -210,8 +210,8 @@
 <span>    <span class="fu">visNetwork</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visOptions.html" class="external-link">visOptions</a></span><span class="op">(</span>width <span class="op">=</span> <span class="st">"1600"</span>, height <span class="op">=</span> <span class="st">"1024"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>    <span class="fu">visNetwork</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/visNetwork/man/visNodes.html" class="external-link">visNodes</a></span><span class="op">(</span>opacity <span class="op">=</span> <span class="fl">0.5</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>    <span class="fu">htmlwidgets</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/htmlwidgets/man/saveWidget.html" class="external-link">saveWidget</a></span><span class="op">(</span><span class="st">"event_viz.html"</span><span class="op">)</span></span></code></pre></div>
-<p>Click <a href="./event_viz.html">here</a> to view a visualized graph
-from the created object.</p>
+<p>Click <a href="./event_viz.html" target="_blank">here</a> to view a
+visualized graph from the created object.</p>
 </div>
   </div>
 
