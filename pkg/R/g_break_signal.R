@@ -10,35 +10,38 @@ class_properties <- { list(
 	, score = S7::new_property(class = S7::class_numeric, default = numeric())
 	, data = S7::new_property(class = S7::class_any, default = NULL)
 	, plot = S7::new_property(class = S7::class_function, getter = function(self){
-			plotly::plot_ly(
-				data = self@data
-				, split = ~k
-				, x = ~(\(i){ i[i != 0] <- sign(i[i != 0]) * log10(abs(i[i != 0])); i })(d2_Idev_wmean)
-				, y = ~d2_kscore
-				, size = ~tot_score * (1 + (2 * (k %in% self@alt_k)) + (4 * (k == self@best_k)))
-				, stroke = I("#000000")
-				, hovertext = ~glue::glue("<b>k:</b> {k}{ifelse(k == self@best_k, '<sup> Best</sup>', ifelse(k %in% self@alt_k, '<sup> Alt</sup>', ''))}<br><b>Score:</b> {round(tot_score, 4)}")
-				, type = "scatter"
-				, mode = "markers"
-				, width = 720
-				, height = 600
-				) |>
-				plotly::config(mathjax = "cdn") |>
-				plotly::layout(
-					margin = list(t = -5, b = -5)
-					, title = list(text = plotly::TeX("\\text{Break Score vs. Weighted-Mean Squared Information Deviation}_{\\text{ Size }\\to \\text{Total Score}}"))
-					, xaxis = list(
-						title = list(
-							text = plotly::TeX("\\bar{I}^{''}_{\\text{log}_{10}}"))
-						, showgrid = FALSE
+			suppressWarnings({
+				plotly::plot_ly(
+					data = self@data
+					, split = ~k
+					, x = ~(\(i){
+							i[i != 0] <- sign(i[i != 0]) * log10(abs(i[i != 0]));
+							i;
+						})(d2_Idev_wmean) * d2_kscore
+					, y = ~tot_score
+					, marker = ~list(size = 10 * tot_score * (1 + (2 * (k %in% self@alt_k)) + (4 * (k == self@best_k))))
+					, stroke = I("#000000")
+					, hovertext = ~glue::glue("<b>k:</b> {k}{ifelse(k == self@best_k, '<sup> Best</sup>', ifelse(k %in% self@alt_k, '<sup> Alt</sup>', ''))}<br><b>Score:</b> {round(tot_score, 4)}")
+					, type = "scatter"
+					, mode = "markers"
+					) |>
+					plotly::config(mathjax = "cdn") |>
+					plotly::layout(
+						margin = list(t = -5, b = -5)
+						, title = list(text = plotly::TeX("\\text{Break Score vs. Weighted-Mean Squared Information Deviation}_{\\text{ Size }\\sim \\text{Total Score, is alt. or best 'k'}}"))
+						, xaxis = list(
+								title = list(
+									text = plotly::TeX("\\bar{I}^{''}_{\\text{log}_{10}}\\times{\\Omega^k}^{''}"))
+								, showgrid = FALSE
+								)
+						, yaxis = list(
+								title = list(
+									text = plotly::TeX("\\text{Score}"))
+								, showgrid = FALSE
+								)
+						, legend = list(title = list(text = plotly::TeX("\\enspace\\enspace{k}")))
 						)
-					, yaxis = list(
-						title = list(
-							text = plotly::TeX("{\\Omega^k}^{''}"))
-						, showgrid = FALSE
-						)
-					, legend = list(title = list(text = plotly::TeX("\\enspace\\enspace{k}")))
-					)
+			})
 		})
 	)}
 

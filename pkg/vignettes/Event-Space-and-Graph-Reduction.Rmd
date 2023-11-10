@@ -7,13 +7,13 @@ vignette: >
  %\VignetteEncoding{UTF-8}
 ---
 
-```{r, include = FALSE}
-knitr::opts_chunk$set(collapse = TRUE,comment = "#>")
-```
+```{r SETUP, echo=FALSE, warning=FALSE}
+knitr::opts_chunk$set(collapse = TRUE,comment = "#>", echo = FALSE, warning = FALSE, cache = FALSE);
 
-```{r setup}
+source("list2html.R");
+htmltools::tags$style(readLines("markdown.css") |> paste(collapse = "\n")) |> htmltools::tagList();
+
 library(event.vectors)
-htmltools::tags$style(readLines(Sys.getenv("CSS")) |> paste(collapse = "\n")) |> htmltools::tagList()
 ```
 
 # Event Space

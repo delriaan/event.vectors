@@ -15,7 +15,10 @@ library(stringi, include.only = "%s+%")
 library(tictoc);
 library(purrr)
 knitr::opts_chunk$set(collapse = TRUE,comment = "#>")
-htmltools::tags$style(readLines(Sys.getenv("CSS")) |> paste(collapse = "\n")) |> htmltools::tagList();
+
+source("list2html.R");
+htmltools::tags$style(readLines("markdown.css") |> paste(collapse = "\n")) |> htmltools::tagList();
+
 plan(sequential);
 plan(tweak(multisession, workers = 3));
 ```
@@ -155,4 +158,4 @@ test.evs$evt_graphs$`1` %>% {
 	htmlwidgets::saveWidget("event_viz.html")
 ```
 
-Click [here](./event_viz.html) to view a visualized graph from the created object.
+Click [here](./event_viz.html){target="_blank"} to view a visualized graph from the created object.
