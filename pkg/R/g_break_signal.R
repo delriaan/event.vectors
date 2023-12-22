@@ -12,14 +12,14 @@ class_properties <- { list(
 	, plot = S7::new_property(class = S7::class_function, getter = function(self){
 			suppressWarnings({
 				plotly::plot_ly(
-					data = self@data
+					data = self@data[(tot_score %in% sapply(k, \(this.k) max(tot_score[k == this.k])))]
 					, split = ~k
 					, x = ~(\(i){
 							i[i != 0] <- sign(i[i != 0]) * log10(abs(i[i != 0]));
 							i;
 						})(d2_Idev_wmean) * d2_kscore
 					, y = ~tot_score
-					, marker = ~list(size = 10 * tot_score * (1 + (2 * (k %in% self@alt_k)) + (4 * (k == self@best_k))))
+					, size = ~15*(k == best_k) + 5*(k %in% alt_k) + 5
 					, stroke = I("#000000")
 					, hovertext = ~glue::glue("<b>k:</b> {k}{ifelse(k == self@best_k, '<sup> Best</sup>', ifelse(k %in% self@alt_k, '<sup> Alt</sup>', ''))}<br><b>Score:</b> {round(tot_score, 4)}")
 					, type = "scatter"
@@ -28,15 +28,14 @@ class_properties <- { list(
 					plotly::config(mathjax = "cdn") |>
 					plotly::layout(
 						margin = list(t = -5, b = -5)
-						, title = list(text = plotly::TeX("\\text{Break Score vs. Weighted-Mean Squared Information Deviation}_{\\text{ Size }\\sim \\text{Total Score, is alt. or best 'k'}}"))
+						, title = list(text = plotly::TeX("\\text{Break Score vs. Weighted-Mean Squared Information Deviation}\\\\\\text{ Size }\\sim k \\text{(optimal, alternate, or other)}"))
 						, xaxis = list(
 								title = list(
 									text = plotly::TeX("\\bar{I}^{''}_{\\text{log}_{10}}\\times{\\Omega^k}^{''}"))
 								, showgrid = FALSE
 								)
 						, yaxis = list(
-								title = list(
-									text = plotly::TeX("\\text{Score}"))
+								title = list(title = list(text = plotly::TeX("\\text{Max Total Score @ k}")))
 								, showgrid = FALSE
 								)
 						, legend = list(title = list(text = plotly::TeX("\\enspace\\enspace{k}")))

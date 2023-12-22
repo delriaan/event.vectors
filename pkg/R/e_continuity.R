@@ -67,13 +67,7 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 	output_fields <- { list(map_fields, if (archipelago) { optional_output[-4] }) |>
 										unique() |> purrr::reduce(append)}
 
-	timeout <- { switch(
-			class(rlang::enexpr(timeout))[1]
-			, "numeric" = rlang::expr(GAP > !!timeout)
-			, "call" = timeout
-			, "character" = str2lang(timeout)
-			, timeout
-			)}
+	timeout <- rlang::enexpr(timeout)
 
 	# :: Result data 1 ----
 	outData <- c(map_fields, time_fields) |>
@@ -88,10 +82,14 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 							rlang::eval_tidy(time_fields[[1]], data = data)
 							, rlang::eval_tidy(time_fields[[2]], data = data)
 							)){
-		    	.logi_vec = diff(c(0, start_idx)) |> as.integer() < eval(timeout);
+		    	.logi_vec = diff(c(0, start_idx)) |> as.numeric() < eval(timeout);
 
-		    	.choices = c(shift(start_idx, fill = last(start_idx) + eval(timeout), type = "lead")) %tf%
-		    							c(start_idx + eval(timeout))
+		    	.choices = c(data.table::shift(
+		    			start_idx
+		    			, fill = data.table::last(start_idx) + eval(timeout)
+		    			, type = "lead")
+		    			) %tf% c(start_idx + rlang::eval_tidy(timeout))
+
 		    	# output value test
 		    	ifelse(.logi_vec, .choices$true, .choices$false)
 				} else { stop_idx }
@@ -122,7 +120,7 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 		, `:=`(start_idx  = start_idx + GAP, stop_idx = stop_idx  + GAP)
 		][(GAP < 0) | (is.na(GAP)), GAP := 0
 		][
-		, island_idx := book.of.utilities::count.cycles(eval(timeout), reset = FALSE)
+		, island_idx := book.of.utilities::count.cycles(GAP > eval(timeout), reset = FALSE)
 		, by = c(map_fields)
 		][
 		# Set the optional fields to be returned based on the value for argument `archipelago` (default `TRUE`)
