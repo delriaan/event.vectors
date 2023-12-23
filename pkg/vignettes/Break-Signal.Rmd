@@ -414,9 +414,10 @@ tuned_timeout_islands <- event.vectors::continuity(
 	);
 
 tuned_timeout@plot |>
-	plotly::style(marker = list(size = 10)) |>
+	# plotly::style(marker = list(size = 10)) |>
   plotly_layout(
-  	width = 720, margin = list(b = -10)
+  	# width = 720
+  	margin = list(b = -10)
   	, paper_bgcolor = "#DDDDDD", plot_bgcolor = "#FEEEFF"
   	)
 ```

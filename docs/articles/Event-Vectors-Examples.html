@@ -33,7 +33,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">event.vectors</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.3.1107</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.3.1110</span>
       </span>
     </div>
 
@@ -120,7 +120,7 @@
 <span>        , chatty <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span>        <span class="op">)</span>;</span>
 <span><span class="op">}</span></span>
-<span><span class="co">#&gt; [2023-11-10 16:24:40.142822] Initializing the event vector class</span></span>
+<span><span class="co">#&gt; [2023-12-22 19:01:35.512948] Initializing the event vector class</span></span>
 <span><span class="co">#&gt; Validating source `test_data.01[lubridate::month(date.start) == 1]`</span></span>
 <span><span class="co">#&gt; test_data.01[lubridate::month(date.start) == 1] exists: TRUE</span></span>
 <span><span class="co">#&gt; - $join_key exists: TRUE</span></span>
@@ -179,11 +179,11 @@
 <span><span class="co">#&gt; Creating `.tmp_space` ...</span></span>
 <span><span class="co">#&gt; Creating `self$space`...</span></span>
 <span><span class="co">#&gt; Finalizing `self$space`...</span></span>
-<span><span class="co">#&gt; [2023-11-10 16:24:44.024883] ... creating event graphs</span></span>
-<span><span class="co">#&gt; [2023-11-10 16:24:56.745624] The event vectors are ready for analysis</span></span>
+<span><span class="co">#&gt; [2023-12-22 19:01:39.950195] ... creating event graphs</span></span>
+<span><span class="co">#&gt; [2023-12-22 19:01:53.916255] The event vectors are ready for analysis</span></span>
 <span><span class="fu">plan</span><span class="op">(</span><span class="va">sequential</span><span class="op">)</span>;</span>
 <span><span class="fu">tictoc</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/tictoc/man/tic.html" class="external-link">toc</a></span><span class="op">(</span>log <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>;</span>
-<span><span class="co">#&gt; EVSpace Validation Object: 16.61 sec elapsed</span></span></code></pre></div>
+<span><span class="co">#&gt; EVSpace Validation Object: 18.4 sec elapsed</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="visualization-example">Visualization Example<a class="anchor" aria-label="anchor" href="#visualization-example"></a>
@@ -198,7 +198,7 @@
 <span>            <span class="fu">purrr</span><span class="fu">::</span><span class="fu"><a href="https://purrr.tidyverse.org/reference/map.html" class="external-link">map_chr</a></span><span class="op">(</span><span class="op">~</span><span class="op">{</span></span>
 <span>                <span class="va">x</span> <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/eval.html" class="external-link">eval</a></span><span class="op">(</span><span class="va">.x</span>, envir <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/environment.html" class="external-link">globalenv</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span> <span class="op">%&gt;%</span></span>
 <span>                    <span class="va">.</span><span class="op">[</span>, <span class="fu">purrr</span><span class="fu">::</span><span class="fu"><a href="https://purrr.tidyverse.org/reference/modify.html" class="external-link">modify_at</a></span><span class="op">(</span><span class="va">.SD</span><span class="op">[</span>, <span class="op">!</span><span class="st">"row.filters"</span><span class="op">]</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"start_idx"</span>, <span class="st">"end_idx"</span><span class="op">)</span>, <span class="va">as.character</span><span class="op">)</span><span class="op">]</span> <span class="op">%&gt;%</span></span>
-<span>                    <span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://Rdatatable.gitlab.io/data.table/reference/melt.data.table.html" class="external-link">melt</a></span><span class="op">(</span>measure.vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">.</span><span class="op">)</span>, variable.name <span class="op">=</span> <span class="st">"key"</span>, variable.factor <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span>                    <span class="fu">data.table</span><span class="fu">::</span><span class="fu"><a href="https://rdatatable.gitlab.io/data.table/reference/melt.data.table.html" class="external-link">melt</a></span><span class="op">(</span>measure.vars <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">.</span><span class="op">)</span>, variable.name <span class="op">=</span> <span class="st">"key"</span>, variable.factor <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span></span>
 <span>                <span class="fu">kableExtra</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/knitr/man/kable.html" class="external-link">kable</a></span><span class="op">(</span>x <span class="op">=</span> <span class="va">x</span>, caption <span class="op">=</span> <span class="st">"Retraced data from source"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>                    <span class="fu">kableExtra</span><span class="fu">::</span><span class="fu"><a href="https://rdrr.io/pkg/kableExtra/man/kable_styling.html" class="external-link">kable_styling</a></span><span class="op">(</span><span class="op">)</span></span>

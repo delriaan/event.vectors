@@ -52,10 +52,22 @@
     <loc>/reference/evs_exclude.blender.html</loc>
   </url>
   <url>
+    <loc>/reference/exec_algorithm.html</loc>
+  </url>
+  <url>
+    <loc>/reference/geo_pmf.html</loc>
+  </url>
+  <url>
     <loc>/reference/index.html</loc>
   </url>
   <url>
+    <loc>/reference/info_encoder.html</loc>
+  </url>
+  <url>
     <loc>/reference/retrace.evs.html</loc>
+  </url>
+  <url>
+    <loc>/reference/score_algorithm_output.html</loc>
   </url>
   <url>
     <loc>/reference/signal_processor.html</loc>
