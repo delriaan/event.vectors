@@ -118,20 +118,22 @@ event.vectors <- { R6::R6Class(
 						.temp <- private$.params$config |> names() |> utils::combn(m = 2) %>% cbind(apply(., 2, rev)) |> t()
 
 						# enforce 'src.mix'
-						if (!grepl("reflex|all", src.mix, ignore.case = TRUE)){ .temp %<>% .[.[, 1] != .[, 2], ] }
+						if (!grepl("reflex|all", src.mix, ignore.case = TRUE)){
+							.temp <- .temp[.temp[, 1] != .temp[, 2], ]
+						}
 
 						# enforce 'exclude.mix' after converting .temp to a 'data.table' object
-						.temp %<>% data.table::as.data.table() |> data.table::setnames(c("from", "to"));
+						.temp <- data.table::as.data.table(.temp) |> data.table::setnames(c("from", "to"));
 						.temp[!purrr::pmap_lgl(.temp, ~list(c(.x, .y)) %in% exclude.mix)] |> data.table::setkey(from, to)
 					}
 
-					private$.params$config %<>% {
-						data.table::setattr(., "src.mix", as.character(rlang::enexpr(src.mix))) |>
+					private$.params$config <- {
+						data.table::setattr(private$.params$config, "src.mix", as.character(rlang::enexpr(src.mix))) |>
 						data.table::setattr("exclude.mix", sapply(exclude.mix, function(i){
 							paste0(if (length(i) == 1){ c(i, i) } else if(length(i) > 2) { i[1:2] } else { i }, collapse = ", ")
 						})) %>%
 						data.table::setattr("jk", {
-							purrr::map(., ~.x$jk.vec |> rlang::eval_tidy()) |>
+							purrr::map(., \(x) x$jk.vec |> rlang::eval_tidy()) |>
 								magrittr::freduce(list(unlist, unique, sort, purrr::set_names))
 							})
 					}
@@ -195,13 +197,13 @@ event.vectors <- { R6::R6Class(
 			  if (chatty){ message("Creating `.tmp_space` ...") }
 
 			  .tmp_space <- purrr::imap(self$config, \(x, y){
-						out <- x %$% {
+						out <- magrittr::`%$%`(x, {
 							data.table::data.table(
 								jk = rlang::eval_tidy(jk)
 								, time_start_idx = rlang::eval_tidy(time_start_idx)
 								, time_end_idx = rlang::eval_tidy(time_end_idx)
 								)
-						}
+						})
 						out[, src := y]
 					}) |>
 					data.table::rbindlist() |>

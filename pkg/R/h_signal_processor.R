@@ -211,6 +211,7 @@ exec_algorithm <- function(Data, obs_ctrl, cl_size = 1){
 		library(magrittr);
 		library(book.of.workflow);
 		library(data.table);
+		library(event.vectors)
 	});
 
 	cat("[INFO] Created cluster `cl` in the calling environment\n");

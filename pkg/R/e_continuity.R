@@ -94,10 +94,10 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 		    	ifelse(.logi_vec, .choices$true, .choices$false)
 				} else { stop_idx }
 			}
-			, rec_idx = sequence(length(start_idx))
-			, last_rec_idx = rep(FALSE, length(start_idx))
+			, rec_idx = seq_len(.N)
+			, last_rec_idx = seq_len(.N) == .N
 			)
-	, by = c(names(map_fields))
+	, by = names(map_fields)
 	];
 
 	#
