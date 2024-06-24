@@ -1,8 +1,0 @@
-^.*\.Rproj$
-^\.Rproj\.user$
-^desc[.]instr
-^SAND
-^valid
-^_pkgdown\.yml$
-^docs$
-^pkgdown$
