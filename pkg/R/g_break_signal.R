@@ -1,6 +1,6 @@
 # S7 Properties
 class_properties <- { list(
-	y = S7::new_union(S7::class_numeric, S7::class_factor, S7::class_integer)
+	y = S7::new_union(S7::class_numeric, S7::class_integer, S7::class_Date, S7::class_POSIXct, S7::class_factor, S7::class_character, S7::class_expression)
 	, k = S7::new_property(class = S7::new_union(S7::class_numeric, S7::class_factor, S7::class_integer), default = 0)
 	, grp = S7::class_any
 	, obs_ctrl = S7::new_property(class = S7::class_list, default = list(min_size = 1L, max_k = 2L))

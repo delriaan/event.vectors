@@ -29,7 +29,7 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 	data <- data.table::as.data.table(data);
 
 	# :: Helper function to ensure length-2 ----
-	check_len <- purrr::as_mapper(~if (rlang::has_length(.x, 1)){ c(.x, .x) } else { .x });
+	check_len <- \(x) if (rlang::has_length(x, 1)){ c(x, x) } else { x }
 
 	# :: Construction Objects ----
 	map_fields <- { rlang::enexprs(map_fields, .named = TRUE) |>
@@ -107,7 +107,7 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
 	outData[
 		, seg := 1:length(rec_idx), by = c(map_fields)
 		][ # Gap precursor: column-wise sequential differences within start and stop indices using `diff()`
-		, c("delta_start", "delta_stop") := purrr::map(list(start_idx, stop_idx), ~diff(c(data.table::first(.x), .x)))
+		, c("delta_start", "delta_stop") := purrr::map(list(start_idx, stop_idx), \(x) diff(c(data.table::first(x), x)))
 		, by = c(map_fields)
 		][
 		# Gap: From one record to the next in a partitioned, ordered set: { stop[n] - stop[n-1] } - [stop - start]

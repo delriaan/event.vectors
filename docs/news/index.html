@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">event.vectors</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.3.1200</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.4</span>
       </span>
     </div>
 
@@ -67,12 +67,39 @@
     </div>
 
     <div class="section level2">
+<h2 class="page-header" data-toc-text="0.1.4" id="eventvectors-014">event.vectors 0.1.4<a class="anchor" aria-label="anchor" href="#eventvectors-014"></a></h2>
+<div class="section level3">
+<h3 id="enhancements-0-1-4">Enhancements<a class="anchor" aria-label="anchor" href="#enhancements-0-1-4"></a></h3>
+<ul><li>
+<strong><code><a href="../reference/break_signal.html">break_signal()</a></code></strong>:
+<ul><li>Added support for <code>POSIXct</code> and <code>character</code> classes (addresses <a href="https://github.com/delriaan/event.vectors/issues/7" title="signal_processor(): Expand Data Types" class="external-link"># 7</a>)</li>
+</ul></li>
+<li>
+<strong><code><a href="../reference/signal_processor.html">signal_processor()</a></code></strong>:
+<ul><li>Added support for <code>POSIXct</code> and <code>character</code> classes (addresses <a href="https://github.com/delriaan/event.vectors/issues/7" title="signal_processor(): Expand Data Types" class="external-link"># 7</a>)</li>
+<li>Implemented logic to handle the case of serial execution when argument <code>cl_size</code> is &lt;= 1L.</li>
+<li>Added documentation for argument <code>cl_size</code>.</li>
+</ul></li>
+<li>
+<strong><code>event.vectors$make.evs_universe()</code></strong>: In the event all source relationships are loops when the event.vectors object configured using the default source mix (“combination”), a warning is produced (regardless of the <code>chatty</code> argument), and <strong>no</strong> filtering is performed on the penultimate result that populates class member <code>space</code>.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="updates-0-1-4">Updates<a class="anchor" aria-label="anchor" href="#updates-0-1-4"></a></h3>
+<ul><li>Removed deprecated <code>purrr</code> functional style <code>~{ .x }</code>
+</li>
+<li>Replaced references to <code><a href="https://purrr.tidyverse.org/reference/as_mapper.html" class="external-link">purrr::as_mapper()</a></code> with anonymous function definitions (i.e. <code>\(){}</code>)</li>
+</ul></div>
+</div>
+    <div class="section level2">
 <h2 class="page-header" data-toc-text="0.1.3.1200" id="eventvectors-0131200">event.vectors 0.1.3.1200<a class="anchor" aria-label="anchor" href="#eventvectors-0131200"></a></h2>
 <div class="section level3">
 <h3 id="bug-fixes-0-1-3-1200">Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-1-3-1200"></a></h3>
-<ul><li><p><strong><code><a href="../reference/continuity.html">continuity()</a></code></strong>: Corrected temporal partitioning logic that detects the end of a partition.</p></li>
+<ul><li>
+<strong><code><a href="../reference/continuity.html">continuity()</a></code></strong>:
+<ul><li>Corrected temporal partitioning logic that detects the end of a partition.</li>
+</ul></li>
 <li>
-<p><strong><code>event.vectors</code></strong>:</p>
+<strong><code>event.vectors</code></strong>:
 <ul><li>Replaced references of <code>%&lt;&gt;%</code> with explicit re-assignment.</li>
 <li>Replaced references to <code>%$%</code> with the functional form</li>
 </ul></li>

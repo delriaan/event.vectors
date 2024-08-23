@@ -4,7 +4,7 @@
 \alias{event.vectors-package}
 \title{Event Vectors}
 \description{
-Package \code{event.vectors} provides a framework for capturing the relationships among points in time as well as events having duration.  Some definitions should be kept in mind to understand the event vector framework:
+Package \code{event.vectors} provides a framework for temporal data processing with a focus on capturing the relationships among points and durations in time.  Some definitions should be kept in mind to understand the event vector framework:
 \itemize{
 \item \code{Vector}: A vector numerically encodes magnitude and direction.
 \item \code{Event}: Theoretically, an instantaneous point in time associated with a change of state.  Practically, an event is temporal duration encoded as a pair of temporal points. This is the understanding used in \code{event.vectors}.

@@ -180,7 +180,7 @@ exec_algorithm <- function(Data, obs_ctrl, cl_size = 1){
 			rlang::set_names(unique(Data$grp));
 	}
 
-	# Augment the data
+	# Augment the data:
 	Data[
 		, `:=`(c("cyl", "series", "grp.info")
 					 # Encode information by group
@@ -188,11 +188,52 @@ exec_algorithm <- function(Data, obs_ctrl, cl_size = 1){
 		, by = grp
 		];
 
+	# Define the "engine":
+	f <- \(incl){
+			res <- Data[(grp %in% incl)]
+			if (prod(dim(res)) == 0) return(NULL)
+		
+			tryCatch({
+				res[
+					, `:=`(
+							# Within-group cumulative "attempts" subsequently passed to geometric PMF calculation ====
+							k = cumsum(dy)
+							, # if any infinite values are found replace them with the maximum non-infinite value
+							grp.info = ifelse(is.infinite(grp.info), max(grp.info[!is.infinite(grp.info)]), grp.info)
+							)
+					, by = .(cyl, grp)
+					][
+					# Within-group geometric PMF and break information deviation
+					, `:=`(
+							geo_pmf = geo_pmf(x = k, p = p)
+							, Idev = (info - grp.info)^2
+							)
+					, by = .(cyl, grp)
+					][
+					# Column selection ====
+					, .(cyl, grp, series, k, info, geo_pmf, Idev)
+					][
+					# Within-group break-cycle information deviation slope ====
+					, d_Idev := c(0, diff(Idev))
+					, by = .(cyl, grp)
+					][
+					# Within-group break-cycle information deviation curvature ====
+					, d2_Idev := c(0, diff(d_Idev))
+					, by = .(cyl, grp)
+					] |>
+					score_algorithm_output(obs_ctrl = obs_ctrl)
+				}, error = \(e){ x <- NULL; attr(x, "error", e); return(x) }
+			)
+	}
 
 	# :: Parallelism topography (depends on user argument `cl_size`) ====
 	# Determine the number of cluster nodes to use for parallel processing
-	# based on the argument `cl_size`
-	.logi_vec <- (cl_size > 1L);
+	# based on the argument `cl_size`.
+
+	if (cl_size <= 1L || length(fold_map) == 1L){
+		# No 'else' branch is needed when forcibly returning a value.
+		return(f(fold_map) |> purrr::compact())
+	}
 
 	# Globally assign the cluster object to the environment to allow for
 	# manual termination in the event of an error:
@@ -219,39 +260,8 @@ exec_algorithm <- function(Data, obs_ctrl, cl_size = 1){
 	# Generate and score data by CV fold exclusion ----
 	# cyl: The cycle identifier
 	# grp: The group identifier
-	parallel::clusterApplyLB(
-		x = fold_map
-		, cl = cl
-		, fun = \(incl){
-				Data[(grp %in% incl)][
-				, `:=`(
-						# Within-group cumulative "attempts" subsequently passed to geometric PMF calculation ====
-						k = cumsum(dy)
-						, # if any infinite values are found replace them with the maximum non-infinite value
-						grp.info = ifelse(is.infinite(grp.info), max(grp.info[!is.infinite(grp.info)]), grp.info)
-						)
-				, by = .(cyl, grp)
-				][
-				# Within-group geometric PMF and break information deviation
-				, `:=`(
-						geo_pmf = geo_pmf(x = k, p = p)
-						, Idev = (info - grp.info)^2
-						)
-				, by = .(cyl, grp)
-				][
-				# Column selection ====
-				, .(cyl, grp, series, k, info, geo_pmf, Idev)
-				][
-				# Within-group break-cycle information deviation slope ====
-				, d_Idev := c(0, diff(Idev))
-				, by = .(cyl, grp)
-				][
-				# Within-group break-cycle information deviation curvature ====
-				, d2_Idev := c(0, diff(d_Idev))
-				, by = .(cyl, grp)
-				] |>
-				score_algorithm_output(obs_ctrl = obs_ctrl)
-		}) |>
+	parallel::clusterApplyLB(x = fold_map, cl = cl, fun = f) |>
+		purrr::compact() |>
 		# Combine data and return
 		data.table::rbindlist(idcol = "holdout_group");
 }
@@ -263,6 +273,7 @@ signal_processor <- function(object, cl_size = 1, ...){
 	#' \code{signal_processor} processes the "signal" of a "break_signal" object.
 	#'
 	#' @param object A "break_signal" \code{\link{S7}} object
+	#' @param cl_size (integer|1) The number of parallel workers to use during processing if greater than one.
 	#' @param ... Arguments for internal use
 	#'
 	#' @return The modified "break_signal" object with prescribed slots populated from the results of processing the "signal" (see \code{\link{break_signal}}).
@@ -292,14 +303,28 @@ signal_processor <- function(object, cl_size = 1, ...){
 		}, env= environment());
 
 	# y: Alias of object@y:
-	makeActiveBinding("y", \() object@y, env= environment());
+	assertive::assert_any_are_true(
+		class(object@y) %in% c("factor", "Date", "POSIXct", "POSIXlt", "character", "numeric", "integer")
+		)
+	
+	makeActiveBinding("y", \() check_signal(object@y), env= environment());
+	check_signal <- \(s){
+		switch(
+			class(s)[1]
+			, character = match(s, s)
+			, factor = levels(s)[s] |> match(levels(s))
+			, POSIXct = lubridate::seconds(s) |> as.numeric()
+			, POSIXlt = lubridate::seconds(s) |> as.numeric()
+			, as.numeric(s)
+			)
+	}
 
 	# y_grp: Alias of object@grp:
 	makeActiveBinding("y_grp", \() object@grp, env= environment());
 
 	# :: Grouped differentials of the observed measurements ====
 	grouped_response <- {
-		split(y, f = y_grp) |>
+		split(y, f = sapply(y_grp, paste, collapse = "::")) |>
 			lapply(\(i){
 				# Used a 'length-1' check on argument `i` to prevent empty values from
 				# returning when the split size is length-1.
@@ -347,23 +372,25 @@ signal_processor <- function(object, cl_size = 1, ...){
 	if (.debug) browser();
 
 	# Populate `.temp`:
-	.temp <- exec_algorithm(
-		Data = data.table::copy(grouped_response)
-		, cl_size = cl_size
-		, obs_ctrl = obs_ctrl
-		);
+	suppressWarnings(.temp <- exec_algorithm(
+			Data = data.table::copy(grouped_response)
+			, cl_size = cl_size
+			, obs_ctrl = obs_ctrl
+			));
 
-	if (rlang::is_empty(.temp[(best_k > 0), unique(best_k)])){
+	if (!hasName(.temp, "best_k") || rlang::is_empty(.temp[(best_k > 0), unique(best_k)])){
 		message("Could not optimize `k`: returning the input as-is ...");
 	} else {
-		object@data <- .temp[(best_k == {
-				table(best_k) |>
-				sort(decreasing = TRUE) |>
-				names() |>
-				data.table::first() |>
-				as.numeric() |>
-				max(na.rm = TRUE)
-			})];
+		object@data <- .temp[(
+				best_k == {
+					table(best_k) |>
+					sort(decreasing = TRUE) |>
+					names() |>
+					data.table::first() |>
+					as.numeric() |>
+					max(na.rm = TRUE)
+				}
+			)];
 
 		# :: Assign additional values to `object`, clean up, and return the object invisibly ====
 		object@obs_ctrl <- obs_ctrl;

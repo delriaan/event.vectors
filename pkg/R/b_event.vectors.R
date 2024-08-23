@@ -68,40 +68,40 @@ event.vectors <- { R6::R6Class(
 					# private <- new.env()
 					fld_nms <- c("jk", "time_start_idx", "time_end_idx")
 
-					make_refs <- purrr::as_mapper(~sapply(.x, magrittr::freduce, list(eval, as.character)) |> rlang::parse_exprs())
+					make_refs <- \(x) sapply(x, magrittr::freduce, list(eval, as.character)) |> rlang::parse_exprs()
 
-					make_quos <- purrr::as_mapper(~{
-						.this <- sapply(.y, magrittr::freduce, list(eval, as.character))
-						.that <- .x
+					make_quos <- \(x, y){
+						.this <- sapply(y, magrittr::freduce, list(eval, as.character))
+						.that <- x
 						.that <- rlang::set_names(.that, .this)
 						rlang::as_quosures(.that, named = TRUE, env = rlang::caller_env(1))
-					})
+					}
 
-					set_fld_nms <- purrr::as_mapper(~{
-							nms.x <- names(.x)
+					set_fld_nms <- \(x){
+							nms.x <- names(x)
 							nm_pos <- which(nms.x %in% fld_nms)
 							na_pos <- setdiff(seq_along(nms.x), nm_pos)
 							if (rlang::is_empty(na_pos)){ na_pos <- seq_along(fld_nms) }
 							nms.x[na_pos] <- setdiff(fld_nms, nms.x[nm_pos])
 							nms.x
-						})
+						}
 
 					# Create the event data references
 					event_refs <- make_refs(rlang::exprs(!!src.defs)) |> make_quos(rlang::enexprs(contexts))
-					event_flds <- purrr::map(map.fields, ~{
-						rlang::parse_exprs(.x) %>%
+					event_flds <- purrr::map(map.fields, \(x){
+						rlang::parse_exprs(x) %>%
 							rlang::set_names(set_fld_nms(.)) |>
 							unlist(recursive = FALSE)
 					})
 
 					# Create a configuration quosure for each data source
-					private$.params$config <- purrr::map2(event_refs, event_flds, ~{
-							.temp <- rlang::as_quosures(.y, env = rlang::as_data_mask(rlang::eval_tidy(.x)))[fld_nms];
+					private$.params$config <- purrr::map2(event_refs, event_flds, \(x, y){
+							.temp <- rlang::as_quosures(y, env = rlang::as_data_mask(rlang::eval_tidy(x)))[fld_nms];
 							.temp$jk.vec <- .temp$jk |> rlang::eval_tidy() |> unique() |> sort();
 
-							message(glue::glue("Validating source `{rlang::as_label(rlang::quo_get_expr(.x))}`\n"));
+							message(glue::glue("Validating source `{rlang::as_label(rlang::quo_get_expr(x))}`\n"));
 							qa_check <- { c(
-								glue::glue("{rlang::as_label(rlang::quo_get_expr(.x))} exists: {assertthat::not_empty(rlang::eval_tidy(.x))}")
+								glue::glue("{rlang::as_label(rlang::quo_get_expr(x))} exists: {assertthat::not_empty(rlang::eval_tidy(x))}")
 								, glue::glue("- ${rlang::as_label(rlang::quo_get_expr(.temp$jk))} exists: {assertthat::not_empty(rlang::eval_tidy(.temp$jk))}" )
 								, glue::glue("- ${rlang::as_label(rlang::quo_get_expr(.temp$time_start_idx))} exists: {assertthat::not_empty(rlang::eval_tidy(.temp$time_start_idx))}" )
 								, glue::glue("- ${rlang::as_label(rlang::quo_get_expr(.temp$time_end_idx))} exists: {assertthat::not_empty(rlang::eval_tidy(.temp$time_end_idx))}" )
@@ -109,7 +109,7 @@ event.vectors <- { R6::R6Class(
 								)}
 							if (chatty){ purrr::walk(qa_check, message)}
 
-							data.table::setattr(.temp, "src.def", .x)
+							data.table::setattr(.temp, "src.def", x)
 						})
 
 					# @def q_table sets the allowable comparisons before any calculations are done
@@ -124,7 +124,7 @@ event.vectors <- { R6::R6Class(
 
 						# enforce 'exclude.mix' after converting .temp to a 'data.table' object
 						.temp <- data.table::as.data.table(.temp) |> data.table::setnames(c("from", "to"));
-						.temp[!purrr::pmap_lgl(.temp, ~list(c(.x, .y)) %in% exclude.mix)] |> data.table::setkey(from, to)
+						.temp[!purrr::pmap_lgl(.temp, \(...) list(c(...elt(1), ...elt(2))) %in% exclude.mix)] |> data.table::setkey(from, to)
 					}
 
 					private$.params$config <- {
@@ -223,22 +223,26 @@ event.vectors <- { R6::R6Class(
 				if (!graph.only){
 				  if (chatty){ message("Creating `self$space`...") }
 
-					self$space <- {
-						data.table::as.data.table(merge(
-							.tmp_space[(.tmp_space$src %in% .src_mix$from)] |>
-									purrr::compact() |>
-									purrr::set_names(c("jk", "f_start_idx", "f_end_idx", "f_src"))
-							, .tmp_space[(.tmp_space$src %in% .src_mix$to)] |>
-									purrr::compact() |>
-									purrr::set_names(c("jk", "t_start_idx", "t_end_idx", "t_src"))
-							, by = "jk"
-						))[
-						(t_start_idx - f_start_idx) >= 0
-						, cbind(.SD, cross.time(s0 = f_start_idx, s1 = t_start_idx
-																		, e0 = f_end_idx, e1 = t_end_idx
-																		, control = time.control, unit = unit))
-						]
-					}
+					self$space <- local({
+						from_src <- .tmp_space[(.tmp_space$src %in% .src_mix$from)] |>
+							purrr::compact() |>
+							purrr::set_names(c("jk", "f_start_idx", "f_end_idx", "f_src")) |>
+							data.table::as.data.table()
+
+						to_src <- .tmp_space[(.tmp_space$src %in% .src_mix$to)] |>
+							purrr::compact() |>
+							purrr::set_names(c("jk", "t_start_idx", "t_end_idx", "t_src")) |>
+							data.table::as.data.table()
+
+						# browser()
+
+						data.table::merge.data.table(x = from_src, y = to_src, by = "jk", allow.cartesian = TRUE)[
+							(t_start_idx - f_start_idx) >= 0
+							, cbind(.SD, cross.time(s0 = f_start_idx, s1 = t_start_idx
+																			, e0 = f_end_idx, e1 = t_end_idx
+																			, control = time.control, unit = unit))
+							]
+					})
 
 				  if (chatty){ message("Finalizing `self$space`...") }
 
@@ -258,7 +262,17 @@ event.vectors <- { R6::R6Class(
 						  ][, epsilon.desc := factor(epsilon.desc, levels = c("NA", "Full Concurrency", "Concurrency", "Continuity", "Disjoint"), ordered = TRUE)
 						  ][
 						  # Remove loops (may result in removing all records)
-					  	(from.src != to.src)
+					  	(\(logi_vec){
+								if (!any(logi_vec)){ 
+									cli::cli_alert_warning("All relationships are loops: returning values as-is.")
+									!logi_vec
+								} else {
+									if (chatty && (attr(self$config, "src.mix") == "comb")){
+										cli::cli_alert_info("Removing loops")
+									}
+									logi_vec
+								}
+							})(from.src != to.src)
 					  	, .(jk, from.src, to.src, beta, mGap, mSt, mEd, epsilon, epsilon.desc, from.len, to.len, from.coord, to.coord, src.pair, x_filter)
 						  ]
 					}
