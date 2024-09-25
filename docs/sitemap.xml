@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
@@ -69,4 +70,30 @@
   <url>
     <loc>/reference/signal_processor.html</loc>
   </url>
+=======
+<urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
+<url><loc>/404.html</loc></url>
+<url><loc>/articles/Break-Signal.html</loc></url>
+<url><loc>/articles/Continuity-Example.html</loc></url>
+<url><loc>/articles/Event-Space-and-Graph-Reduction.html</loc></url>
+<url><loc>/articles/index.html</loc></url>
+<url><loc>/authors.html</loc></url>
+<url><loc>/index.html</loc></url>
+<url><loc>/LICENSE-text.html</loc></url>
+<url><loc>/news/index.html</loc></url>
+<url><loc>/reference/break_signal.html</loc></url>
+<url><loc>/reference/continuity.html</loc></url>
+<url><loc>/reference/cross.time.html</loc></url>
+<url><loc>/reference/event.vectors-package.html</loc></url>
+<url><loc>/reference/event.vectors.html</loc></url>
+<url><loc>/reference/evs_exclude.blender.html</loc></url>
+<url><loc>/reference/exec_algorithm.html</loc></url>
+<url><loc>/reference/geo_pmf.html</loc></url>
+<url><loc>/reference/index.html</loc></url>
+<url><loc>/reference/info_encoder.html</loc></url>
+<url><loc>/reference/retrace.evs.html</loc></url>
+<url><loc>/reference/score_algorithm_output.html</loc></url>
+<url><loc>/reference/signal_processor.html</loc></url>
+>>>>>>> Stashed changes
 </urlset>
+

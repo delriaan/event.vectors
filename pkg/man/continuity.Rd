@@ -23,14 +23,18 @@ continuity(
 
 \item{timeout}{The largest allowable 'gap' in a series of time values before a new 'island' begins: can be a quoted expression that conditionally determines the value.}
 
-\item{boundary_name}{(string): The name root of the boundary column names (e.g., "episode" -> "episode_start_idx", "episode_end_idx")}
+\item{boundary_name}{(string): The name root of the boundary column names (e.g., "episode" => "episode_start_idx", "episode_end_idx")}
 
 \item{archipelago}{(logical | TRUE): Should the output include the islands and gaps generated?}
 
-\item{show.all}{(logical | FALSE): Should the output include all of the columns of the output?}
+\item{show.all}{(logical | FALSE): Should the output include all of the columns of the output? \code{show.all} and \code{archipelago} are independent}
 }
 \value{
-A data.table with columns \if{html}{\out{<mapFields>}}, ..., timeOut, ISLAND, island_idx, where '...' is empty if \code{show.all} is FALSE
+A \code{\link[data.table]{data.table}} with the following columns \code{<mapFields>, <X>, <Y>}:\cr
+\describe{
+\item{X (\code{archipelago = TRUE})}{\code{\{boundary_name\}_start_idx, \{boundary_name\}_end_idx, ISLAND, GAP}}
+\item{Y (\code{show.all = TRUE})}{\code{island_idx, seq_idx, start_idx, stop_idx, rec_idx, map_partition, delta_start, delta_stop}}
+}
 }
 \description{
 \code{continuity} is based on the \href{https://www.red-gate.com/simple-talk/sql/t-sql-programming/the-sql-of-gaps-and-islands-in-sequences/}{'islands & gaps'} concept.  Use case for \code{continuity} is to roll up a sequence consisting of smaller duration into a larger epoch governed by some meaningful separation between \eqn{n_\text{lower}} and \eqn{{n - 1}_\text{upper}} segments.

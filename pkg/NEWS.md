@@ -1,3 +1,15 @@
+<<<<<<< Updated upstream
+=======
+# event.vectors 0.1.5
+
+## Updates
+- **`continuity()`**:
+   - Internal updates to make code easier to debug
+   - Feature `GAP` is now part of the returned columns when `archipelago` is `TRUE`
+   - The column order was updated to put columns specified in `map_fields` and conditionally returned via argument `archipelago` at the front.
+   - Updated function documentation to reflect changes
+
+>>>>>>> Stashed changes
 # event.vectors 0.1.4
 
 ## Enhancements

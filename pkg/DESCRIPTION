@@ -2,12 +2,20 @@ Type: Package
 Package: event.vectors
 Title: A framework for temporal data processing
 Description: The `event.vectors` package provides a framework for temporal data processing with a focus on capturing the relationships among points and durations in time.
+<<<<<<< Updated upstream
 Version: 0.1.4
+=======
+Version: 0.1.5
+>>>>>>> Stashed changes
 Author: Chionesu George <sapienti.Dei@outlook.com> [aut, cre]
 Maintainer: Chionesu George <sapienti.Dei@outlook.com>
 Encoding: UTF-8
 LazyData: true
+<<<<<<< Updated upstream
 RoxygenNote: 7.3.1
+=======
+RoxygenNote: 7.3.2
+>>>>>>> Stashed changes
 Depends: R (>= 4.4.1)
 Imports: purrr (>= 1.0.0),
     book.of.utilities (>= 0.2.0),
