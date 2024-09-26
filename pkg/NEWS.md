@@ -1,6 +1,13 @@
+# event.vectors 0.1.5010
+
+## Updates
+
+- **`signal_processor()`**: Documentation updates
+
 # event.vectors 0.1.5
 
 ## Updates
+
 - **`continuity()`**:
    - Internal updates to make code easier to debug
    - Feature `GAP` is now part of the returned columns when `archipelago` is `TRUE`

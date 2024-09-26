@@ -14,17 +14,17 @@ score_algorithm_output(algo_output, obs_ctrl)
 \value{
 A \code{\link[data.table]{data.table}} with the following columns:\cr
 \describe{
-\item{k}{The vector of \code{k} values}
-\item{d_Idev}{First-order difference of \code{Idev}}
-\item{d2_Idev}{Second-order difference of \code{Idev}}
-\item{k_score}{The break score -> information deviation equation/model}
-\item{k_sz}{The number of observations in each \code{k}}
+\item{k}{The vector of \eqn{k} values}
+\item{d_Idev}{\eqn{\Delta{\text{Idev}}}}
+\item{d2_Idev}{\eqn{\Delta^{2}{\text{Idev}}}}
+\item{k_score}{The break score \eqn{\to} information deviation equation/model}
+\item{k_sz}{The number of observations in each \eqn{k}}
 \item{geo_pmf.max}{The maximal value of the geometric probability mass function returned by \code{geo_pmf}}
-\item{Idev_wmean}{The weighted mean of \code{Idev} using as weights the geometric PMF (\code{geo_pmf}) in order to find the optimal \code{k}}
-\item{d_kscore, d_Idev_wmean}{For each \code{k}, the slope of \code{k_score} and \code{Idev_wmean}, respectively}
-\item{tot_score}{The mutual relative proportionality of curvatures over \code{k} and \code{Idev_wmean}. The relative proportionality of \code{d2_Idev_wmean} is subtracted from 1 to invert the proportionality.  This makes \code{tot_score} the product of the \emph{minimum} of one curvature and the \emph{maximum} of the othe (gradient descent is not used to determine the optimal \code{k} because \code{k} is a discrete value.)}
-\item{best_k}{The \code{k} value with the highest \code{tot_score}}
-\item{alt_k}{The \code{k} value that is not the \code{best_k} having a cumulative proportion of \code{tot_score} >= 0.9}
+\item{Idev_wmean}{The weighted-mean of \eqn{\text{Idev}} using as weights the geometric PMF (\code{geo_pmf}) in order to find the optimal \eqn{k}}
+\item{d_kscore, d_Idev_wmean}{For each \eqn{k}, \eqn{\Delta{k_\text{score}}} and \eqn{\Delta{\text{Idev}_\text{wmean}}}, respectively}
+\item{tot_score}{The mutual relative proportionality of curvatures over \eqn{k} and \eqn{\text{Idev}_\text{wmean}}. The relative proportionality of \eqn{\Delta^{2}{\text{Idev}_\text{wmean}}} is subtracted from 1 to invert the proportionality.  This makes \code{tot_score} the product of the \emph{minimum} of one curvature and the \emph{maximum} of the othe (gradient descent is not used to determine the optimal \eqn{k} because \eqn{k} is a discrete value.)}
+\item{best_k}{The value of \eqn{k} corresponding to the maximal value of \code{tot_score}}
+\item{alt_k}{The next best \eqn{k}}
 }
 }
 \description{

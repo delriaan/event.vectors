@@ -27,15 +27,14 @@ class_properties <- { list(
 					) |>
 					plotly::config(mathjax = "cdn") |>
 					plotly::layout(
-						margin = list(t = -5, b = -5)
+						margin = list(t = -5, b = -5, r = -5)
 						, title = list(text = plotly::TeX("\\text{Break Score vs. Weighted-Mean Squared Information Deviation}\\\\\\text{ Size }\\sim k \\text{(optimal, alternate, or other)}"))
 						, xaxis = list(
-								title = list(
-									text = plotly::TeX("\\bar{I}^{''}_{\\text{log}_{10}}\\times{\\Omega^k}^{''}"))
+								title = list(text = plotly::TeX("\\bar{I}^{''}_{\\text{log}_{10}}\\times{\\Omega^k}^{''}"))
 								, showgrid = FALSE
 								)
 						, yaxis = list(
-								title = list(title = list(text = plotly::TeX("\\text{Max Total Score @ k}")))
+								title = list(text = plotly::TeX("\\text{Max Total Score @ k}"))
 								, showgrid = FALSE
 								)
 						, legend = list(title = list(text = plotly::TeX("\\enspace\\enspace{k}")))

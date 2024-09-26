@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">event.vectors</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.5</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.5010</span>
       </span>
     </div>
 
@@ -25,25 +25,6 @@
       <ul class="nav navbar-nav"><li>
   <a href="../reference/index.html">Reference</a>
 </li>
-<li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-    Articles
-
-    <span class="caret"></span>
-  </a>
-  <ul class="dropdown-menu" role="menu"><li>
-      <a href="../articles/Break-Signal.html">Break Signal</a>
-    </li>
-    <li>
-      <a href="../articles/Continuity-Example.html">Continuity Example</a>
-    </li>
-    <li>
-      <a href="../articles/Event-Space-and-Graph-Reduction.html">Event Space and Graph Reduction</a>
-    </li>
-    <li>
-      <a href="../articles/Event-Vectors-Examples.html">Event Vectors Examples</a>
-    </li>
-  </ul></li>
 <li>
   <a href="../news/index.html">Changelog</a>
 </li>
@@ -90,37 +71,37 @@
     <div id="value">
     <h2>Value</h2>
     <p>A <code><a href="https://rdatatable.gitlab.io/data.table/reference/data.table.html" class="external-link">data.table</a></code> with the following columns:<br></p><dl><dt>k</dt>
-<dd><p>The vector of <code>k</code> values</p></dd>
+<dd><p>The vector of \(k\) values</p></dd>
 
 <dt>d_Idev</dt>
-<dd><p>First-order difference of <code>Idev</code></p></dd>
+<dd><p>\(\Delta{\text{Idev}}\)</p></dd>
 
 <dt>d2_Idev</dt>
-<dd><p>Second-order difference of <code>Idev</code></p></dd>
+<dd><p>\(\Delta^{2}{\text{Idev}}\)</p></dd>
 
 <dt>k_score</dt>
-<dd><p>The break score -&gt; information deviation equation/model</p></dd>
+<dd><p>The break score \(\to\) information deviation equation/model</p></dd>
 
 <dt>k_sz</dt>
-<dd><p>The number of observations in each <code>k</code></p></dd>
+<dd><p>The number of observations in each \(k\)</p></dd>
 
 <dt>geo_pmf.max</dt>
 <dd><p>The maximal value of the geometric probability mass function returned by <code>geo_pmf</code></p></dd>
 
 <dt>Idev_wmean</dt>
-<dd><p>The weighted mean of <code>Idev</code> using as weights the geometric PMF (<code>geo_pmf</code>) in order to find the optimal <code>k</code></p></dd>
+<dd><p>The weighted-mean of \(\text{Idev}\) using as weights the geometric PMF (<code>geo_pmf</code>) in order to find the optimal \(k\)</p></dd>
 
 <dt>d_kscore, d_Idev_wmean</dt>
-<dd><p>For each <code>k</code>, the slope of <code>k_score</code> and <code>Idev_wmean</code>, respectively</p></dd>
+<dd><p>For each \(k\), \(\Delta{k_\text{score}}\) and \(\Delta{\text{Idev}_\text{wmean}}\), respectively</p></dd>
 
 <dt>tot_score</dt>
-<dd><p>The mutual relative proportionality of curvatures over <code>k</code> and <code>Idev_wmean</code>. The relative proportionality of <code>d2_Idev_wmean</code> is subtracted from 1 to invert the proportionality.  This makes <code>tot_score</code> the product of the <em>minimum</em> of one curvature and the <em>maximum</em> of the othe (gradient descent is not used to determine the optimal <code>k</code> because <code>k</code> is a discrete value.)</p></dd>
+<dd><p>The mutual relative proportionality of curvatures over \(k\) and \(\text{Idev}_\text{wmean}\). The relative proportionality of \(\Delta^{2}{\text{Idev}_\text{wmean}}\) is subtracted from 1 to invert the proportionality.  This makes <code>tot_score</code> the product of the <em>minimum</em> of one curvature and the <em>maximum</em> of the othe (gradient descent is not used to determine the optimal \(k\) because \(k\) is a discrete value.)</p></dd>
 
 <dt>best_k</dt>
-<dd><p>The <code>k</code> value with the highest <code>tot_score</code></p></dd>
+<dd><p>The value of \(k\) corresponding to the maximal value of <code>tot_score</code></p></dd>
 
 <dt>alt_k</dt>
-<dd><p>The <code>k</code> value that is not the <code>best_k</code> having a cumulative proportion of <code>tot_score</code> &gt;= 0.9</p></dd>
+<dd><p>The next best \(k\)</p></dd>
 
 
 </dl></div>

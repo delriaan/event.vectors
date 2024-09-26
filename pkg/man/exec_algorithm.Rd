@@ -4,7 +4,7 @@
 \alias{exec_algorithm}
 \title{Execute Algorithm}
 \usage{
-exec_algorithm(Data, obs_ctrl, cl_size = 1)
+exec_algorithm(Data, obs_ctrl, cl_size = 1, ...)
 }
 \arguments{
 \item{Data}{The input data}
@@ -12,6 +12,8 @@ exec_algorithm(Data, obs_ctrl, cl_size = 1)
 \item{obs_ctrl}{(See \code{\link{break_signal}})}
 
 \item{cl_size}{(integer|1) The number of parallel processes to use}
+
+\item{...}{Arguments for internal use}
 }
 \value{
 A \code{\link[data.table]{data.table}} object containing scoring information.

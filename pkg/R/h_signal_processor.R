@@ -13,6 +13,10 @@ info_encoder <- function(i, info.only = FALSE, data.only = info.only){
 	#' @family Signal Processor Functions
 
 
+	if (!is.atomic(i)){
+		i <- unlist(i, use.names = FALSE)
+	}
+
 	# Given a set of differenced values (over the differences of the
 	# (possibly grouped) monotonically increasing input), a "signal break" is
 	# assumed as a switch from positive to negative:
@@ -31,14 +35,20 @@ info_encoder <- function(i, info.only = FALSE, data.only = info.only){
 	# 3. The geometric mean of the Shannon self-information is calculated
 	inform <- \(x){
 		# Step 1:
-		table(x) |> as.vector() |> book.of.utilities::ratio(type = "of.sum", d = 6) |>
+		res <- as.vector(x) |> 
+			table() |> 
+			book.of.utilities::ratio(sort.type = "num_label") |>
 		# Step 2:
-		log(base = 2) |>
-			magrittr::multiply_by(-1) %>%
-			.[order(as.numeric(names(.)))] |>
-			as.vector() |>
+			log(base = 2) |>
+			magrittr::multiply_by(-1) |>
+			as.vector()
 		# Step 3:
-		book.of.utilities::calc.geo_mean()
+		book.of.utilities::calc.geo_mean(res)
+	}
+
+	if (info.only == -1){
+		debug(inform)
+		info.only == FALSE
 	}
 
 	# Determine the type of output:
@@ -58,13 +68,14 @@ geo_pmf <- function(x, p){
 	#' Geometric Probability Mass Function
 	#'
 	#' @param x The cumulative sum of differences, representing the number of attempts before success.\cr These values imply contiguous parts of the series before a break.
-	#' @param p The cumulative proportion of the current group's difference-proportion mapped from `response.pmf`.
+	#' @param p The cumulative proportion of the current group's difference-proportion mapped from \code{response.pmf}.
 	#'
-	#' @return \code{p * (1 - p)^x}
+	#' @return \eqn{p(1 - p)^x}
 	#' @family Signal Processor Functions
 
 	assertive::assert_all_are_in_left_open_range(x = p, lower = 0, upper = 1, na_ignore = TRUE, severity = "stop");
 	assertive::assert_all_are_greater_than_or_equal_to(x = x, y = 0, severity = "stop");
+	x <- as.integer(x)
 
 	# Return the probability mass function of the geometric distribution
 	# Reference URL: https://en.wikipedia.org/wiki/Geometric_distribution
@@ -81,17 +92,17 @@ score_algorithm_output <- function(algo_output, obs_ctrl){
 	#'
 	#' @return A \code{\link[data.table]{data.table}} with the following columns:\cr
 	#' \describe{
-	#' \item{k}{The vector of `k` values}
-	#' \item{d_Idev}{First-order difference of `Idev`}
-	#' \item{d2_Idev}{Second-order difference of `Idev`}
-	#' \item{k_score}{The break score -> information deviation equation/model}
-	#' \item{k_sz}{The number of observations in each `k`}
-	#' \item{geo_pmf.max}{The maximal value of the geometric probability mass function returned by `geo_pmf`}
-	#' \item{Idev_wmean}{The weighted mean of `Idev` using as weights the geometric PMF (`geo_pmf`) in order to find the optimal `k`}
-	#' \item{d_kscore, d_Idev_wmean}{For each `k`, the slope of `k_score` and `Idev_wmean`, respectively}
-	#' \item{tot_score}{The mutual relative proportionality of curvatures over `k` and `Idev_wmean`. The relative proportionality of `d2_Idev_wmean` is subtracted from 1 to invert the proportionality.  This makes `tot_score` the product of the \emph{minimum} of one curvature and the \emph{maximum} of the othe (gradient descent is not used to determine the optimal `k` because `k` is a discrete value.)}
-	#' \item{best_k}{The `k` value with the highest `tot_score`}
-	#' \item{alt_k}{The `k` value that is not the `best_k` having a cumulative proportion of `tot_score` >= 0.9}
+	#' \item{k}{The vector of \eqn{k} values}
+	#' \item{d_Idev}{\eqn{\Delta{\text{Idev}}}}
+	#' \item{d2_Idev}{\eqn{\Delta^{2}{\text{Idev}}}}
+	#' \item{k_score}{The break score \eqn{\to} information deviation equation/model}
+	#' \item{k_sz}{The number of observations in each \eqn{k}}
+	#' \item{geo_pmf.max}{The maximal value of the geometric probability mass function returned by \code{geo_pmf}}
+	#' \item{Idev_wmean}{The weighted-mean of \eqn{\text{Idev}} using as weights the geometric PMF (\code{geo_pmf}) in order to find the optimal \eqn{k}}
+	#' \item{d_kscore, d_Idev_wmean}{For each \eqn{k}, \eqn{\Delta{k_\text{score}}} and \eqn{\Delta{\text{Idev}_\text{wmean}}}, respectively}
+	#' \item{tot_score}{The mutual relative proportionality of curvatures over \eqn{k} and \eqn{\text{Idev}_\text{wmean}}. The relative proportionality of \eqn{\Delta^{2}{\text{Idev}_\text{wmean}}} is subtracted from 1 to invert the proportionality.  This makes \code{tot_score} the product of the \emph{minimum} of one curvature and the \emph{maximum} of the othe (gradient descent is not used to determine the optimal \eqn{k} because \eqn{k} is a discrete value.)}
+	#' \item{best_k}{The value of \eqn{k} corresponding to the maximal value of \code{tot_score}}
+	#' \item{alt_k}{The next best \eqn{k}}
 	#' }
 	#'
 	#' @family Signal Processor Functions
@@ -139,21 +150,21 @@ score_algorithm_output <- function(algo_output, obs_ctrl){
 		][
 		# Total Score ====
 		, `:=`(tot_score =
-					 	(1 - book.of.utilities::ratio(abs(d2_Idev_wmean), type = "of.max", d = 6)) *
-					 	book.of.utilities::ratio(d2_kscore, type = "of.max", d = 6)
+					 	(1 - book.of.utilities::ratio(abs(d2_Idev_wmean), type = of.max)) *
+					 	book.of.utilities::ratio(d2_kscore, type = of.max)
 					 )
 		][
 		# "Best" and alternate break values derivation ====
 		, `:=`(
 				best_k = k[tot_score == max(tot_score, na.rm = TRUE)] |> unique()
-				, alt_k = k * (book.of.utilities::ratio(tot_score, type = "cumulative", d = 6) >= 0.9) *
-					(tot_score != max(tot_score, na.rm = TRUE))
+				, alt_k = k * (book.of.utilities::ratio(tot_score, type = cumulative) >= 0.9) *
+						(tot_score != max(tot_score, na.rm = TRUE))
 				)
 		];
 }
 
 # Algorithm engine definition:
-exec_algorithm <- function(Data, obs_ctrl, cl_size = 1){
+exec_algorithm <- function(Data, obs_ctrl, cl_size = 1, ...){
 	#' Execute Algorithm
 	#'
 	#' \code{exec_algorithm} executes the algorithm for a given data set and number of cross-assignment folds. The following functions are called in the order listed below:\cr
@@ -166,9 +177,17 @@ exec_algorithm <- function(Data, obs_ctrl, cl_size = 1){
 	#' @param Data The input data
 	#' @param obs_ctrl (See \code{\link{break_signal}})
 	#' @param cl_size (integer|1) The number of parallel processes to use
+	#' @param ... Arguments for internal use
 	#'
 	#' @return A \code{\link[data.table]{data.table}} object containing scoring information.
 	#' @family Signal Processor Functions
+
+	env <- rlang::caller_env();
+	.debug <- FALSE;
+	if (hasName(list(...), ".debug")){ 
+		.debug <- list(...)[[".debug"]] 
+	}
+	if (.debug) browser()
 
 	# Generate holdout sets by group ----
 	fold_map <- unique(Data$grp);
@@ -182,14 +201,14 @@ exec_algorithm <- function(Data, obs_ctrl, cl_size = 1){
 
 	# Augment the data:
 	Data[
-		, `:=`(c("cyl", "series", "grp.info")
-					 # Encode information by group
-					 , info_encoder(dy, info.only = FALSE))
+		# Encode information by group
+		, `:=`(c("cyl", "series", "grp.info"), info_encoder(dy, info.only = FALSE))
 		, by = grp
 		];
 
 	# Define the "engine":
-	f <- \(incl){
+	# `incl` refers to the cross-validation fold to "include"
+	cv_fun <- \(incl){
 			res <- Data[(grp %in% incl)]
 			if (prod(dim(res)) == 0) return(NULL)
 		
@@ -198,8 +217,8 @@ exec_algorithm <- function(Data, obs_ctrl, cl_size = 1){
 					, `:=`(
 							# Within-group cumulative "attempts" subsequently passed to geometric PMF calculation ====
 							k = cumsum(dy)
-							, # if any infinite values are found replace them with the maximum non-infinite value
-							grp.info = ifelse(is.infinite(grp.info), max(grp.info[!is.infinite(grp.info)]), grp.info)
+							# if any infinite values are found replace them with the maximum non-infinite value
+							, grp.info = ifelse(is.infinite(grp.info), max(grp.info[!is.infinite(grp.info)]), grp.info)
 							)
 					, by = .(cyl, grp)
 					][
@@ -229,41 +248,52 @@ exec_algorithm <- function(Data, obs_ctrl, cl_size = 1){
 	# :: Parallelism topography (depends on user argument `cl_size`) ====
 	# Determine the number of cluster nodes to use for parallel processing
 	# based on the argument `cl_size`.
-
-	if (cl_size <= 1L || length(fold_map) == 1L){
+	if (cl_size <= 1L || length(fold_map) == 1L || !"parallelly" %in% rownames(installed.packages())){
 		# No 'else' branch is needed when forcibly returning a value.
 		return(f(fold_map) |> purrr::compact())
 	}
 
-	# Globally assign the cluster object to the environment to allow for
-	# manual termination in the event of an error:
-	assign("cl", parallelly::makeClusterPSOCK(workers = cl_size, autoStop = TRUE), envir = environment());
+	# Assign the cluster object to the calling environment to allow for manual termination in the event of an error:
+	assign("cl", parallelly::makeClusterPSOCK(workers = cl_size, autoStop = TRUE), envir = env);
 
-	parallel::clusterSetRNGStream(cl = cl, sample(-1E5:1E5, 1));
+	parallel::clusterSetRNGStream(cl = env$cl, sample(-1E5:1E5, 1));
 
 	# Export objects to cluster environment:
 	parallel::clusterExport(
-		cl = cl
+		cl = env$cl
 		, varlist = c("obs_ctrl", "Data", "info_encoder", "geo_pmf", "score_algorithm_output")
 		, envir = environment()
 		);
 
-	parallel::clusterEvalQ(cl = cl, expr = {
+	parallel::clusterEvalQ(cl = env$cl, expr = {
 		library(magrittr);
 		library(book.of.workflow);
 		library(data.table);
 		library(event.vectors)
 	});
 
-	cat("[INFO] Created cluster `cl` in the calling environment\n");
+	cli::cli_alert_info("Created cluster `cl` in the calling environment")
 
 	# Generate and score data by CV fold exclusion ----
 	# cyl: The cycle identifier
 	# grp: The group identifier
-	parallel::clusterApplyLB(x = fold_map, cl = cl, fun = f) |>
+	res <- parallel::clusterApplyLB(x = fold_map, cl = env$cl, fun = cv_fun) |>
 		purrr::compact() |>
 		# Combine data and return
 		data.table::rbindlist(idcol = "holdout_group");
+	
+	# Clean up parallelism objects:
+	if ("cl" %in% ls(env)){
+		parallel::stopCluster(env$cl)
+		rm(cl, envir = env)
+	}
+
+	if (rlang::is_empty(res)){
+		cli::cli_alert_danger("Error in crating output: returning `NULL`")
+		return(NULL)
+	} else {	
+		return(res)
+	}
 }
 
 # The main algorithm function (exported):
@@ -282,8 +312,10 @@ signal_processor <- function(object, cl_size = 1, ...){
 	#' @export
 	S7::check_is_S7(object);
 	.debug <- FALSE;
-
-	if (hasName(list(...), ".debug")){ .debug <- list(...)[[".debug"]] }
+	if (hasName(list(...), ".debug")){ 
+		.debug <- list(...)[[".debug"]] 
+	}
+	if (.debug) browser()
 
 	# :: User argument handling ====
 	if (!all(c("min_size", "max_k") %in% names(object@obs_ctrl))){
@@ -292,6 +324,7 @@ signal_processor <- function(object, cl_size = 1, ...){
 						"`obs_ctrl` should be a list with named elements 'min_size' and 'max_k': missing "
 						, paste(setdiff(.nms, names(object@obs_ctrl)) |> sprintf(fmt = "'%s'"), collapse = ", ")
 						);
+		
 		stop(msg);
 	}
 
@@ -329,8 +362,8 @@ signal_processor <- function(object, cl_size = 1, ...){
 				# Used a 'length-1' check on argument `i` to prevent empty values from
 				# returning when the split size is length-1.
 				list(dy = if (rlang::has_length(i, 1)){ i } else { c(0, diff(as.numeric(i))) })
-			}) %>%
-			.[sapply(., \(x) length(unlist(x)) >= obs_ctrl$min_size)] |>
+			}) |>
+			(\(i) i[sapply(i, \(x) length(unlist(x)) >= obs_ctrl$min_size)])() |>
 			data.table::rbindlist(idcol = "grp")
 		}
 
@@ -348,8 +381,8 @@ signal_processor <- function(object, cl_size = 1, ...){
 	# if (.debug){ browser(); }
 
 	# 1. Calculate the global proportional response values
-	response.pmf <- table(grouped_response$dy) %>%
-		magrittr::divide_by(sum(., na.rm = TRUE)) |>
+	response.pmf <- table(grouped_response$dy) |>
+		. => magrittr::divide_by(., sum(., na.rm = TRUE)) |>
 
 	# 2. Calculate the information encoding of the global proportional response values
 		(\(i){
@@ -376,6 +409,7 @@ signal_processor <- function(object, cl_size = 1, ...){
 			Data = data.table::copy(grouped_response)
 			, cl_size = cl_size
 			, obs_ctrl = obs_ctrl
+			, .debug = .debug
 			));
 
 	if (!hasName(.temp, "best_k") || rlang::is_empty(.temp[(best_k > 0), unique(best_k)])){

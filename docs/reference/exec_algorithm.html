@@ -22,7 +22,7 @@ score_algorithm_output
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">event.vectors</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.5</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.5010</span>
       </span>
     </div>
 
@@ -30,25 +30,6 @@ score_algorithm_output
       <ul class="nav navbar-nav"><li>
   <a href="../reference/index.html">Reference</a>
 </li>
-<li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-    Articles
-
-    <span class="caret"></span>
-  </a>
-  <ul class="dropdown-menu" role="menu"><li>
-      <a href="../articles/Break-Signal.html">Break Signal</a>
-    </li>
-    <li>
-      <a href="../articles/Continuity-Example.html">Continuity Example</a>
-    </li>
-    <li>
-      <a href="../articles/Event-Space-and-Graph-Reduction.html">Event Space and Graph Reduction</a>
-    </li>
-    <li>
-      <a href="../articles/Event-Vectors-Examples.html">Event Vectors Examples</a>
-    </li>
-  </ul></li>
 <li>
   <a href="../news/index.html">Changelog</a>
 </li>
@@ -79,7 +60,7 @@ score_algorithm_output
 </ol></div>
 
     <div id="ref-usage">
-    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">exec_algorithm</span><span class="op">(</span><span class="va">Data</span>, <span class="va">obs_ctrl</span>, cl_size <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">exec_algorithm</span><span class="op">(</span><span class="va">Data</span>, <span class="va">obs_ctrl</span>, cl_size <span class="op">=</span> <span class="fl">1</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div id="arguments">
@@ -96,6 +77,10 @@ score_algorithm_output
 
 <dt id="arg-cl-size">cl_size<a class="anchor" aria-label="anchor" href="#arg-cl-size"></a></dt>
 <dd><p>(integer|1) The number of parallel processes to use</p></dd>
+
+
+<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
+<dd><p>Arguments for internal use</p></dd>
 
 </dl></div>
     <div id="value">

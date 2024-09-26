@@ -12,4 +12,9 @@ NULL
 
 .onLoad <- function(...) {
 	S7::methods_register()
+	Sys.setenv(`_R_USE_PIPEBIND` = TRUE)
+}
+
+.onUnload <- function(...){
+	Sys.unsetenv("_R_USE_PIPEBIND")
 }

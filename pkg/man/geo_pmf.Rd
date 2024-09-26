@@ -12,7 +12,7 @@ geo_pmf(x, p)
 \item{p}{The cumulative proportion of the current group's difference-proportion mapped from \code{response.pmf}.}
 }
 \value{
-\code{p * (1 - p)^x}
+\eqn{p(1 - p)^x}
 }
 \description{
 Geometric Probability Mass Function
