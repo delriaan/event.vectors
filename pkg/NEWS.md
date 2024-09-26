@@ -1,5 +1,3 @@
-<<<<<<< Updated upstream
-=======
 # event.vectors 0.1.5
 
 ## Updates
@@ -9,7 +7,6 @@
    - The column order was updated to put columns specified in `map_fields` and conditionally returned via argument `archipelago` at the front.
    - Updated function documentation to reflect changes
 
->>>>>>> Stashed changes
 # event.vectors 0.1.4
 
 ## Enhancements

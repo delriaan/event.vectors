@@ -1,19 +1,9 @@
-<<<<<<< Updated upstream
-pandoc: 3.1.12.3
-pkgdown: 2.0.7
-=======
 pandoc: '3.2'
 pkgdown: 2.1.1
->>>>>>> Stashed changes
 pkgdown_sha: ~
 articles:
   Break-Signal: Break-Signal.html
   Continuity-Example: Continuity-Example.html
   Event-Space-and-Graph-Reduction: Event-Space-and-Graph-Reduction.html
   Event-Vectors-Examples: Event-Vectors-Examples.html
-<<<<<<< Updated upstream
-last_built: 2024-08-23T00:07Z
-
-=======
 last_built: 2024-09-25T20:31Z
->>>>>>> Stashed changes
