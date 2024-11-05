@@ -21,10 +21,10 @@ retrace.evs <- function(event_graph, evs){
 
   .needle <- {
   	rlang::exprs(
-	    jk = mget(ls(pattern = "jk$")) |> purrr::reduce(c)
-	    , src = mget(ls(pattern = "src$")) |> purrr::reduce(c)
-	    , time_start_idx = mget(ls(pattern = "^from.+coord")) |> purrr::reduce(c)
-	    , time_end_idx = mget(ls(pattern = "^to.+coord")) |> purrr::reduce(c)
+	    jk = mget(ls(pattern = "jk$", sorted = FALSE)) |> purrr::reduce(c)
+	    , src = mget(ls(pattern = "src$", sorted = FALSE)) |> purrr::reduce(c)
+	    , time_start_idx = mget(ls(pattern = "^from.+coord", sorted = FALSE)) |> purrr::reduce(c)
+	    , time_end_idx = mget(ls(pattern = "^to.+coord", sorted = FALSE)) |> purrr::reduce(c)
 	    )}
 
   # Find each "needle" in the "haystack"

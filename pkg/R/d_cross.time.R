@@ -87,14 +87,14 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 
 	if (rlang::is_empty(beta)){ return(NULL) }
 
-	mGap			<- lubridate::as.difftime(s1 - e0, units = unit_desc) / unit;
-	mSt 			<- lubridate::as.difftime(s1 - s0, units = unit_desc) / unit;
-	mEd 			<- lubridate::as.difftime(e1 - e0, units = unit_desc) / unit;
+	mGap <- lubridate::as.difftime(s1 - e0, units = unit_desc) / unit;
+	mSt <- lubridate::as.difftime(s1 - s0, units = unit_desc) / unit;
+	mEd <- lubridate::as.difftime(e1 - e0, units = unit_desc) / unit;
 
-	from.len	<- lubridate::as.difftime(e0 - s0, units = unit_desc) / unit;
-	to.len		<- lubridate::as.difftime(e1 - s1, units = unit_desc) / unit;
-	from.coord			<- paste(as.character(s0), as.character(e0), sep = ":");
-	to.coord  			<- paste(as.character(s1), as.character(e1), sep = ":");
+	from.len <- lubridate::as.difftime(e0 - s0, units = unit_desc) / unit;
+	to.len <- lubridate::as.difftime(e1 - s1, units = unit_desc) / unit;
+	from.coord <- paste(as.character(s0), as.character(e0), sep = ":");
+	to.coord <- paste(as.character(s1), as.character(e1), sep = ":");
 
 	epsilon 	<- {
 			# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments

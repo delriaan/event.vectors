@@ -1,3 +1,9 @@
+# event.vectors 0.1.5020
+
+## Bug Fixes
+
+- **`retrace.evs()`**: Fixed a bug where `ls()` was being invoked without setting argument **sorted** to `FALSE` resulting in erroneously-mapped lookups.
+
 # event.vectors 0.1.5010
 
 ## Updates

@@ -2,7 +2,7 @@ Type: Package
 Package: event.vectors
 Title: A framework for temporal data processing
 Description: The `event.vectors` package provides a framework for temporal data processing with a focus on capturing the relationships among points and durations in time.
-Version: 0.1.5010
+Version: 0.1.5020
 Author: Chionesu George <sapienti.Dei@outlook.com> [aut, cre]
 Maintainer: Chionesu George <sapienti.Dei@outlook.com>
 Encoding: UTF-8
