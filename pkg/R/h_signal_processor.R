@@ -319,13 +319,14 @@ signal_processor <- function(object, cl_size = 1, ...){
 
 	# :: User argument handling ====
 	if (!all(c("min_size", "max_k") %in% names(object@obs_ctrl))){
-		.nms <- c("min_size", "max_k");
+		.nms <- c("min_size", "max_k")
+
 		msg <- paste0(
-						"`obs_ctrl` should be a list with named elements 'min_size' and 'max_k': missing "
-						, paste(setdiff(.nms, names(object@obs_ctrl)) |> sprintf(fmt = "'%s'"), collapse = ", ")
-						);
+			"`obs_ctrl` should be a list with named elements 'min_size' and 'max_k': missing "
+			, paste(setdiff(.nms, names(object@obs_ctrl)) |> sprintf(fmt = "'%s'"), collapse = ", ")
+			)
 		
-		stop(msg);
+		stop(msg)
 	}
 
 	# obs_ctrl: Alias of object@obs_ctrl:

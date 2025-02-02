@@ -5,15 +5,15 @@
 \title{Break Signal}
 \usage{
 break_signal(
-  y = class_missing,
-  k = class_missing,
-  grp = class_missing,
-  obs_ctrl = class_missing,
-  best_k = class_missing,
-  alt_k = class_missing,
-  k_sz = class_missing,
-  score = class_missing,
-  data = class_missing
+  y = integer(0),
+  k = 0,
+  grp = NULL,
+  obs_ctrl = list(min_size = 1L, max_k = 2L),
+  best_k = numeric(0),
+  alt_k = numeric(0),
+  k_sz = numeric(0),
+  score = numeric(0),
+  data = NULL
 )
 }
 \description{

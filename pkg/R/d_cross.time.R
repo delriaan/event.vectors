@@ -37,9 +37,9 @@
 #' @name cross.time
 #' @export
 cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE, unit = NULL,...){
-## Reference: https://www.r-bloggers.com/using-complex-numbers-in-r/
-## Division by Pi/4 makes it easy to tell if one argument is larger than, smaller than, or the same magnitude as the other (same = Pi/4)
-## All computations are in the direction of B.max to A.min when `events.ascending` is TRUE
+	## Reference: https://www.r-bloggers.com/using-complex-numbers-in-r/
+	## Division by Pi/4 makes it easy to tell if one argument is larger than, smaller than, or the same magnitude as the other (same = Pi/4)
+	## All computations are in the direction of B.max to A.min when `events.ascending` is TRUE
 	.unit_patterns <- grepl("^(we|mo|da|ye|se|mi|na|ho|pi)", unit, ignore.case = TRUE)
 
 	unit_desc <- unit;
@@ -58,16 +58,35 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 				)[[which(.unit_patterns)]]
 		} else { 1 }
 
-	out.names <- { c("beta", "mGap"
-									 , "mSt", "mEd"
-									 , "epsilon", "epsilon.desc"
-									 , "from.len", "to.len"
-									 , "from.coord", "to.coord"
-									 , "x_filter")}
+	out.names <- { c(
+		"beta", "mGap"
+		, "mSt", "mEd"
+		, "epsilon", "epsilon.desc"
+		, "from.len", "to.len"
+		, "from.coord", "to.coord"
+		, "x_filter"
+		)}
 
 	replicate(length(out.names), NULL, simplify = FALSE) |>
 		rlang::set_names(out.names) |>
 		list2env(envir = environment())
+
+	# Check for cases where 's1' < 's0': 
+	# if found, reverse, s* and e* to ensure calculations are for 
+	# forward-looking events sequences only:
+	.swapped <- s1 < s0
+	
+	if (any(.swapped)){
+		.tmp_s1 <- ifelse(.swapped, s1, s0)
+		.tmp_s0 <- ifelse(.swapped, s0, s1)
+		.tmp_e1 <- ifelse(.swapped, e1, e0)
+		.tmp_e0 <- ifelse(.swapped, e0, e1)
+		# Swap:
+		.tmp_s1 -> s0
+		.tmp_s0 -> s1
+		.tmp_e1 -> e0
+		.tmp_e0 -> e1
+	}
 
 	beta <- lubridate::as.difftime(e1 - s0, units = unit_desc)/unit;
 
@@ -80,8 +99,8 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 						, c(-1,1)[y] * 10 * abs(beta)
 						, lubridate::as.difftime(x, units = unit_desc) / unit
 						)
-			)
-	});
+				)
+		});
 
 	x_filter  <- (beta <= control[[2]]) & (beta >= control[[1]]);
 
@@ -93,22 +112,37 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 
 	from.len <- lubridate::as.difftime(e0 - s0, units = unit_desc) / unit;
 	to.len <- lubridate::as.difftime(e1 - s1, units = unit_desc) / unit;
+
+	# Undo swapping (if it occurred) in order to preserve the input events:
+	if (any(.swapped)){
+		.tmp_s1 <- ifelse(.swapped, s1, s0)
+		.tmp_s0 <- ifelse(.swapped, s0, s1)
+		.tmp_e1 <- ifelse(.swapped, e1, e0)
+		.tmp_e0 <- ifelse(.swapped, e0, e1)
+		# Swap:
+		.tmp_s1 -> s0
+		.tmp_s0 -> s1
+		.tmp_e1 -> e0
+		.tmp_e0 -> e1
+	}
+	
 	from.coord <- paste(as.character(s0), as.character(e0), sep = ":");
 	to.coord <- paste(as.character(s1), as.character(e1), sep = ":");
 
-	epsilon 	<- {
+	epsilon <- {
 			# Do not algebraically reduce the following with respect to 'mGap': the sign is as important as the arguments
 			.out = atan2(as.numeric(mEd), as.numeric(mSt)) * atan2((as.numeric(mGap) * as.numeric(beta)), as.numeric(mGap))
 			.tau = sign(as.numeric(to.len) - as.numeric(from.len))
 
 			# Scale back down to an angle: `sqrt()` needs to have a complex argument for handling negative arguments
-			# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another
+			# The square-root of 'mGap'  differentiates offset events from cases where one event envelopes another.
 			.out = (sqrt(as.complex(.out)) + sqrt(as.complex(as.numeric(mGap))^.tau)) |>
 							unlist() |>
 							purrr::modify_if(\(x) is.infinite(Re(x)), \(x) as.complex(0))
 
 			if (rlang::is_empty(.out)){ complex() } else { .out }
 		}
+	
 	epsilon.desc <- (\(i){
 		.eval_epsilon <- \(x){
 			ifelse(
@@ -122,8 +156,9 @@ cross.time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
 							)
 						, c("Full Concurrency", "Concurrency", "Continuity", "Disjoint")
 						) %>% .[.] |> names()
-					)
+				)
 			}
+		
 		if (rlang::is_empty(i)){ NULL } else { sapply(i, .eval_epsilon) }
 	})(epsilon);
 

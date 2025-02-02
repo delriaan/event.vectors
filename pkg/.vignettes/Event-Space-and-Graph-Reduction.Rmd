@@ -5,8 +5,6 @@ vignette: >
   %\VignetteIndexEntry{Event Space and Graph Reduction}
   %\VignetteEncoding{UTF-8}
   %\VignetteIndexEngine{knitr::render_markdown}
-template:
-  bootstrap: 5
 editor_options: 
   chunk_output_type: console
 ---
@@ -23,32 +21,37 @@ library(event.vectors)
 
 # Event Space
 
-Given event space $\mathbb{E}$ with $k$ independent event groupings: $$
+Given event space $\mathbb{E}$ with $k$ independent event groupings: 
+$$
 \mathbb{E}:=\hat{e}_1 + \hat{e}_2+  \hat{e}_3 + \cdots + \hat{e}_k
 $$
 and corresponding heterogeneous data tables ($\mathbb{D} :=D_1,D_2,D_3,\cdots,D_k$) each having a "join-key" ($J$, a column or column tuple shared across $\mathbb{D}$), an event vector ($\overrightarrow{V_q}$) is formed having values indicating the existence or absence of selection over $D_k$ predicated on $q$ unique values $\forall J$: 
-
 $$
-\overrightarrow{V_q}:= 
-\exists \sigma_{j_q \in J}(D_k) \Rightarrow
-\begin{pmatrix}0\\1\end{pmatrix}_{q}\hat{e}_1 + 
-\begin{pmatrix}0\\1\end{pmatrix}_{q}\hat{e}_2 + 
-\begin{pmatrix}0\\1\end{pmatrix}_{q}\hat{e}_3 + 
-\cdots + 
+\begin{array}{l}
+\overrightarrow{V_q} := \\
+\enspace\enspace\enspace \exists \sigma_{j_q \in J}(D_k) \Rightarrow
+  \begin{pmatrix}0\\1\end{pmatrix}_{q}\hat{e}_1 + 
+  \begin{pmatrix}0\\1\end{pmatrix}_{q}\hat{e}_2 + 
+  \begin{pmatrix}0\\1\end{pmatrix}_{q}\hat{e}_3 + 
+  \cdots + 
 \begin{pmatrix}0\\1\end{pmatrix}_{q}\hat{e}_k \\
-q :=\text{ the q}^{th}\text{ distinct value in }J\enspace \forall \mathbb{D} \\
-\sigma_{j_q \in J}(D_k) \equiv \dot{D_{qk}}:=\text{ predicated selection operation in a relational algebra context}
+\enspace\enspace\enspace q \Rightarrow \text{ the q}^{th}\text{ distinct value in }J\enspace \forall \mathbb{D} \\
+\enspace\enspace\enspace \sigma_{j_q \in J}(D_k) \equiv \dot{D_{qk}}\Rightarrow\text{ predicated selection operation in a relational algebra context}
+\end{array}
 $$
 
 From each $\overrightarrow{V_q}$, $q$ subsets over $\mathbb{D}$ are derived as $\Gamma_q:=D_{k_q}|\overrightarrow{V_q}\ne\emptyset$. The number of records ($n$) resulting from selection across the data sets can be represented as an array of row vectors: 
 
 $$
-\Gamma_q\longrightarrow \text{Distinct row counts over}\dot{D_{k_q}}\Rightarrow\begin{array}
-((n_{11}&n_{12}&n_{13}&\cdots&n_{1k})\\
-(n_{21}&n_{22}&n_{23}&\cdots&n_{2k})\\
-(n_{31}&n_{32}&n_{33}&\cdots&n_{3k})\\
-\vdots&\vdots&\vdots&\vdots&\vdots\\
-(n_{q1}&n_{q2}&n_{q3}&\cdots&n_{qk})
+\begin{array}{l}
+  \Gamma_q\longrightarrow \text{Distinct row counts over}\dot{D_{k_q}} \\
+  \enspace\enspace \begin{array}
+  \enspace\enspace (n_{11}&n_{12}&n_{13}&\cdots&n_{1k}) \\
+  \enspace\enspace (n_{21}&n_{22}&n_{23}&\cdots&n_{2k}) \\
+  \enspace\enspace (n_{31}&n_{32}&n_{33}&\cdots&n_{3k}) \\
+  \enspace\enspace \vdots&\vdots&\vdots&\ddots&\vdots \\
+  \enspace\enspace (n_{q1}&n_{q2}&n_{q3}&\cdots&n_{qk})
+  \enspace\enspace \end{array}
 \end{array}
 $$
 

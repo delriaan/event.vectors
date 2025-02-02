@@ -352,9 +352,24 @@ display: none;
 </div>
 
 
+<div id="event.vectors-0.1.5300" class="section level1">
+<h1>event.vectors 0.1.5300</h1>
+<div id="bug-fixes" class="section level2">
+<h2>Bug Fixes</h2>
+<ul>
+<li><strong><code>cross.time()</code></strong>:
+<em><code>epsilon</code></em> and <em><code>epsilon.desc</code></em> now
+correctly return values when the “to” event starts <em>after</em> the
+“from” event. Values in <em><code>from.coord</code></em> and
+<em><code>to.coord</code></em> preserve the original values; however,
+<code>beta</code>, <code>mGap</code>, <code>mSt</code>, and
+<code>mEd</code> reflect forward-marching re-ordering of events.</li>
+</ul>
+</div>
+</div>
 <div id="event.vectors-0.1.5020" class="section level1">
 <h1>event.vectors 0.1.5020</h1>
-<div id="bug-fixes" class="section level2">
+<div id="bug-fixes-1" class="section level2">
 <h2>Bug Fixes</h2>
 <ul>
 <li><strong><code>retrace.evs()</code></strong>: Fixed a bug where
@@ -430,7 +445,7 @@ anonymous function definitions (i.e. <code>\(){}</code>)</li>
 </div>
 <div id="event.vectors-0.1.3.1200" class="section level1">
 <h1>event.vectors 0.1.3.1200</h1>
-<div id="bug-fixes-1" class="section level2">
+<div id="bug-fixes-2" class="section level2">
 <h2>Bug Fixes</h2>
 <ul>
 <li><strong><code>continuity()</code></strong>:

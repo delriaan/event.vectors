@@ -74,7 +74,7 @@ event.vectors <- { R6::R6Class(
 						.this <- sapply(y, magrittr::freduce, list(eval, as.character))
 						.that <- x
 						.that <- rlang::set_names(.that, .this)
-						rlang::as_quosures(.that, named = TRUE, env = rlang::caller_env(1))
+						rlang::as_quosures(as.list(.that), named = TRUE, env = rlang::caller_env(1))
 					}
 
 					set_fld_nms <- \(x){
@@ -96,7 +96,7 @@ event.vectors <- { R6::R6Class(
 
 					# Create a configuration quosure for each data source
 					private$.params$config <- purrr::map2(event_refs, event_flds, \(x, y){
-							.temp <- rlang::as_quosures(y, env = rlang::as_data_mask(rlang::eval_tidy(x)))[fld_nms];
+							.temp <- rlang::as_quosures(as.list(y), env = rlang::as_data_mask(rlang::eval_tidy(x)))[fld_nms];
 							.temp$jk.vec <- .temp$jk |> rlang::eval_tidy() |> unique() |> sort();
 
 							message(glue::glue("Validating source `{rlang::as_label(rlang::quo_get_expr(x))}`\n"));
