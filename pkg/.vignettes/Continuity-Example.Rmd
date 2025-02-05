@@ -1,10 +1,12 @@
 ---
 title: "Continuity Example"
 output: rmarkdown::html_vignette
-vignette: >
-  %\VignetteIndexEntry{Continuity Example}
-  %\VignetteEncoding{UTF-8}
-  %\VignetteIndexEngine{knitr::render_markdown}
+# vignette: >
+#   %\VignetteIndexEntry{Continuity Example}
+#   %\VignetteEncoding{UTF-8}
+#   %\VignetteIndexEngine{knitr::render_markdown}
+# template:
+#   bootstrap: 5
 editor_options: 
   chunk_output_type: console
 ---

@@ -1,9 +1,3 @@
-# event.vectors 0.1.5300
-
-## Bug Fixes
-
- - **`cross.time()`**: *`epsilon`* and *`epsilon.desc`* now correctly return values when the "to" event starts *after* the "from" event. Values in *`from.coord`* and *`to.coord`* preserve the original values; however, `beta`, `mGap`, `mSt`, and `mEd` reflect forward-marching re-ordering of events.
-
 # event.vectors 0.1.5020
 
 ## Bug Fixes
