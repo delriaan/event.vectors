@@ -14,7 +14,7 @@ info_encoder(i, info.only = FALSE, data.only = info.only)
 \item{data.only}{(logical) \code{TRUE} returns columns \code{series} and \code{cyl} only, and \code{FALSE} returns everything}
 }
 \value{
-If \code{info.only} is \code{TRUE}, a numeric vector of Shannon information is returned, otherwise a data frame with columns \code{series}, \code{cyl}, and \code{info} is returned.
+If \code{info.only} is \code{TRUE}, a numeric vector of Shannon information is returned, otherwise a \code{\link[data.table]{data.table}} with columns \code{series}, \code{cyl}, and \code{info} is returned.
 }
 \description{
 \code{info_encoder} converts the \code{i} into distinct series based on monotonically occurring breaks.\cr

@@ -18,7 +18,7 @@ The time between these events is the focus of derivation: properly, the event ve
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">event.vectors</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.5</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.6</span>
       </span>
     </div>
 
@@ -26,25 +26,6 @@ The time between these events is the focus of derivation: properly, the event ve
       <ul class="nav navbar-nav"><li>
   <a href="../reference/index.html">Reference</a>
 </li>
-<li class="dropdown">
-  <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-    Articles
-
-    <span class="caret"></span>
-  </a>
-  <ul class="dropdown-menu" role="menu"><li>
-      <a href="../articles/Break-Signal.html">Break Signal</a>
-    </li>
-    <li>
-      <a href="../articles/Continuity-Example.html">Continuity Example</a>
-    </li>
-    <li>
-      <a href="../articles/Event-Space-and-Graph-Reduction.html">Event Space and Graph Reduction</a>
-    </li>
-    <li>
-      <a href="../articles/Event-Vectors-Examples.html">Event Vectors Examples</a>
-    </li>
-  </ul></li>
 <li>
   <a href="../news/index.html">Changelog</a>
 </li>
@@ -74,6 +55,10 @@ The time between these events is the focus of derivation: properly, the event ve
     </div>
 
 
+    <div id="note">
+    <h2>Note</h2>
+    <p>The user is responsible for setting the <code><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></code> when <code>in_parallel=TRUE</code>.</p>
+    </div>
     <div id="execution-workflow">
     <h2>Execution Workflow</h2>
 
@@ -90,18 +75,18 @@ The time between these events is the focus of derivation: properly, the event ve
 <dd><p>Values of the "join key"</p></dd>
 
 <dt>"crossed" time output</dt>
-<dd><p>See <code><a href="cross.time.html">cross.time</a>()</code></p></dd>
+<dd><p>See <code><a href="cross_time.html">cross_time</a>()</code></p></dd>
 
-<dt><code>fr_*</code>, <code>to_*</code></dt>
+<dt><code>fr_\*</code>, <code>to_\*</code></dt>
 <dd><p>The temporal ranges of each <em>from</em>/<em>to</em>event</p></dd>
 
-<dt><code>src.pair</code></dt>
+<dt><code>src_pair</code></dt>
 <dd><p>Values of the "from-to" pairings of events given by the contexts provided: FROM:TO</p></dd>
 
-<dt><code>from.coord</code></dt>
+<dt><code>from_coord</code></dt>
 <dd><p>String representation of temporal boundaries expressed as concatenated integers</p></dd>
 
-<dt><code>to.coord</code></dt>
+<dt><code>to_coord</code></dt>
 <dd><p>String representation of temporal boundaries expressed as concatenated integers</p></dd>
 
 
@@ -127,6 +112,10 @@ Initialize the Event Vector Class</p></dd>
     <h2>Active bindings</h2>
     <p></p><div class="r6-active-bindings"><dl><dt><code>config</code></dt>
 <dd><p>This is an active binding that returns the configuration used to instantiate the class.</p></dd>
+
+
+<dt><code>set_private</code></dt>
+<dd><p>Set or get private variables</p></dd>
 
 
 </dl><p></p></div>
@@ -163,34 +152,24 @@ Initialize the Event Vector Class</p></dd>
 <p><code>$configure()</code> creates references to the source data to use.</p><div class="section">
 <h4 id="usage-1">Usage<a class="anchor" aria-label="anchor" href="#usage-1"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">event.vectors</span><span class="op">$</span><span class="fu">configure</span><span class="op">(</span></span>
-<span>  <span class="va">src.defs</span>,</span>
-<span>  <span class="va">contexts</span>,</span>
-<span>  map.fields <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  src.mix <span class="op">=</span> <span class="st">"comb"</span>,</span>
-<span>  exclude.mix <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  <span class="va">...</span>,</span>
+<span>  src_mix <span class="op">=</span> <span class="st">"comb"</span>,</span>
+<span>  exclude_mix <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  chatty <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
 <div class="section">
 <h4 id="arguments-1">Arguments<a class="anchor" aria-label="anchor" href="#arguments-1"></a></h4>
-<p></p><div class="arguments"><dl><dt><code>src.defs</code></dt>
-<dd><p>Strings or expressions that define the data to use (must return <code><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></code>, <code>data.table</code>, or list)</p></dd>
+<p></p><div class="arguments"><dl><dt><code>...</code></dt>
+<dd><p><code><a href="https://rlang.r-lib.org/reference/list2.html" class="external-link">dots_list</a></code> Objects of class 'Event'</p></dd>
 
 
-<dt><code>contexts</code></dt>
-<dd><p>An atomic vector of strings serving as labels for each data source</p></dd>
-
-
-<dt><code>map.fields</code></dt>
-<dd><p>A list of column name vectors for each definition in <code>src.defs</code> providing data for the <em>join key</em> (<code>jk</code>), <em>start</em> (<code>time_start_idx</code>), and <em>end</em> (<code>time_end_idx</code>) references. Provide names for elements in each vector to specify which data source field is mapped to each name (<code>jk</code>, <code>time_start_idx</code>, and <code>time_end_idx</code>).<br> Regarding <em>join key</em>: choose the columns having values that are shared across two or more event sources.</p></dd>
-
-
-<dt><code>src.mix</code></dt>
+<dt><code>src_mix</code></dt>
 <dd><dl><dt>"combination":</dt>
 <dd><p>The default: generates unique pairs of sources</p></dd>
 
-<dt>"reflexive":</dt>
+<dt>"refl0exive":</dt>
 <dd><p>Compares each source to itself</p></dd>
 
 <dt>"all":</dt>
@@ -200,8 +179,8 @@ Initialize the Event Vector Class</p></dd>
 </dl><p><br> Partial matching is allowed, and generated combinations include the mirror (e.g., "A, B" will have a "B, A" combo pair generated).</p></dd>
 
 
-<dt><code>exclude.mix</code></dt>
-<dd><p>A list of vectors containing each source pair context to exclude (e.g. <code>list(c("A", "C"), c("u", "k"))</code>). <code><a href="evs_exclude.blender.html">evs_exclude.blender</a></code> can be invoked to create this list more quickly.  Combinations are not automatically mirrored as is the case with <code>src.mix</code>.</p></dd>
+<dt><code>exclude_mix</code></dt>
+<dd><p>A list of vectors containing each source pair context to exclude (e.g. <code>list(c("A", "C"), c("u", "k"))</code>). <code><a href="evs_exclude.blender.html">evs_exclude.blender</a></code> can be invoked to create this list more quickly.  Combinations are not automatically mirrored as is the case with <code>src_mix</code>.</p></dd>
 
 
 <dt><code>chatty</code></dt>
@@ -221,12 +200,13 @@ Initialize the Event Vector Class</p></dd>
 <h4 id="usage-2">Usage<a class="anchor" aria-label="anchor" href="#usage-2"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">event.vectors</span><span class="op">$</span><span class="fu">make.evs_universe</span><span class="op">(</span></span>
 <span>  <span class="va">...</span>,</span>
-<span>  time.control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">-</span><span class="cn">Inf</span>, <span class="cn">Inf</span><span class="op">)</span>,</span>
-<span>  graph.control <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  time_control <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">-</span><span class="cn">Inf</span>, <span class="cn">Inf</span><span class="op">)</span>,</span>
+<span>  graph_control <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  furrr_opts <span class="op">=</span> <span class="fu">furrr</span><span class="fu">::</span><span class="fu"><a href="https://furrr.futureverse.org/reference/furrr_options.html" class="external-link">furrr_options</a></span><span class="op">(</span>scheduling <span class="op">=</span> <span class="cn">Inf</span>, seed <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>,</span>
-<span>  graph.only <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  chatty <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  in_parallel <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  graph_only <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  chatty <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  cache <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div><p></p></div>
 </div>
 
@@ -236,28 +216,32 @@ Initialize the Event Vector Class</p></dd>
 <dd><p>(<code><a href="https://rlang.r-lib.org/reference/list2.html" class="external-link">dots_list</a></code>) Logical expression that retain graph edges meeting the conditions</p></dd>
 
 
-<dt><code>time.control</code></dt>
+<dt><code>time_control</code></dt>
 <dd><p>A 2-element list containing the minimum and maximum values allowed for total temporal span between two events</p></dd>
 
 
-<dt><code>graph.control</code></dt>
+<dt><code>graph_control</code></dt>
 <dd><p>An expression list containing <code><a href="https://r.igraph.org/reference/aaa-igraph-package.html" class="external-link">igraph-package</a></code> calls to manipulate the internally-created graph in the order provided.  Use symbol <code>g</code> to generically denote the graph and <code>&lt;&lt;-</code> to update <code>g</code>.</p></dd>
 
 
 <dt><code>unit</code></dt>
-<dd><p>(See <code><a href="cross.time.html">cross.time</a></code>)</p></dd>
+<dd><p>(See <code><a href="cross_time.html">cross_time</a></code>)</p></dd>
 
 
-<dt><code>furrr_opts</code></dt>
-<dd><p><code><a href="https://furrr.futureverse.org/reference/furrr_options.html" class="external-link">furrr_options</a></code> defaulted as <code>scheduling = Inf</code> and <code>seed = TRUE</code>: internal globals are also set and will be appended to values provided here</p></dd>
+<dt><code>in_parallel</code></dt>
+<dd><p>(logical | <code>FALSE</code>) Shoudl parallelism via <code><a href="https://furrr.futureverse.org/reference/future_map.html" class="external-link">future_map</a></code> be enabled?</p></dd>
 
 
-<dt><code>graph.only</code></dt>
+<dt><code>graph_only</code></dt>
 <dd><p>(logical | <code>FALSE</code>) <code>TRUE</code> assumes class member <code>$space</code> exists (possibly after external modification) and recreates member <code>$evt_graphs</code></p></dd>
 
 
 <dt><code>chatty</code></dt>
 <dd><p>(logical | <code>FALSE</code>) Verbosity flag</p></dd>
+
+
+<dt><code>cache</code></dt>
+<dd><p>(See <code><a href="cross_time.html">cross_time</a></code>)</p></dd>
 
 
 </dl><p></p></div>

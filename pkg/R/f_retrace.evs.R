@@ -10,14 +10,14 @@
 #' @export
 retrace.evs <- function(event_graph, evs){
   .haystack <- igraph::edge.attributes(event_graph) %$%
-                mget(c("jk", "src.pair", "from.coord", "to.coord")) |>
-                purrr::modify_at(c("from.coord", "to.coord"), stringi::stri_split_regex, "([:])|( -> )", simplify = TRUE) |>
+                mget(c("jk", "src_pair", "from_coord", "to_coord")) |>
+                purrr::modify_at(c("from_coord", "to_coord"), stringi::stri_split_regex, "([:])|( -> )", simplify = TRUE) |>
                 list2env(envir = new.env());
 
   # `.events` should be an array with dimensions N x 2
-  .events <- .haystack$src.pair |> stringi::stri_split_fixed(" -> ", simplify = TRUE);
-  .haystack$from.src <- .events[, 1];
-  .haystack$to.src <- .events[, 2];
+  .events <- .haystack$src_pair |> stringi::stri_split_fixed(" -> ", simplify = TRUE);
+  .haystack$from_src <- .events[, 1];
+  .haystack$to_src <- .events[, 2];
 
   .needle <- {
   	rlang::exprs(
@@ -53,7 +53,7 @@ retrace.evs <- function(event_graph, evs){
 	    }
 
 	    # Resolve the row data
-	    rlang::list2(!!src := rlang::eval_tidy(attr(lazy_refs, "src.def"))[row_idx])
+	    rlang::list2(!!src := rlang::eval_tidy(attr(lazy_refs, "src_def"))[row_idx])
 	  }) |>
 	  purrr::flatten() %>%
 	  .[!duplicated(names(.))]

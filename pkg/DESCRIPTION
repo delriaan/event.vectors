@@ -2,7 +2,7 @@ Type: Package
 Package: event.vectors
 Title: A framework for temporal data processing
 Description: The `event.vectors` package provides a framework for temporal data processing with a focus on capturing the relationships among points and durations in time.
-Version: 0.1.5020
+Version: 0.1.6
 Author: Chionesu George <sapienti.Dei@outlook.com> [aut, cre]
 Maintainer: Chionesu George <sapienti.Dei@outlook.com>
 Encoding: UTF-8
@@ -19,12 +19,14 @@ Imports: purrr (>= 1.0.0),
     data.table (>= 1.15.0),
     rlang (>= 1.1.0),
     S7 (>= 0.1.0),
-    spsUtil (>= 0.2.0)
+    spsUtil (>= 0.2.0),
+    memoise (>= 2.0.1),
+    lambda.r (>= 1.2.4)
 Suggests:
 	visNetwork,
 	knitr,
 	rmarkdown
 Roxygen: list(markdown = TRUE)
-License: file LICENSE
+License: Proprietary + file LICENSE
 VignetteBuilder: knitr
 URL: https://github.com/delriaan/event.vectors/, https://delriaan.github.io/event.vectors/

@@ -4,12 +4,10 @@
 \alias{signal_processor}
 \title{Signal Processor}
 \usage{
-signal_processor(object, cl_size = 1, ...)
+signal_processor(object, ...)
 }
 \arguments{
 \item{object}{A "break_signal" \code{\link{S7}} object}
-
-\item{cl_size}{(integer|1) The number of parallel workers to use during processing if greater than one.}
 
 \item{...}{Arguments for internal use}
 }

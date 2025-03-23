@@ -4,22 +4,23 @@
 \alias{exec_algorithm}
 \title{Execute Algorithm}
 \usage{
-exec_algorithm(Data, obs_ctrl, cl_size = 1, ...)
+exec_algorithm(Data, obs_ctrl, ..., chatty = FALSE)
 }
 \arguments{
 \item{Data}{The input data}
 
 \item{obs_ctrl}{(See \code{\link{break_signal}})}
 
-\item{cl_size}{(integer|1) The number of parallel processes to use}
-
 \item{...}{Arguments for internal use}
+
+\item{chatty}{(logical) Should the function be verbose?}
 }
 \value{
 A \code{\link[data.table]{data.table}} object containing scoring information.
 }
 \description{
-\code{exec_algorithm} executes the algorithm for a given data set and number of cross-assignment folds. The following functions are called in the order listed below:\cr
+\code{exec_algorithm} executes the algorithm for a given data set and number of cross-assignment folds.
+The following functions are called in the order listed below:\cr
 \enumerate{
 \item{\code{\link{info_encoder}}}
 \item{\code{\link{geo_pmf}}}

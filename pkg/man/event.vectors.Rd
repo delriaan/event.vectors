@@ -8,6 +8,9 @@
 
 The time between these events is the focus of derivation: properly, the event vector is a complex number that encodes the relationship between the boundaries of the events, thus allowing one to describe this relationship in a concise manner.
 }
+\note{
+The user is responsible for setting the \code{\link[future]{plan}} when \code{in_parallel=TRUE}.
+}
 \section{Execution Workflow}{
 
 The initial execution order should look something like the following ...
@@ -21,11 +24,11 @@ The initial execution order should look something like the following ...
 \code{$space} is a \code{\link[data.table]{data.table}} that is populated upon execution of \code{$make.evs_universe()}:
 \describe{
 \item{\code{jk}}{Values of the "join key"}
-\item{"crossed" time output}{ See \code{\link{cross.time}()}}
-\item{\code{fr_*}, \code{to_*}}{The temporal ranges of each \emph{from}/\emph{to}event}
-\item{\code{src.pair}}{Values of the "from-to" pairings of events given by the contexts provided: FROM:TO}
-\item{\code{from.coord}}{String representation of temporal boundaries expressed as concatenated integers}
-\item{\code{to.coord}}{String representation of temporal boundaries expressed as concatenated integers}
+\item{"crossed" time output}{ See \code{\link{cross_time}()}}
+\item{\code{fr_\*}, \code{to_\*}}{The temporal ranges of each \emph{from}/\emph{to}event}
+\item{\code{src_pair}}{Values of the "from-to" pairings of events given by the contexts provided: FROM:TO}
+\item{\code{from_coord}}{String representation of temporal boundaries expressed as concatenated integers}
+\item{\code{to_coord}}{String representation of temporal boundaries expressed as concatenated integers}
 }
 }
 
@@ -45,6 +48,8 @@ Initialize the Event Vector Class}
 \if{html}{\out{<div class="r6-active-bindings">}}
 \describe{
 \item{\code{config}}{This is an active binding that returns the configuration used to instantiate the class.}
+
+\item{\code{set_private}}{Set or get private variables}
 }
 \if{html}{\out{</div>}}
 }
@@ -80,11 +85,9 @@ Initialize the Event Vector Class}
 \code{$configure()} creates references to the source data to use.
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{event.vectors$configure(
-  src.defs,
-  contexts,
-  map.fields = NULL,
-  src.mix = "comb",
-  exclude.mix = NULL,
+  ...,
+  src_mix = "comb",
+  exclude_mix = list(),
   chatty = FALSE
 )}\if{html}{\out{</div>}}
 }
@@ -92,19 +95,15 @@ Initialize the Event Vector Class}
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{src.defs}}{Strings or expressions that define the data to use (must return \code{\link{data.frame}}, \code{\link{data.table}}, or list)}
+\item{\code{...}}{\code{\link[rlang]{dots_list}} Objects of class 'Event'}
 
-\item{\code{contexts}}{An atomic vector of strings serving as labels for each data source}
-
-\item{\code{map.fields}}{A list of column name vectors for each definition in \code{src.defs} providing data for the \emph{join key} (\code{jk}), \emph{start} (\code{time_start_idx}), and \emph{end} (\code{time_end_idx}) references. Provide names for elements in each vector to specify which data source field is mapped to each name (\code{jk}, \code{time_start_idx}, and \code{time_end_idx}).\cr Regarding \emph{join key}: choose the columns having values that are shared across two or more event sources.}
-
-\item{\code{src.mix}}{\describe{
+\item{\code{src_mix}}{\describe{
 \item{"combination":}{ The default: generates unique pairs of sources}
-\item{"reflexive":}{ Compares each source to itself}
+\item{"refl0exive":}{ Compares each source to itself}
 \item{"all":}{ The union of the preceding options}
 } \cr Partial matching is allowed, and generated combinations include the mirror (e.g., "A, B" will have a "B, A" combo pair generated).}
 
-\item{\code{exclude.mix}}{A list of vectors containing each source pair context to exclude (e.g. \code{list(c("A", "C"), c("u", "k"))}). \code{\link{evs_exclude.blender}} can be invoked to create this list more quickly.  Combinations are not automatically mirrored as is the case with \code{src.mix}.}
+\item{\code{exclude_mix}}{A list of vectors containing each source pair context to exclude (e.g. \code{list(c("A", "C"), c("u", "k"))}). \code{\link{evs_exclude.blender}} can be invoked to create this list more quickly.  Combinations are not automatically mirrored as is the case with \code{src_mix}.}
 
 \item{\code{chatty}}{(logical | \code{FALSE}) Verbosity flag}
 }
@@ -126,12 +125,13 @@ Initialize the Event Vector Class}
 \subsection{Usage}{
 \if{html}{\out{<div class="r">}}\preformatted{event.vectors$make.evs_universe(
   ...,
-  time.control = list(-Inf, Inf),
-  graph.control = NULL,
+  time_control = list(-Inf, Inf),
+  graph_control = NULL,
   unit = NULL,
-  furrr_opts = furrr::furrr_options(scheduling = Inf, seed = TRUE),
-  graph.only = FALSE,
-  chatty = FALSE
+  in_parallel = FALSE,
+  graph_only = FALSE,
+  chatty = FALSE,
+  cache = NULL
 )}\if{html}{\out{</div>}}
 }
 
@@ -140,17 +140,19 @@ Initialize the Event Vector Class}
 \describe{
 \item{\code{...}}{(\code{\link[rlang]{dots_list}}) Logical expression that retain graph edges meeting the conditions}
 
-\item{\code{time.control}}{A 2-element list containing the minimum and maximum values allowed for total temporal span between two events}
+\item{\code{time_control}}{A 2-element list containing the minimum and maximum values allowed for total temporal span between two events}
 
-\item{\code{graph.control}}{An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph and \code{<<-} to update \code{g}.}
+\item{\code{graph_control}}{An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph and \code{<<-} to update \code{g}.}
 
-\item{\code{unit}}{(See \code{\link{cross.time}})}
+\item{\code{unit}}{(See \code{\link{cross_time}})}
 
-\item{\code{furrr_opts}}{\code{\link[furrr]{furrr_options}} defaulted as \code{scheduling = Inf} and \code{seed = TRUE}: internal globals are also set and will be appended to values provided here}
+\item{\code{in_parallel}}{(logical | \code{FALSE}) Shoudl parallelism via \code{\link[furrr]{future_map}} be enabled?}
 
-\item{\code{graph.only}}{(logical | \code{FALSE}) \code{TRUE} assumes class member \code{$space} exists (possibly after external modification) and recreates member \code{$evt_graphs}}
+\item{\code{graph_only}}{(logical | \code{FALSE}) \code{TRUE} assumes class member \code{$space} exists (possibly after external modification) and recreates member \code{$evt_graphs}}
 
 \item{\code{chatty}}{(logical | \code{FALSE}) Verbosity flag}
+
+\item{\code{cache}}{(See \code{\link{cross_time}})}
 }
 \if{html}{\out{</div>}}
 }

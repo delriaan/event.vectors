@@ -1,48 +1,82 @@
+# event.vectors 0.1.6
+
+## Breaking Changes
+
+-   **`event.vectors$configure()`**:
+
+    -   Signature changed to `function(..., src_mix = "comb", exclude_mix = NULL, chatty = FALSE)`
+
+    -   Accepts new construct of class 'Event' in `...` to define event sources.
+
+-   Most object names, list element names, and column names were renamed using `_` instead of `.`
+
+## New Features
+
+-   **`Event` class**: Leveraging [lambda.r](https://cran.r-project.org/package=lambda.r), an `Event` class was introduced to facilitate the definition of event sources sent to `event.vectors$configure()` in a formulaic fashion.
+
+## Updates
+
+-   **`signal_processor()`**:
+
+    -   Performance gains via vectorization for this and related functions.
+
+    -   Parallelism changed to leverage [furrr](https://furrr.futureverse.org/) (user is responsible for managing the parallelism topology)
+
+-   `event.vectors$make.evs_universe()`, `cross_time()` :
+
+    -   Added cache support via [cachem](https://cachem.r-lib.org/){target="_blank"}: users now have the ability to write generated event graphs to a cache object.
+
+# event.vectors 0.1.5300
+
+## Bug Fixes
+
+-   **`cross.time()`**: *`epsilon`* and *`epsilon.desc`* now correctly return values when the "to" event starts *after* the "from" event. Values in *`from.coord`* and *`to.coord`* preserve the original values; however, `beta`, `mGap`, `mSt`, and `mEd` reflect forward-marching re-ordering of events.
+
 # event.vectors 0.1.5020
 
 ## Bug Fixes
 
-- **`retrace.evs()`**: Fixed a bug where `ls()` was being invoked without setting argument **sorted** to `FALSE` resulting in erroneously-mapped lookups.
+-   **`retrace.evs()`**: Fixed a bug where `ls()` was being invoked without setting argument **sorted** to `FALSE` resulting in erroneously-mapped lookups.
 
 # event.vectors 0.1.5010
 
 ## Updates
 
-- **`signal_processor()`**: Documentation updates
+-   **`signal_processor()`**: Documentation updates
 
 # event.vectors 0.1.5
 
 ## Updates
 
-- **`continuity()`**:
-   - Internal updates to make code easier to debug
-   - Feature `GAP` is now part of the returned columns when `archipelago` is `TRUE`
-   - The column order was updated to put columns specified in `map_fields` and conditionally returned via argument `archipelago` at the front.
-   - Updated function documentation to reflect changes
+-   **`continuity()`**:
+    -   Internal updates to make code easier to debug
+    -   Feature `GAP` is now part of the returned columns when `archipelago` is `TRUE`
+    -   The column order was updated to put columns specified in `map_fields` and conditionally returned via argument `archipelago` at the front.
+    -   Updated function documentation to reflect changes
 
 # event.vectors 0.1.4
 
 ## Enhancements
 
-- **`break_signal()`**: 
-   - Added support for `POSIXct` and `character` classes (addresses [\# 7](https://github.com/delriaan/event.vectors/issues/7){title="signal_processor(): Expand Data Types"})
-- **`signal_processor()`**: 
-   - Added support for `POSIXct` and `character` classes (addresses [\# 7](https://github.com/delriaan/event.vectors/issues/7){title="signal_processor(): Expand Data Types"})
-   - Implemented logic to handle the case of serial execution when argument `cl_size` is <= 1L.
-   - Added documentation for argument `cl_size`.
-- **`event.vectors$make.evs_universe()`**: In the event all source relationships are loops when the event.vectors object configured using the default source mix ("combination"), a warning is produced (regardless of the `chatty` argument), and **no** filtering is performed on the penultimate result that populates class member `space`.
+-   **`break_signal()`**:
+    -   Added support for `POSIXct` and `character` classes (addresses [\# 7](https://github.com/delriaan/event.vectors/issues/7){title="signal_processor(): Expand Data Types"})
+-   **`signal_processor()`**:
+    -   Added support for `POSIXct` and `character` classes (addresses [\# 7](https://github.com/delriaan/event.vectors/issues/7){title="signal_processor(): Expand Data Types"})
+    -   Implemented logic to handle the case of serial execution when argument `cl_size` is \<= 1L.
+    -   Added documentation for argument `cl_size`.
+-   **`event.vectors$make.evs_universe()`**: In the event all source relationships are loops when the event.vectors object configured using the default source mix ("combination"), a warning is produced (regardless of the `chatty` argument), and **no** filtering is performed on the penultimate result that populates class member `space`.
 
 ## Updates
-- Removed deprecated `purrr` functional style `~{ .x }`
-- Replaced references to `purrr::as_mapper()` with anonymous function definitions (i.e. `\(){}`)
+
+-   Removed deprecated `purrr` functional style `~{ .x }`
+-   Replaced references to `purrr::as_mapper()` with anonymous function definitions (i.e. `\(){}`)
 
 # event.vectors 0.1.3.1200
 
 ## Bug Fixes
 
-- **`continuity()`**: 
-   - Corrected temporal partitioning logic that detects the end of a partition.
-
-- **`event.vectors`**:
-   - Replaced references of `%<>%` with explicit re-assignment.
-   - Replaced references to `%$%` with the functional form
+-   **`continuity()`**:
+    -   Corrected temporal partitioning logic that detects the end of a partition.
+-   **`event.vectors`**:
+    -   Replaced references of `%<>%` with explicit re-assignment.
+    -   Replaced references to `%$%` with the functional form

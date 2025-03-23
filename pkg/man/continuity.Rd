@@ -19,9 +19,11 @@ continuity(
 
 \item{map_fields}{(string): A vector of strings or symbols indicating the field names that will partition \code{data}}
 
-\item{time_fields}{(string): A vector of strings or symbols indicating the field names to use as "start" and "stop" temporal indices.  If only one value is given, that value will be repeated as the "stop" index}
+\item{time_fields}{(string): A vector of strings or symbols indicating the field names to use as "start" and "stop" temporal indices.
+If only one value is given, that value will be repeated as the "stop" index}
 
-\item{timeout}{The largest allowable 'gap' in a series of time values before a new 'island' begins: can be a quoted expression that conditionally determines the value.}
+\item{timeout}{The largest allowable 'gap' in a series of time values before a new 'island' begins: can be a quoted expression that conditionally determines the value.
+If using date or datetime values for \code{time_fields}, specify the timeout using an appropriate \code{lubridate} functions (e.g., \code{\link[lubridate]{days}}).}
 
 \item{boundary_name}{(string): The name root of the boundary column names (e.g., "episode" => "episode_start_idx", "episode_end_idx")}
 
@@ -37,6 +39,7 @@ A \code{\link[data.table]{data.table}} with the following columns \code{<mapFiel
 }
 }
 \description{
-\code{continuity} is based on the \href{https://www.red-gate.com/simple-talk/sql/t-sql-programming/the-sql-of-gaps-and-islands-in-sequences/}{'islands & gaps'} concept.  Use case for \code{continuity} is to roll up a sequence consisting of smaller duration into a larger epoch governed by some meaningful separation between \eqn{n_\text{lower}} and \eqn{{n - 1}_\text{upper}} segments.
+\code{continuity} is based on the \href{https://www.red-gate.com/simple-talk/sql/t-sql-programming/the-sql-of-gaps-and-islands-in-sequences/}{'islands & gaps'} concept.
+Use case for \code{continuity} is to roll up a sequence consisting of smaller duration into a larger epoch governed by some meaningful separation between \eqn{n_\text{lower}} and \eqn{{n - 1}_\text{upper}} segments.
 }
 \concept{Data Generation}

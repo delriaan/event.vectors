@@ -5,8 +5,6 @@ vignette: >
   %\VignetteIndexEntry{Event Vectors Examples}
   %\VignetteEncoding{UTF-8}
   %\VignetteIndexEngine{knitr::render_markdown}
-template:
-  bootstrap: 5
 editor_options: 
   chunk_output_type: console
 ---

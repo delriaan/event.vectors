@@ -17,7 +17,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">event.vectors</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.5020</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.6</span>
       </span>
     </div>
 
@@ -47,6 +47,43 @@
       <small>Source: <a href="https://github.com/delriaan/event.vectors/blob/HEAD/NEWS.md" class="external-link"><code>NEWS.md</code></a></small>
     </div>
 
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="0.1.6" id="eventvectors-016">event.vectors 0.1.6<a class="anchor" aria-label="anchor" href="#eventvectors-016"></a></h2>
+<div class="section level3">
+<h3 id="breaking-changes-0-1-6">Breaking Changes<a class="anchor" aria-label="anchor" href="#breaking-changes-0-1-6"></a></h3>
+<ul><li>
+<p><strong><code>event.vectors$configure()</code></strong>:</p>
+<ul><li><p>Signature changed to <code>function(..., src_mix = "comb", exclude_mix = NULL, chatty = FALSE)</code></p></li>
+<li><p>Accepts new construct of class ‘Event’ in <code>...</code> to define event sources.</p></li>
+</ul></li>
+<li><p>Most object names, list element names, and column names were renamed using <code>_</code> instead of <code>.</code></p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="new-features-0-1-6">New Features<a class="anchor" aria-label="anchor" href="#new-features-0-1-6"></a></h3>
+<ul><li>
+<strong><code>Event</code> class</strong>: Leveraging <a href="https://cran.r-project.org/package=lambda.r" class="external-link">lambda.r</a>, an <code>Event</code> class was introduced to facilitate the definition of event sources sent to <code>event.vectors$configure()</code> in a formulaic fashion.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="updates-0-1-6">Updates<a class="anchor" aria-label="anchor" href="#updates-0-1-6"></a></h3>
+<ul><li>
+<p><strong><code><a href="../reference/signal_processor.html">signal_processor()</a></code></strong>:</p>
+<ul><li><p>Performance gains via vectorization for this and related functions.</p></li>
+<li><p>Parallelism changed to leverage <a href="https://furrr.futureverse.org/" class="external-link">furrr</a> (user is responsible for managing the parallelism topology)</p></li>
+</ul></li>
+<li>
+<p><code>event.vectors$make.evs_universe()</code>, <code><a href="../reference/cross_time.html">cross_time()</a></code> :</p>
+<ul><li>Added cache support via <a href="https://cachem.r-lib.org/" target="_blank" class="external-link">cachem</a>: users now have the ability to write generated event graphs to a cache object.</li>
+</ul></li>
+</ul></div>
+</div>
+    <div class="section level2">
+<h2 class="page-header" data-toc-text="0.1.5300" id="eventvectors-015300">event.vectors 0.1.5300<a class="anchor" aria-label="anchor" href="#eventvectors-015300"></a></h2>
+<div class="section level3">
+<h3 id="bug-fixes-0-1-5300">Bug Fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-1-5300"></a></h3>
+<ul><li>
+<strong><code>cross.time()</code></strong>: <em><code>epsilon</code></em> and <em><code>epsilon.desc</code></em> now correctly return values when the “to” event starts <em>after</em> the “from” event. Values in <em><code>from.coord</code></em> and <em><code>to.coord</code></em> preserve the original values; however, <code>beta</code>, <code>mGap</code>, <code>mSt</code>, and <code>mEd</code> reflect forward-marching re-ordering of events.</li>
+</ul></div>
+</div>
     <div class="section level2">
 <h2 class="page-header" data-toc-text="0.1.5020" id="eventvectors-015020">event.vectors 0.1.5020<a class="anchor" aria-label="anchor" href="#eventvectors-015020"></a></h2>
 <div class="section level3">
