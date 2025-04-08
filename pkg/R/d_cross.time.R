@@ -102,13 +102,15 @@ cross_time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
   # At this point, <s0, s1, e0, e1> can be reduced to offsets intead of values:
   ds <- min(c(s0, s1, e0, e1)) - 1
 
-  fun <- as.environment(find("._cross_time"))[["._cross_time"]]
+  fun <- ._cross_time
 
   if (!rlang::is_empty(cache) &&
       any(c(
         c("cache_mem", "cache_disk") %in% class(cache)
         , identical(TRUE, cache)
-      ))){ fun <- memoise::memoise(f = fun, cache = cache) }
+      ))){ 
+      fun <- memoise::memoise(f = fun, cache = cache) 
+      }
 
   # cat(capture.output(str(fun)), sep = "\n")
   res <- fun(s0, s1, e0, e1, beta, swapped, ds)

@@ -48,7 +48,7 @@ E_Idev <- \(g, idv, obs_ctrl){
 #'
 #' @family Signal Processor Functions
 info_encoder <- function(i, info.only = FALSE, data.only = info.only){
-	if (!is.atomic(i)){ i <- unlist(i, use.names = FALSE) }
+	if (!is.atomic(i)){ i <- sapply(i, `[`, 1) }
 
 	# Given a set of differenced values (over the differences of the
 	# (possibly grouped) monotonically increasing input), a "signal break" is
@@ -57,11 +57,20 @@ info_encoder <- function(i, info.only = FALSE, data.only = info.only){
 
 	# `signal_data`: The number of contiguous parts of the series before a break
 		.out_names <- c("dy", "cyl", "series", "info")
-		signal_data <- array(as.numeric(0), dim = c(length(i), length(.out_names)), dimnames = list(NULL, .out_names))
+  
+		signal_data <- array(
+      as.numeric(0)
+      , dim = c(length(i), length(.out_names))
+      , dimnames = list(NULL, .out_names)
+      )
+  
 		dy <- as.numeric(i)
-		cyl <- as.numeric(cumsum(is_signal_break) + 1)
-		series <- info <- rep.int(0, length(dy))
-		info <- rep.int(0, length(dy))
+		
+    cyl <- as.numeric(cumsum(is_signal_break) + 1)
+		
+    series <- info <- rep.int(0, length(dy))
+		
+    info <- rep.int(0, length(dy))
 
 		cyl_idx <- unique(cyl) |> lapply(\(x){ which(cyl == x) })
 
