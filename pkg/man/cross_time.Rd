@@ -37,27 +37,56 @@ cross_time(
 }
 \value{
 A \code{\link[data.table]{data.table}} object having the following fields:
+
 \describe{
-\item{\code{mGap: }}{Metric describing the difference between the following temporal boundaries: \code{TO.start}, \code{FROM.end}}
-\item{\code{mSt: }}{Metric describing the difference between the following temporal boundaries: \code{TO.start}, \code{FROM.start}}
-\item{\code{mEd: }}{Metrics describing the difference between the following temporal boundaries: \code{TO.end}, \code{FROM.end}}
-\item{\code{from_len: }}{The duration of time of each "from" event: units are one the scale of the smallest increment of time represented (e.g., calendar dates in days will have lengths expressed in days)}
-\item{\code{to_len: }}{The duration of time of each "to" event: units are one the scale of the smallest increment of time represented (e.g., calendar dates in days will have lengths expressed in days)}
-\item{\code{epsilon: }}{A complex number (e.g., \code{1337 + 0.90210i}) describing the relational changes from one event to another with interpretation based on whether or not the real and imaginary parts are \code{> 0}, \code{< 0}, or \code{ == 0}:
+\item{\code{mGap}}{Metric describing the difference between the following temporal boundaries: TO.start and FROM.end.}
+\item{\code{mSt}}{Metric describing the difference between the following temporal boundaries: TO.start and FROM.start.}
+\item{\code{mEd}}{Metrics describing the difference between the following temporal boundaries: TO.end and FROM.end.}
+\item{\code{from_len}}{The duration of time of each "from" event; units are on the scale of the smallest increment of time represented (e.g., calendar dates in days will have lengths expressed in days).}
+\item{\code{to_len}}{The duration of time of each "to" event; units are on the scale of the smallest increment of time represented (e.g., calendar dates in days will have lengths expressed in days).}
+\item{\code{epsilon}}{A complex number (e.g., 1337 + 0.90210i) describing the relational changes from one event to another with interpretation based on whether or not the real and imaginary parts are > 0, < 0, or == 0:\cr
 \tabular{lll}{
 Re \tab Im \tab Desc \cr
-{> 0} \tab {0} \tab Disjoint \cr
-{0} \tab {> 0} \tab Concurrency \cr
-{> 0} \tab {> 0} \tab Full Concurrency \cr
-{0} \tab {0} \tab Continuity \cr
-{ } \tab {< 1} \tab \code{to} event shorter than \code{from} event \cr
-{ } \tab {= 1} \tab \code{to} event same length as \code{from} event \cr
-{ } \tab {> 1} \tab \code{to} event longer than \code{from} event \cr
+\{> 0\} \tab \{0\} \tab Disjoint \cr
+\{0\} \tab \{> 0\} \tab Concurrency \cr
+\{> 0\} \tab \{> 0\} \tab Full Concurrency \cr
+\{0\} \tab \{0\} \tab Continuity \cr
 }
 }
-\item{\code{epsilon_desc: }}{A plain-language description of \code{epsilon}}
+\item{\code{epsilon_desc}}{A plain-language description of epsilon.}
 }
 }
 \description{
 Given a four-element vector of start and end coordinates of two events, \code{cross_time()} compares the distances among the upper and lower boundaries of pairs of event vectors. This includes "like" boundary comparison (e.g., start #2 - start#1) and contrary boundary comparison (e.g. start #2 - end #1).
 }
+\examples{
+local({
+  date_1 <- lubridate::as_date(20774, origin = lubridate::origin)
+  date_2 <- lubridate::as_date(20776, origin = lubridate::origin)
+  date_3 <- lubridate::as_date(20777, origin = lubridate::origin)
+  date_4 <- lubridate::as_date(20781, origin = lubridate::origin)
+  date_5 <- lubridate::as_date(20782, origin = lubridate::origin)
+  date_6 <- lubridate::as_date(20790, origin = lubridate::origin)
+
+  #       date_1       date_2       date_3       date_4       date_5       date_6 
+  # "2026-11-17" "2026-11-19" "2026-11-20" "2026-11-24" "2026-11-25" "2026-12-03" 
+
+  data.table::rbindlist(list(
+    # Concurrency
+    cross_time(s0 = date_1, s1 = date_2, e0 = date_4, e1 = date_5, unit = "hours")
+    # Full Concurrency
+    , cross_time(s0 = date_1, s1 = date_3, e0 = date_6, e1 = date_5, unit = "hours")
+    # Disjoint
+    , cross_time(s0 = date_1, s1 = date_4, e0 = date_3, e1 = date_5, unit = "hours")
+    # Continuity
+    , cross_time(s0 = date_1, s1 = date_3, e0 = date_3, e1 = date_5, unit = "hours")
+    )) |>
+  str()
+})
+
+}
+\seealso{
+Other Data Generation: 
+\code{\link{continuity}()}
+}
+\concept{Data Generation}

@@ -4,19 +4,13 @@
 #' Use case for \code{continuity} is to roll up a sequence consisting of smaller duration into a larger epoch governed by some meaningful separation between \eqn{n_\text{lower}} and \eqn{{n - 1}_\text{upper}} segments.
 #'
 #' @param data (object): The source dataset, including all non-sessioning fields desired
-#'
 #' @param map_fields (string): A vector of strings or symbols indicating the field names that will partition `data`
-#'
 #' @param time_fields (string): A vector of strings or symbols indicating the field names to use as "start" and "stop" temporal indices.
 #' If only one value is given, that value will be repeated as the "stop" index
-#'
 #' @param timeout The largest allowable 'gap' in a series of time values before a new 'island' begins: can be a quoted expression that conditionally determines the value. 
 #' If using date or datetime values for \code{time_fields}, specify the timeout using an appropriate \code{lubridate} functions (e.g., \code{\link[lubridate]{days}}).
-#'
 #' @param boundary_name (string): The name root of the boundary column names (e.g., "episode" => "episode_start_idx", "episode_end_idx")
-#'
 #' @param archipelago (logical | TRUE): Should the output include the islands and gaps generated?
-#'
 #' @param show.all (logical | FALSE): Should the output include all of the columns of the output? \code{show.all} and \code{archipelago} are independent
 #'
 #' @importFrom book.of.utilities %tf%
@@ -28,6 +22,18 @@
 #' }
 #'
 #' @family Data Generation
+#'
+#' @examples
+#' event.vectors::continuity(
+#' 	event.vectors::evs_src_01
+#' 	, map_fields = c(join_key, src)
+#' 	, time_fields = c(date.start, date.end)
+#' 	, timeout = lubridate::days(7)
+#' 	, boundary_name = "evs_series"
+#' 	, show.all = TRUE
+#' 	)[, .(join_key, src, evs_series_start_idx, evs_series_end_idx, ISLAND, GAP, seq_idx)] |>
+#' 	split(f = ~join_key) |>
+#' 	lapply(summary)
 #'
 #' @export
 continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name = "window", archipelago = TRUE, show.all = FALSE){
@@ -117,20 +123,20 @@ continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name
           , \(x) diff(c(x[1], x))
           )
       , by = map_partition
-      ][][
+      ][
       # Gap: From one record to the next in a partitioned, ordered set: { stop[n] - stop[n-1] } - [stop - start]
       # Need a visual for this in help file
       , GAP := as.numeric(rec_idx > 1) * (delta_stop - (stop_idx - start_idx))
       , by = map_partition
-      ][][
+      ][
       # Correct GAPS with overlapping boundaries { start[n] < stop[n-1] }
       (GAP < 0)
       , `:=`(start_idx  = start_idx + GAP, stop_idx = stop_idx  + GAP)
-      ][][is.na(GAP), GAP := 0
-      ][][
+      ][is.na(GAP), GAP := 0
+      ][
       , c("seq_idx", "island_idx") := make_partitions(GAP, eval(timeout))
       , by = map_partition
-      ][]
+      ]
     
     # Derive values for `{boundary_name}_start_idx`, `{boundary_name}_end_idx`, `ISLAND`, and `GAP` for each 
     # group defined as follows: G ~ <map_fields> + seq_idx

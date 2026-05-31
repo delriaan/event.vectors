@@ -42,4 +42,21 @@ A \code{\link[data.table]{data.table}} with the following columns \code{<mapFiel
 \code{continuity} is based on the \href{https://www.red-gate.com/simple-talk/sql/t-sql-programming/the-sql-of-gaps-and-islands-in-sequences/}{'islands & gaps'} concept.
 Use case for \code{continuity} is to roll up a sequence consisting of smaller duration into a larger epoch governed by some meaningful separation between \eqn{n_\text{lower}} and \eqn{{n - 1}_\text{upper}} segments.
 }
+\examples{
+event.vectors::continuity(
+	event.vectors::evs_src_01
+	, map_fields = c(join_key, src)
+	, time_fields = c(date.start, date.end)
+	, timeout = lubridate::days(7)
+	, boundary_name = "evs_series"
+	, show.all = TRUE
+	)[, .(join_key, src, evs_series_start_idx, evs_series_end_idx, ISLAND, GAP, seq_idx)] |>
+	split(f = ~join_key) |>
+	lapply(summary)
+
+}
+\seealso{
+Other Data Generation: 
+\code{\link{cross_time}()}
+}
 \concept{Data Generation}

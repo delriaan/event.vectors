@@ -15,5 +15,12 @@ evs_exclude.blender(x, y)
 A vector of pairs of event labels to be excluded in the call to \code{$exclude.mix()}
 }
 \description{
-\code{evs_exclude.blender} is a wrapper for \code{\link[base]{expand.grid}} with some post-processing via \code{\link[purrr]{array_branch}} and \code{\link[purrr]{reduce}}
+\code{evs_exclude.blender} is a wrapper for \code{\link[base]{expand.grid}} with some post-processing via \code{\link[purrr]{array_branch}} and \code{\link[purrr]{reduce}}.
+}
+\examples{
+evs_exclude.blender(
+  x = c("A", "B")
+  , y = c("A", "D", "Z")
+  )
+
 }

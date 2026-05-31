@@ -32,14 +32,25 @@ The initial execution order should look something like the following ...
 }
 }
 
+\section{Edge Attributes}{
+
+Edge attributes available for use are as follows:
+\itemize{
+\item{\code{jk}: The "join key" value for the edge}
+\item{\code{beta}, \code{mGap}, \code{mSt}, \code{mEd}, \code{epsilon}, \code{epsilon_desc}, \code{from_len}, \code{to_len}: See \code{\link{cross_time}}}
+\item{\code{from_coord}, \code{to_coord}: String representations of temporal boundaries expressed as concatenated integes}
+\item{\code{src_pair}: Values of the "from-to" pairings of events given by the contexts provided: FROM:TO}
+}
+}
+
 \section{Public fields}{
 \if{html}{\out{<div class="r6-fields">}}
 \describe{
-\item{\code{space}}{The object containing the derived set of data (see 'Details')}
+\item{\code{space}}{The object containing the derived set of data.}
 
 \item{\code{q_graph}}{A 'query graph' list containing the event interactions for each level of 'jk' (see 'Details')}
 
-\item{\code{evt_graphs}}{Event graphs for each level of 'jk' (see 'Details')
+\item{\code{evt_graphs}}{Event graphs for each level of 'jk'.    These are \code{\link[visNetwork]{visIgraph}}-ready objects that can be plotted with \code{\link[visNetwork]{visIgraph}} or manipulated with \code{\link[igraph]{igraph-package}} functions.
 Initialize the Event Vector Class}
 }
 \if{html}{\out{</div>}}
@@ -95,7 +106,7 @@ Initialize the Event Vector Class}
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{...}}{\code{\link[rlang]{dots_list}} Objects of class 'Event'}
+\item{\code{...}}{\code{\link[rlang]{dots_list}} Objects of class \code{\link{Event}}}
 
 \item{\code{src_mix}}{\describe{
 \item{"combination":}{ The default: generates unique pairs of sources}
@@ -138,7 +149,7 @@ Initialize the Event Vector Class}
 \subsection{Arguments}{
 \if{html}{\out{<div class="arguments">}}
 \describe{
-\item{\code{...}}{(\code{\link[rlang]{dots_list}}) Logical expression that retain graph edges meeting the conditions}
+\item{\code{...}}{(\code{\link[rlang]{dots_list}}) Logical expression that retain graph edges that meet the conditions (see 'Edge Attributes')}
 
 \item{\code{time_control}}{A 2-element list containing the minimum and maximum values allowed for total temporal span between two events}
 
@@ -146,7 +157,7 @@ Initialize the Event Vector Class}
 
 \item{\code{unit}}{(See \code{\link{cross_time}})}
 
-\item{\code{in_parallel}}{(logical | \code{FALSE}) Shoudl parallelism via \code{\link[furrr]{future_map}} be enabled?}
+\item{\code{in_parallel}}{(logical | \code{FALSE}) Enable parallelism via \code{\link[mirai]{mirai_map}}?}
 
 \item{\code{graph_only}}{(logical | \code{FALSE}) \code{TRUE} assumes class member \code{$space} exists (possibly after external modification) and recreates member \code{$evt_graphs}}
 

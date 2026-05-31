@@ -1,31 +1,41 @@
 #' Create an Event
 #' 
-#' This funciton leverages the 'lambda.r' library to create \code{Event} types comprised of a list of quosures to make referencing data sources and elements easy with `rlang::eval_tidy()`.
+#' This funciton leverages the `lambda.r` library to create \code{Event} types comprised of a list of quosures to make referencing data sources and elements easy with `rlang::eval_tidy()`.
 #'
 #' @param data (formula) A formula, where the LHS (if given) becomes the event label when argument \code{label} is not provided. The RHS becomes a reference to the source data by name. If a pipe (\code{`|`}) is given after the data source name on the RHS, it is treated as an indication of an expression that will filter rows in the data when evaluated.
-#' 
 #' @param jk,start,end(string) The name of the element in \code{data} denoting the \emph{'join-key'}, \emph{'start'}, and \emph{'end'} respectively.
-#' 
 #' @param label A unique label for the event source
-#' 
-#' @return a list comprised of the event label and three quosures (\code{jk}, \code{time_start_idx}, \code{time_end_idx})
-#' 
+#' @return A list comprised of the event label and three quosures (\code{jk}, \code{time_start_idx}, \code{time_end_idx})
+#'
+#' @examples
+#' \dontrun{
+#'   library(event.vectors)
+#'   Event(
+#'     Event_B ~ evs_src_03
+#'     , "join_key", "date.start", "date.end"
+#'     )
+#'   Event(
+#'     "World Peace" ~ evs_src_01 | date.start >= "2026-02-15"
+#'     , "join_key", "date.start", "date.end"
+#'     )
+#' }
+#'
 #' @export
-#' 
 #' @name Event
 NULL
 
-lambda.r::`%::%`(Event(data, jk, start, end, label = NULL), formula : character : character : character : . : list)
+lambda.r::`%::%`(
+  Event(data, jk, start, end, label = NULL)
+  , formula : character : character : character : . : list
+  )
 
 lambda.r::`%as%`(
   Event(data, jk, start, end, label = NULL), {
-  if (rlang::is_empty(label)){ 
-    label <- rlang::f_lhs(data) 
-  }
-
+  if (rlang::is_empty(label)){ label <- rlang::f_lhs(data) }
   assertive::assert_is_non_empty(label)
 
   data <- rlang::f_rhs(data)
+  data_name <- rlang::enexpr(data) |> as.character()
   data_cond <- TRUE
   has_pipe <- any(grepl("[|]", rlang::expr_text(data)))
 
@@ -36,7 +46,7 @@ lambda.r::`%as%`(
     data <- data[[2]]
   }
 
-  assertive::assert_is_non_empty(find(as.character(data)))
+  assertive::assert_is_non_empty(utils::find(data_name))
 
   data <- eval(data) |> 
     data.table::as.data.table() |>
