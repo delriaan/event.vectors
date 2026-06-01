@@ -1,10 +1,19 @@
 ---
 engines:
-- path: /usr/share/positron/resources/app/quarto/share/extension-subtrees/julia-engine/\_extensions/julia-engine/julia-engine.js
+- path: /opt/quarto/share/extension-subtrees/julia-engine/\_extensions/julia-engine/julia-engine.js
 toc-title: Table of contents
 ---
 
 # event.vectors Version 0.1.7
+
+## 0.1.7.1
+
+### Bug Fixes
+
+- `Event()`: Corrected event name parsing from argument `data`
+- `event.vectors$make.evs_universe()`: Added check for missing names in
+  internal mapping function: this allows caching to work whe parallelism
+  is enabled.
 
 ## 0.1.7
 

@@ -140,7 +140,7 @@ cross_time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE
         c("cache_mem", "cache_disk") %in% class(cache)
         , identical(TRUE, cache)
       ))){ 
-      fun <- memoise::memoise(f = fun, cache = cache) 
+        fun <- memoise::memoise(f = fun, cache = cache) 
       }
 
   res <- fun(s0, s1, e0, e1, beta, ds, swapped)

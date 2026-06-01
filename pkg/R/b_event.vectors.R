@@ -229,7 +229,6 @@ event.vectors <- R6::R6Class(
 								, y = to_src
 								, by = "jk"
 								, allow.cartesian = TRUE
-								, nomatch = 0
 								)
 							data.table::setkey(out, jk, f_start_idx, t_start_idx)
 							
@@ -318,9 +317,22 @@ event.vectors <- R6::R6Class(
 								furrr::future_map(x, f, ..., .options = future_opts)
 							}
 						} else { purrr::imap }
+				
 					map_fun <- \(x, nm, ..., cache_dir = NULL){
 							gc()
 							pid <- Sys.getpid()
+							if (missing(nm)){
+								nm <- sprintf(
+									"graph_jk_%s_%s"
+									, x
+									, stringi::stri_replace_all_fixed(
+											uuid::UUIDgenerate(TRUE)
+											, '-'
+											, '_'
+											, vectorize_all = FALSE
+											)
+									)
+							}
 						
 							err_fun <- \(e){
 								cat(sprintf("[Error (%s | %s)", nm, pid), paste(deparse(e), collapse = "\n"), sep = "\n");
@@ -336,7 +348,7 @@ event.vectors <- R6::R6Class(
 									}
 
 									# Tag the output with the process ID (useful for distributed workers)
-									g <- igraph::set_graph_attr(g, "pid", pid)
+									g <<- igraph::set_graph_attr(g, "pid", pid)
 
 									if (!rlang::is_empty(cache_dir)){
 											cache <- cachem::cache_disk(dir = cache_dir, destroy_on_finalize = FALSE)
@@ -345,7 +357,7 @@ event.vectors <- R6::R6Class(
 											rlang::expr(readRDS(file = !!dir(cache$info()$dir, pattern = paste0(nm, "\\."), full.names = TRUE)))
 									} else { g }
 								}, error = err_fun)
-						}
+					}
 					map_queue <- space[(x_filter), unique(jk)] |>
 							(\(x){
 								nms <- sprintf(

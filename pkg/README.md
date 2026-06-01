@@ -1,6 +1,6 @@
 ---
 engines:
-- path: /usr/share/positron/resources/app/quarto/share/extension-subtrees/julia-engine/\_extensions/julia-engine/julia-engine.js
+- path: /opt/quarto/share/extension-subtrees/julia-engine/\_extensions/julia-engine/julia-engine.js
 toc-title: Table of contents
 ---
 
@@ -8,10 +8,9 @@ toc-title: Table of contents
 
 ## Overview
 
-Package `event.vectors` provides a framework for capturing the
-relationships among points in time as well as events having duration.
-Some definitions should be kept in mind to understand the event vector
-framework:
+`event.vectors` provides a framework for capturing the relationships
+among points in time as well as events having duration. Some definitions
+should be kept in mind to understand the event vector framework:
 
 - `Vector`: A vector numerically encodes magnitude and direction.
 
@@ -32,5 +31,9 @@ Scalability and parallelism plans have undergone limited testing.
 
 ## Installation
 
-Use `remotes::install_github("delriaan/event.vectors", subdir = "pkg")`
-to install.
+``` r
+# Dependency
+remotes::install_github("delriaan/book.of.utilities", subdir = "pkg")
+# Package
+remotes::install_github("delriaan/event.vectors", subdir = "pkg")
+```

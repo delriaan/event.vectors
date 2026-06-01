@@ -32,7 +32,7 @@
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="index.html">event.vectors</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.7</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.7.1</span>
       </span>
     </div>
 
@@ -71,7 +71,7 @@
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>Package <code>event.vectors</code> provides a framework for capturing the relationships among points in time as well as events having duration. Some definitions should be kept in mind to understand the event vector framework:</p>
+<p><code>event.vectors</code> provides a framework for capturing the relationships among points in time as well as events having duration. Some definitions should be kept in mind to understand the event vector framework:</p>
 <ul>
 <li><p><code>Vector</code>: A vector numerically encodes magnitude and direction.</p></li>
 <li><p><code>Event</code>: Theoretically, an instantaneous point in time associated with a change of state. Practically, an event is temporal duration encoded as a pair of temporal points. This is the understanding used in <code>event.vectors</code>.</p></li>
@@ -82,7 +82,11 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<p>Use <code>remotes::install_github("delriaan/event.vectors", subdir = "pkg")</code> to install.</p>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># Dependency</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"delriaan/book.of.utilities"</span>, subdir <span class="op">=</span> <span class="st">"pkg"</span><span class="op">)</span></span>
+<span><span class="co"># Package</span></span>
+<span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"delriaan/event.vectors"</span>, subdir <span class="op">=</span> <span class="st">"pkg"</span><span class="op">)</span></span></code></pre></div>
 </div>
 </div>
   </div>
@@ -98,7 +102,7 @@
 <div class="license">
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
-<li>GPL (&gt;= 3)</li>
+<li><a href="https://www.r-project.org/Licenses/GPL-3" class="external-link">GPL-3</a></li>
 </ul>
 </div>
 

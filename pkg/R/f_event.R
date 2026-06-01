@@ -35,7 +35,6 @@ lambda.r::`%as%`(
   assertive::assert_is_non_empty(label)
 
   data <- rlang::f_rhs(data)
-  data_name <- rlang::enexpr(data) |> as.character()
   data_cond <- TRUE
   has_pipe <- any(grepl("[|]", rlang::expr_text(data)))
 
@@ -46,6 +45,8 @@ lambda.r::`%as%`(
     data <- data[[2]]
   }
 
+  data_name <- as.character(data)
+  if (length(data_name) > 1) browser()
   assertive::assert_is_non_empty(utils::find(data_name))
 
   data <- eval(data) |> 
