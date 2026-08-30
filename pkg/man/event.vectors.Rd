@@ -44,88 +44,89 @@ Edge attributes available for use are as follows:
 }
 
 \section{Public fields}{
-\if{html}{\out{<div class="r6-fields">}}
-\describe{
-\item{\code{space}}{The object containing the derived set of data.}
+  \if{html}{\out{<div class="r6-fields">}}
+  \describe{
+    \item{\code{space}}{The object containing the derived set of data.}
 
-\item{\code{q_graph}}{A 'query graph' list containing the event interactions for each level of 'jk' (see 'Details')}
+    \item{\code{q_graph}}{A 'query graph' list containing the event interactions for each level of 'jk' (see 'Details')}
 
-\item{\code{evt_graphs}}{Event graphs for each level of 'jk'.    These are \code{\link[visNetwork]{visIgraph}}-ready objects that can be plotted with \code{\link[visNetwork]{visIgraph}} or manipulated with \code{\link[igraph]{igraph-package}} functions.
+    \item{\code{evt_graphs}}{Event graphs for each level of 'jk'.    These are \code{\link[visNetwork]{visIgraph}}-ready objects that can be plotted with \code{\link[visNetwork]{visIgraph}} or manipulated with \code{\link[igraph]{igraph-package}} functions.
 Initialize the Event Vector Class}
-}
-\if{html}{\out{</div>}}
+  }
+  \if{html}{\out{</div>}}
 }
 \section{Active bindings}{
-\if{html}{\out{<div class="r6-active-bindings">}}
-\describe{
-\item{\code{config}}{This is an active binding that returns the configuration used to instantiate the class.}
+  \if{html}{\out{<div class="r6-active-bindings">}}
+  \describe{
+    \item{\code{config}}{This is an active binding that returns the configuration used to instantiate the class.}
 
-\item{\code{set_private}}{Set or get private variables}
-}
-\if{html}{\out{</div>}}
+    \item{\code{set_private}}{Set or get private variables}
+  }
+  \if{html}{\out{</div>}}
 }
 \section{Methods}{
 \subsection{Public methods}{
-\itemize{
-\item \href{#method-event.vectors-new}{\code{event.vectors$new()}}
-\item \href{#method-event.vectors-configure}{\code{event.vectors$configure()}}
-\item \href{#method-event.vectors-make.evs_universe}{\code{event.vectors$make.evs_universe()}}
-\item \href{#method-event.vectors-clone}{\code{event.vectors$clone()}}
-}
+  \itemize{
+    \item \href{#method-event.vectors-initialize}{\code{event.vectors$new()}}
+    \item \href{#method-event.vectors-configure}{\code{event.vectors$configure()}}
+    \item \href{#method-event.vectors-make.evs_universe}{\code{event.vectors$make.evs_universe()}}
+    \item \href{#method-event.vectors-clone}{\code{event.vectors$clone()}}
+  }
 }
 \if{html}{\out{<hr>}}
-\if{html}{\out{<a id="method-event.vectors-new"></a>}}
-\if{latex}{\out{\hypertarget{method-event.vectors-new}{}}}
-\subsection{Method \code{new()}}{
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{event.vectors$new(...)}\if{html}{\out{</div>}}
+\if{html}{\out{<a id="method-event.vectors-initialize"></a>}}
+\if{latex}{\out{\hypertarget{method-event.vectors-initialize}{}}}
+\subsection{\code{event.vectors$new()}}{
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{event.vectors$new(...)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{...}}{(not used)}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{...}}{(not used)}
-}
-\if{html}{\out{</div>}}
-}
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-event.vectors-configure"></a>}}
 \if{latex}{\out{\hypertarget{method-event.vectors-configure}{}}}
-\subsection{Method \code{configure()}}{
-\code{$configure()} creates references to the source data to use.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{event.vectors$configure(
+\subsection{\code{event.vectors$configure()}}{
+  \code{$configure()} creates references to the source data to use.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{event.vectors$configure(
   ...,
   src_mix = "comb",
   exclude_mix = list(),
   chatty = FALSE
-)}\if{html}{\out{</div>}}
-}
-
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{...}}{\code{\link[rlang]{dots_list}} Objects of class \code{\link{Event}}}
-
-\item{\code{src_mix}}{\describe{
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{...}}{\code{\link[rlang]{dots_list}} Objects of class \code{\link{Event}}}
+      \item{\code{src_mix}}{\describe{
 \item{"combination":}{ The default: generates unique pairs of sources}
 \item{"refl0exive":}{ Compares each source to itself}
 \item{"all":}{ The union of the preceding options}
 } \cr Partial matching is allowed, and generated combinations include the mirror (e.g., "A, B" will have a "B, A" combo pair generated).}
+      \item{\code{exclude_mix}}{A list of vectors containing each source pair context to exclude (e.g. \code{list(c("A", "C"), c("u", "k"))}). \code{\link{evs_exclude.blender}} can be invoked to create this list more quickly.  Combinations are not automatically mirrored as is the case with \code{src_mix}.}
+      \item{\code{chatty}}{(logical | \code{FALSE}) Verbosity flag}
+    }
+    \if{html}{\out{</div>}}
+  }
+}
 
-\item{\code{exclude_mix}}{A list of vectors containing each source pair context to exclude (e.g. \code{list(c("A", "C"), c("u", "k"))}). \code{\link{evs_exclude.blender}} can be invoked to create this list more quickly.  Combinations are not automatically mirrored as is the case with \code{src_mix}.}
-
-\item{\code{chatty}}{(logical | \code{FALSE}) Verbosity flag}
-}
-\if{html}{\out{</div>}}
-}
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-event.vectors-make.evs_universe"></a>}}
 \if{latex}{\out{\hypertarget{method-event.vectors-make.evs_universe}{}}}
-\subsection{Method \code{make.evs_universe()}}{
-\code{make.evs_universe} supplies values to two class fields: \code{q_graph} and \code{space}, the latter being created from the former.
+\subsection{\code{event.vectors$make.evs_universe()}}{
+  \code{make.evs_universe} supplies values to two class fields: \code{q_graph} and \code{space}, the latter being created from the former.
 
 \emph{Additional Information}:
 \itemize{
@@ -133,8 +134,9 @@ Initialize the Event Vector Class}
 \item{The graphs in class member \code{$evt_graphs} are \code{\link[visNetwork]{visIgraph}}-ready}
 \item{Parallelism is internally supported via package \code{furrr}: the user is responsible for setting the appropriate \code{\link[future]{plan}}}
 }
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{event.vectors$make.evs_universe(
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{event.vectors$make.evs_universe(
   ...,
   time_control = list(-Inf, Inf),
   graph_control = NULL,
@@ -143,49 +145,45 @@ Initialize the Event Vector Class}
   graph_only = FALSE,
   chatty = FALSE,
   cache = NULL
-)}\if{html}{\out{</div>}}
+)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{...}}{(\code{\link[rlang]{dots_list}}) Logical expression that retain graph edges that meet the conditions (see 'Edge Attributes')}
+      \item{\code{time_control}}{A 2-element list containing the minimum and maximum values allowed for total temporal span between two events}
+      \item{\code{graph_control}}{An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph and \code{<<-} to update \code{g}.}
+      \item{\code{unit}}{(See \code{\link{cross_time}})}
+      \item{\code{in_parallel}}{(logical | \code{FALSE}) Enable parallelism via \code{\link[mirai]{mirai_map}}?}
+      \item{\code{graph_only}}{(logical | \code{FALSE}) \code{TRUE} assumes class member \code{$space} exists (possibly after external modification) and recreates member \code{$evt_graphs}}
+      \item{\code{chatty}}{(logical | \code{FALSE}) Verbosity flag}
+      \item{\code{cache}}{(See \code{\link{cross_time}})}
+    }
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Returns}{
+    Invisibly, the original object augmented with new member \code{space}
+  }
 }
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{...}}{(\code{\link[rlang]{dots_list}}) Logical expression that retain graph edges that meet the conditions (see 'Edge Attributes')}
-
-\item{\code{time_control}}{A 2-element list containing the minimum and maximum values allowed for total temporal span between two events}
-
-\item{\code{graph_control}}{An expression list containing \code{\link[igraph]{igraph-package}} calls to manipulate the internally-created graph in the order provided.  Use symbol \code{g} to generically denote the graph and \code{<<-} to update \code{g}.}
-
-\item{\code{unit}}{(See \code{\link{cross_time}})}
-
-\item{\code{in_parallel}}{(logical | \code{FALSE}) Enable parallelism via \code{\link[mirai]{mirai_map}}?}
-
-\item{\code{graph_only}}{(logical | \code{FALSE}) \code{TRUE} assumes class member \code{$space} exists (possibly after external modification) and recreates member \code{$evt_graphs}}
-
-\item{\code{chatty}}{(logical | \code{FALSE}) Verbosity flag}
-
-\item{\code{cache}}{(See \code{\link{cross_time}})}
-}
-\if{html}{\out{</div>}}
-}
-\subsection{Returns}{
-Invisibly, the original object augmented with new member \code{space}
-}
-}
 \if{html}{\out{<hr>}}
 \if{html}{\out{<a id="method-event.vectors-clone"></a>}}
 \if{latex}{\out{\hypertarget{method-event.vectors-clone}{}}}
-\subsection{Method \code{clone()}}{
-The objects of this class are cloneable with this method.
-\subsection{Usage}{
-\if{html}{\out{<div class="r">}}\preformatted{event.vectors$clone(deep = FALSE)}\if{html}{\out{</div>}}
+\subsection{\code{event.vectors$clone()}}{
+  The objects of this class are cloneable with this method.
+  \subsection{Usage}{
+    \if{html}{\out{<div class="r">}}
+    \preformatted{event.vectors$clone(deep = FALSE)}
+    \if{html}{\out{</div>}}
+  }
+  \subsection{Arguments}{
+    \if{html}{\out{<div class="arguments">}}
+    \describe{
+      \item{\code{deep}}{Whether to make a deep clone.}
+    }
+    \if{html}{\out{</div>}}
+  }
 }
 
-\subsection{Arguments}{
-\if{html}{\out{<div class="arguments">}}
-\describe{
-\item{\code{deep}}{Whether to make a deep clone.}
-}
-\if{html}{\out{</div>}}
-}
-}
 }

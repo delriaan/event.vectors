@@ -18,7 +18,7 @@ The time between these events is the focus of derivation: properly, the event ve
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">event.vectors</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.7</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.7.2</span>
       </span>
     </div>
 
@@ -106,11 +106,11 @@ The time between these events is the focus of derivation: properly, the event ve
 <dd><p>The object containing the derived set of data.</p></dd>
 
 
-<dt><code>q_graph</code></dt>
+    <dt><code>q_graph</code></dt>
 <dd><p>A 'query graph' list containing the event interactions for each level of 'jk' (see 'Details')</p></dd>
 
 
-<dt><code>evt_graphs</code></dt>
+    <dt><code>evt_graphs</code></dt>
 <dd><p>Event graphs for each level of 'jk'.    These are <code><a href="https://rdrr.io/pkg/visNetwork/man/visNetwork-igraph.html" class="external-link">visIgraph</a></code>-ready objects that can be plotted with <code><a href="https://rdrr.io/pkg/visNetwork/man/visNetwork-igraph.html" class="external-link">visIgraph</a></code> or manipulated with <code><a href="https://r.igraph.org/reference/aaa-igraph-package.html" class="external-link">igraph-package</a></code> functions.
 Initialize the Event Vector Class</p></dd>
 
@@ -123,7 +123,7 @@ Initialize the Event Vector Class</p></dd>
 <dd><p>This is an active binding that returns the configuration used to instantiate the class.</p></dd>
 
 
-<dt><code>set_private</code></dt>
+    <dt><code>set_private</code></dt>
 <dd><p>Set or get private variables</p></dd>
 
 
@@ -134,20 +134,16 @@ Initialize the Event Vector Class</p></dd>
 
 <div class="section">
 <h3 id="public-methods">Public methods<a class="anchor" aria-label="anchor" href="#public-methods"></a></h3>
-
-<ul><li><p><a href="#method-event.vectors-new"><code>event.vectors$new()</code></a></p></li>
+<p></p><ul><li><p><a href="#method-event.vectors-initialize"><code>event.vectors$new()</code></a></p></li>
 <li><p><a href="#method-event.vectors-configure"><code>event.vectors$configure()</code></a></p></li>
 <li><p><a href="#method-event.vectors-make.evs_universe"><code>event.vectors$make.evs_universe()</code></a></p></li>
 <li><p><a href="#method-event.vectors-clone"><code>event.vectors$clone()</code></a></p></li>
-</ul></div><p></p><hr><a id="method-event.vectors-new"></a><div class="section">
-<h3 id="method-new-">Method <code>new()</code><a class="anchor" aria-label="anchor" href="#method-new-"></a></h3>
-
-<div class="section">
+</ul></div><p></p><hr><a id="method-event.vectors-initialize"></a><div class="section">
+<h3 id="event-vectors-new-"><code>event.vectors$new()</code><a class="anchor" aria-label="anchor" href="#event-vectors-new-"></a></h3>
+<p></p><div class="section">
 <h4 id="usage">Usage<a class="anchor" aria-label="anchor" href="#usage"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va"><a href="../reference/event.vectors.html">event.vectors</a></span><span class="op">$</span><span class="fu">new</span><span class="op">(</span><span class="va">...</span><span class="op">)</span></span></code></pre></div><p></p></div>
-</div>
-
-<div class="section">
+</div><p></p><div class="section">
 <h4 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>...</code></dt>
 <dd><p>(not used)</p></dd>
@@ -156,8 +152,10 @@ Initialize the Event Vector Class</p></dd>
 </dl><p></p></div>
 </div>
 
-</div><p></p><hr><a id="method-event.vectors-configure"></a><div class="section">
-<h3 id="method-configure-">Method <code>configure()</code><a class="anchor" aria-label="anchor" href="#method-configure-"></a></h3>
+</div>
+
+<p></p><hr><a id="method-event.vectors-configure"></a><div class="section">
+<h3 id="event-vectors-configure-"><code>event.vectors$configure()</code><a class="anchor" aria-label="anchor" href="#event-vectors-configure-"></a></h3>
 <p><code>$configure()</code> creates references to the source data to use.</p><div class="section">
 <h4 id="usage-1">Usage<a class="anchor" aria-label="anchor" href="#usage-1"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">event.vectors</span><span class="op">$</span><span class="fu">configure</span><span class="op">(</span></span>
@@ -166,15 +164,12 @@ Initialize the Event Vector Class</p></dd>
 <span>  exclude_mix <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  chatty <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span></code></pre></div><p></p></div>
-</div>
-
-<div class="section">
+</div><p></p><div class="section">
 <h4 id="arguments-1">Arguments<a class="anchor" aria-label="anchor" href="#arguments-1"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>...</code></dt>
 <dd><p><code><a href="https://rlang.r-lib.org/reference/list2.html" class="external-link">dots_list</a></code> Objects of class <code><a href="Event.html">Event</a></code></p></dd>
 
-
-<dt><code>src_mix</code></dt>
+      <dt><code>src_mix</code></dt>
 <dd><dl><dt>"combination":</dt>
 <dd><p>The default: generates unique pairs of sources</p></dd>
 
@@ -187,25 +182,25 @@ Initialize the Event Vector Class</p></dd>
 
 </dl><p><br> Partial matching is allowed, and generated combinations include the mirror (e.g., "A, B" will have a "B, A" combo pair generated).</p></dd>
 
-
-<dt><code>exclude_mix</code></dt>
+      <dt><code>exclude_mix</code></dt>
 <dd><p>A list of vectors containing each source pair context to exclude (e.g. <code>list(c("A", "C"), c("u", "k"))</code>). <code><a href="evs_exclude.blender.html">evs_exclude.blender</a></code> can be invoked to create this list more quickly.  Combinations are not automatically mirrored as is the case with <code>src_mix</code>.</p></dd>
 
-
-<dt><code>chatty</code></dt>
+      <dt><code>chatty</code></dt>
 <dd><p>(logical | <code>FALSE</code>) Verbosity flag</p></dd>
 
 
 </dl><p></p></div>
 </div>
 
-</div><p></p><hr><a id="method-event.vectors-make.evs_universe"></a><div class="section">
-<h3 id="method-make-evs-universe-">Method <code>make.evs_universe()</code><a class="anchor" aria-label="anchor" href="#method-make-evs-universe-"></a></h3>
+</div>
+
+<p></p><hr><a id="method-event.vectors-make.evs_universe"></a><div class="section">
+<h3 id="event-vectors-make-evs-universe-"><code>event.vectors$make.evs_universe()</code><a class="anchor" aria-label="anchor" href="#event-vectors-make-evs-universe-"></a></h3>
 <p><code>make.evs_universe</code> supplies values to two class fields: <code>q_graph</code> and <code>space</code>, the latter being created from the former.</p>
 <p><em>Additional Information</em>:</p><ul><li><p>Class member <code>$space</code> should have as many rows as the sum of all edge counts for graphs in <code>$q_graph</code></p></li>
 <li><p>The graphs in class member <code>$evt_graphs</code> are <code><a href="https://rdrr.io/pkg/visNetwork/man/visNetwork-igraph.html" class="external-link">visIgraph</a></code>-ready</p></li>
 <li><p>Parallelism is internally supported via package <code>furrr</code>: the user is responsible for setting the appropriate <code><a href="https://future.futureverse.org/reference/plan.html" class="external-link">plan</a></code></p></li>
-</ul><div class="section">
+</ul><p></p><div class="section">
 <h4 id="usage-2">Usage<a class="anchor" aria-label="anchor" href="#usage-2"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">event.vectors</span><span class="op">$</span><span class="fu">make.evs_universe</span><span class="op">(</span></span>
 <span>  <span class="va">...</span>,</span>
@@ -217,57 +212,47 @@ Initialize the Event Vector Class</p></dd>
 <span>  chatty <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  cache <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div><p></p></div>
-</div>
-
-<div class="section">
+</div><p></p><div class="section">
 <h4 id="arguments-2">Arguments<a class="anchor" aria-label="anchor" href="#arguments-2"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>...</code></dt>
 <dd><p>(<code><a href="https://rlang.r-lib.org/reference/list2.html" class="external-link">dots_list</a></code>) Logical expression that retain graph edges that meet the conditions (see 'Edge Attributes')</p></dd>
 
-
-<dt><code>time_control</code></dt>
+      <dt><code>time_control</code></dt>
 <dd><p>A 2-element list containing the minimum and maximum values allowed for total temporal span between two events</p></dd>
 
-
-<dt><code>graph_control</code></dt>
+      <dt><code>graph_control</code></dt>
 <dd><p>An expression list containing <code><a href="https://r.igraph.org/reference/aaa-igraph-package.html" class="external-link">igraph-package</a></code> calls to manipulate the internally-created graph in the order provided.  Use symbol <code>g</code> to generically denote the graph and <code>&lt;&lt;-</code> to update <code>g</code>.</p></dd>
 
-
-<dt><code>unit</code></dt>
+      <dt><code>unit</code></dt>
 <dd><p>(See <code><a href="cross_time.html">cross_time</a></code>)</p></dd>
 
-
-<dt><code>in_parallel</code></dt>
+      <dt><code>in_parallel</code></dt>
 <dd><p>(logical | <code>FALSE</code>) Enable parallelism via <code><a href="https://mirai.r-lib.org/reference/mirai_map.html" class="external-link">mirai_map</a></code>?</p></dd>
 
-
-<dt><code>graph_only</code></dt>
+      <dt><code>graph_only</code></dt>
 <dd><p>(logical | <code>FALSE</code>) <code>TRUE</code> assumes class member <code>$space</code> exists (possibly after external modification) and recreates member <code>$evt_graphs</code></p></dd>
 
-
-<dt><code>chatty</code></dt>
+      <dt><code>chatty</code></dt>
 <dd><p>(logical | <code>FALSE</code>) Verbosity flag</p></dd>
 
-
-<dt><code>cache</code></dt>
+      <dt><code>cache</code></dt>
 <dd><p>(See <code><a href="cross_time.html">cross_time</a></code>)</p></dd>
 
 
 </dl><p></p></div>
-</div>
-<div class="section">
+</div><p></p><div class="section">
 <h4 id="returns">Returns<a class="anchor" aria-label="anchor" href="#returns"></a></h4>
 <p>Invisibly, the original object augmented with new member <code>space</code></p>
 </div>
 
-</div><p></p><hr><a id="method-event.vectors-clone"></a><div class="section">
-<h3 id="method-clone-">Method <code>clone()</code><a class="anchor" aria-label="anchor" href="#method-clone-"></a></h3>
+</div>
+
+<p></p><hr><a id="method-event.vectors-clone"></a><div class="section">
+<h3 id="event-vectors-clone-"><code>event.vectors$clone()</code><a class="anchor" aria-label="anchor" href="#event-vectors-clone-"></a></h3>
 <p>The objects of this class are cloneable with this method.</p><div class="section">
 <h4 id="usage-3">Usage<a class="anchor" aria-label="anchor" href="#usage-3"></a></h4>
 <p></p><div class="r"><div class="sourceCode"><pre><code><span><span class="va">event.vectors</span><span class="op">$</span><span class="fu">clone</span><span class="op">(</span>deep <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div><p></p></div>
-</div>
-
-<div class="section">
+</div><p></p><div class="section">
 <h4 id="arguments-3">Arguments<a class="anchor" aria-label="anchor" href="#arguments-3"></a></h4>
 <p></p><div class="arguments"><dl><dt><code>deep</code></dt>
 <dd><p>Whether to make a deep clone.</p></dd>
@@ -277,6 +262,7 @@ Initialize the Event Vector Class</p></dd>
 </div>
 
 </div>
+
 
     </div>
 

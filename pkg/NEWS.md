@@ -1,10 +1,19 @@
 ---
-engines:
-- path: /opt/quarto/share/extension-subtrees/julia-engine/\_extensions/julia-engine/julia-engine.js
 toc-title: Table of contents
 ---
 
 # event.vectors Version 0.1.7
+
+## 0.1.7.2
+
+### Updates
+
+- Documentation updates to package functions.
+- `event.vectors$configure()`: Unnamed arguments to `...` will be given
+  names based on the `Event()` label. Prior behavior required all
+  arguments to be named.
+- `event.vectors$make.evs_universe()`: Added caching support when
+  running in serial. Prior behavior only supported running in parallel.
 
 ## 0.1.7.1
 

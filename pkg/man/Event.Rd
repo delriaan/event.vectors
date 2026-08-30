@@ -4,7 +4,11 @@
 \alias{Event}
 \title{Create an Event}
 \arguments{
-\item{data}{(formula) A formula, where the LHS (if given) becomes the event label when argument \code{label} is not provided. The RHS becomes a reference to the source data by name. If a pipe (\code{`|`}) is given after the data source name on the RHS, it is treated as an indication of an expression that will filter rows in the data when evaluated.}
+\item{data}{(formula) A formula parsed as follows:\cr
+\itemize{
+\item {The LHS (if given) becomes the event label when argument \code{label} is not provided.}
+\item {The RHS becomes a name or expression that returns the dataset when evaluated. If a pipe (\code{`|`}) is given after the data source name on the RHS, it is treated as an indication of an expression that will filter rows in the data when evaluated.}
+}}
 
 \item{jk, start, end(string)}{The name of the element in \code{data} denoting the \emph{'join-key'}, \emph{'start'}, and \emph{'end'} respectively.}
 
@@ -18,15 +22,17 @@ This funciton leverages the \code{lambda.r} library to create \code{Event} types
 }
 \examples{
 \dontrun{
-  library(event.vectors)
-  Event(
-    Event_B ~ evs_src_03
-    , "join_key", "date.start", "date.end"
-    )
-  Event(
-    "World Peace" ~ evs_src_01 | date.start >= "2026-02-15"
-    , "join_key", "date.start", "date.end"
-    )
+library(event.vectors)
+Event(
+  data = Event_B ~ subset(evs_src_03, join_key != 2)
+  , jk = "join_key"
+  , start = "date.start"
+  , end = "date.end"
+  )
+Event(
+  "World Peace" ~ evs_src_01 | date.start >= "2026-02-15"
+  , "join_key", "date.start", "date.end"
+  )
 }
 
 }

@@ -24,16 +24,18 @@
 #' @family Data Generation
 #'
 #' @examples
-#' event.vectors::continuity(
-#' 	event.vectors::evs_src_01
-#' 	, map_fields = c(join_key, src)
-#' 	, time_fields = c(date.start, date.end)
-#' 	, timeout = lubridate::days(7)
-#' 	, boundary_name = "evs_series"
-#' 	, show.all = TRUE
-#' 	)[, .(join_key, src, evs_series_start_idx, evs_series_end_idx, ISLAND, GAP, seq_idx)] |>
-#' 	split(f = ~join_key) |>
-#' 	lapply(summary)
+#' \dontrun{
+#'   event.vectors::continuity(
+#'   	event.vectors::evs_src_01
+#'   	, map_fields = c(join_key, src)
+#'   	, time_fields = c(date.start, date.end)
+#'   	, timeout = lubridate::days(7)
+#'   	, boundary_name = "evs_series"
+#'   	, show.all = TRUE
+#'   	)[, .(join_key, src, evs_series_start_idx, evs_series_end_idx, ISLAND, GAP, seq_idx)] |>
+#'   	split(f = ~join_key) |>
+#'   	lapply(summary)
+#' }
 #'
 #' @export
 continuity <- function(data, map_fields, time_fields, timeout = 0, boundary_name = "window", archipelago = TRUE, show.all = FALSE){

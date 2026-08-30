@@ -36,30 +36,31 @@
 #' @family Data Generation
 #'
 #' @examples
-#' local({
-#'   date_1 <- lubridate::as_date(20774, origin = lubridate::origin)
-#'   date_2 <- lubridate::as_date(20776, origin = lubridate::origin)
-#'   date_3 <- lubridate::as_date(20777, origin = lubridate::origin)
-#'   date_4 <- lubridate::as_date(20781, origin = lubridate::origin)
-#'   date_5 <- lubridate::as_date(20782, origin = lubridate::origin)
-#'   date_6 <- lubridate::as_date(20790, origin = lubridate::origin)
-#'
-#'   #       date_1       date_2       date_3       date_4       date_5       date_6 
-#'   # "2026-11-17" "2026-11-19" "2026-11-20" "2026-11-24" "2026-11-25" "2026-12-03" 
-#'
-#'   data.table::rbindlist(list(
-#'     # Concurrency
-#'     cross_time(s0 = date_1, s1 = date_2, e0 = date_4, e1 = date_5, unit = "hours")
-#'     # Full Concurrency
-#'     , cross_time(s0 = date_1, s1 = date_3, e0 = date_6, e1 = date_5, unit = "hours")
-#'     # Disjoint
-#'     , cross_time(s0 = date_1, s1 = date_4, e0 = date_3, e1 = date_5, unit = "hours")
-#'     # Continuity
-#'     , cross_time(s0 = date_1, s1 = date_3, e0 = date_3, e1 = date_5, unit = "hours")
-#'     )) |>
-#'   str()
-#' })
-#'
+#' \dontrun{
+#'   local({
+#'     date_1 <- lubridate::as_date(20774, origin = lubridate::origin)
+#'     date_2 <- lubridate::as_date(20776, origin = lubridate::origin)
+#'     date_3 <- lubridate::as_date(20777, origin = lubridate::origin)
+#'     date_4 <- lubridate::as_date(20781, origin = lubridate::origin)
+#'     date_5 <- lubridate::as_date(20782, origin = lubridate::origin)
+#'     date_6 <- lubridate::as_date(20790, origin = lubridate::origin)
+#'   
+#'     #       date_1       date_2       date_3       date_4       date_5       date_6 
+#'     # "2026-11-17" "2026-11-19" "2026-11-20" "2026-11-24" "2026-11-25" "2026-12-03" 
+#'   
+#'     data.table::rbindlist(list(
+#'       # Concurrency
+#'       cross_time(s0 = date_1, s1 = date_2, e0 = date_4, e1 = date_5, unit = "hours")
+#'       # Full Concurrency
+#'       , cross_time(s0 = date_1, s1 = date_3, e0 = date_6, e1 = date_5, unit = "hours")
+#'       # Disjoint
+#'       , cross_time(s0 = date_1, s1 = date_4, e0 = date_3, e1 = date_5, unit = "hours")
+#'       # Continuity
+#'       , cross_time(s0 = date_1, s1 = date_3, e0 = date_3, e1 = date_5, unit = "hours")
+#'       )) |>
+#'     str()
+#'   })
+#'}
 #' @export
 cross_time <- function(s0, s1, e0, e1, control = list(-Inf, Inf), chatty = FALSE, unit = NULL, cache = NULL, ...){
   ## Reference: https://www.r-bloggers.com/using-complex-numbers-in-r/

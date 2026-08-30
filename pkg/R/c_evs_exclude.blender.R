@@ -8,7 +8,7 @@
 #' @return A vector of pairs of event labels to be excluded in the call to \code{$exclude.mix()}
 #'
 #' @examples
-#' evs_exclude.blender(
+#' event.vectors::evs_exclude.blender(
 #'   x = c("A", "B")
 #'   , y = c("A", "D", "Z")
 #'   )

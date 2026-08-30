@@ -18,7 +18,7 @@ Use case for continuity is to roll up a sequence consisting of smaller duration 
       </button>
       <span class="navbar-brand">
         <a class="navbar-link" href="../index.html">event.vectors</a>
-        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.7</span>
+        <span class="version label label-default" data-toggle="tooltip" data-placement="bottom" title="">0.1.7.2</span>
       </span>
     </div>
 
@@ -118,64 +118,18 @@ If using date or datetime values for <code>time_fields</code>, specify the timeo
 
     <div id="ref-examples">
     <h2>Examples</h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu">event.vectors</span><span class="fu">::</span><span class="fu">continuity</span><span class="op">(</span></span></span>
-<span class="r-in"><span>  <span class="fu">event.vectors</span><span class="fu">::</span><span class="va"><a href="evs_src_01.html">evs_src_01</a></span></span></span>
-<span class="r-in"><span>  , map_fields <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">join_key</span>, <span class="va">src</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  , time_fields <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">date.start</span>, <span class="va">date.end</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  , timeout <span class="op">=</span> <span class="fu">lubridate</span><span class="fu">::</span><span class="fu"><a href="https://lubridate.tidyverse.org/reference/period.html" class="external-link">days</a></span><span class="op">(</span><span class="fl">7</span><span class="op">)</span></span></span>
-<span class="r-in"><span>  , boundary_name <span class="op">=</span> <span class="st">"evs_series"</span></span></span>
-<span class="r-in"><span>  , show.all <span class="op">=</span> <span class="cn">TRUE</span></span></span>
-<span class="r-in"><span>  <span class="op">)</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">join_key</span>, <span class="va">src</span>, <span class="va">evs_series_start_idx</span>, <span class="va">evs_series_end_idx</span>, <span class="va">ISLAND</span>, <span class="va">GAP</span>, <span class="va">seq_idx</span><span class="op">)</span><span class="op">]</span> <span class="op">|&gt;</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span>f <span class="op">=</span> <span class="op">~</span><span class="va">join_key</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">summary</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $`1`</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     join_key     src            evs_series_start_idx evs_series_end_idx  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Min.   :1   Length:128         Min.   :2026-01-02   Min.   :2026-05-30  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1st Qu.:1   Class :character   1st Qu.:2026-01-02   1st Qu.:2026-05-30  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Median :1   Mode  :character   Median :2026-01-02   Median :2026-05-30  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Mean   :1                      Mean   :2026-04-22   Mean   :2026-08-08  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3rd Qu.:1                      3rd Qu.:2026-07-06   3rd Qu.:2026-09-18  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Max.   :1                      Max.   :2026-10-22   Max.   :2026-12-31  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      ISLAND         GAP                    seq_idx     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Min.   : 20   Min.   :-10.00000 days   Min.   :0.000  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1st Qu.: 70   1st Qu.: -2.00000 days   1st Qu.:0.000  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Median :148   Median :  0.00000 days   Median :0.000  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Mean   :108   Mean   :  0.03125 days   Mean   :1.336  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3rd Qu.:148   3rd Qu.:  1.25000 days   3rd Qu.:2.000  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Max.   :148   Max.   : 10.00000 days   Max.   :4.000  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $`2`</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     join_key     src            evs_series_start_idx evs_series_end_idx  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Min.   :2   Length:109         Min.   :2026-01-04   Min.   :2026-01-24  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1st Qu.:2   Class :character   1st Qu.:2026-03-15   1st Qu.:2026-05-28  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Median :2   Mode  :character   Median :2026-06-07   Median :2026-11-08  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Mean   :2                      Mean   :2026-05-15   Mean   :2026-08-19  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3rd Qu.:2                      3rd Qu.:2026-06-07   3rd Qu.:2026-11-08  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Max.   :2                      Max.   :2026-12-06   Max.   :2026-12-29  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      ISLAND            GAP                  seq_idx     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Min.   : 20.00   Min.   :-9.0000 days   Min.   :0.000  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1st Qu.: 31.00   1st Qu.:-2.0000 days   1st Qu.:2.000  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Median : 74.00   Median : 0.0000 days   Median :3.000  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Mean   : 95.23   Mean   : 0.3945 days   Mean   :2.523  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3rd Qu.:154.00   3rd Qu.: 3.0000 days   3rd Qu.:3.000  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Max.   :154.00   Max.   :11.0000 days   Max.   :5.000  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> $`3`</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>     join_key     src            evs_series_start_idx evs_series_end_idx  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Min.   :3   Length:24          Min.   :2026-01-02   Min.   :2026-01-13  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1st Qu.:3   Class :character   1st Qu.:2026-02-10   1st Qu.:2026-02-24  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Median :3   Mode  :character   Median :2026-07-13   Median :2026-07-17  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Mean   :3                      Mean   :2026-06-09   Mean   :2026-06-18  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3rd Qu.:3                      3rd Qu.:2026-08-10   3rd Qu.:2026-08-24  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Max.   :3                      Max.   :2026-11-06   Max.   :2026-11-22  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>      ISLAND           GAP                seq_idx      </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Min.   : 0.00   Min.   :-8.00 days   Min.   : 0.000  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  1st Qu.: 2.75   1st Qu.: 3.50 days   1st Qu.: 2.000  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Median :11.00   Median : 8.00 days   Median : 7.500  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Mean   : 9.50   Mean   :10.88 days   Mean   : 6.583  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  3rd Qu.:16.00   3rd Qu.:17.00 days   3rd Qu.: 9.250  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  Max.   :18.00   Max.   :48.00 days   Max.   :13.000  </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> </span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
+<span class="r-in"><span>  <span class="fu">event.vectors</span><span class="fu">::</span><span class="fu">continuity</span><span class="op">(</span></span></span>
+<span class="r-in"><span>    <span class="fu">event.vectors</span><span class="fu">::</span><span class="va"><a href="evs_src_01.html">evs_src_01</a></span></span></span>
+<span class="r-in"><span>    , map_fields <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">join_key</span>, <span class="va">src</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    , time_fields <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="va">date.start</span>, <span class="va">date.end</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    , timeout <span class="op">=</span> <span class="fu">lubridate</span><span class="fu">::</span><span class="fu"><a href="https://lubridate.tidyverse.org/reference/period.html" class="external-link">days</a></span><span class="op">(</span><span class="fl">7</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    , boundary_name <span class="op">=</span> <span class="st">"evs_series"</span></span></span>
+<span class="r-in"><span>    , show.all <span class="op">=</span> <span class="cn">TRUE</span></span></span>
+<span class="r-in"><span>    <span class="op">)</span><span class="op">[</span>, <span class="fu">.</span><span class="op">(</span><span class="va">join_key</span>, <span class="va">src</span>, <span class="va">evs_series_start_idx</span>, <span class="va">evs_series_end_idx</span>, <span class="va">ISLAND</span>, <span class="va">GAP</span>, <span class="va">seq_idx</span><span class="op">)</span><span class="op">]</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/split.html" class="external-link">split</a></span><span class="op">(</span>f <span class="op">=</span> <span class="op">~</span><span class="va">join_key</span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
+<span class="r-in"><span>    <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">summary</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 <span class="r-in"><span></span></span>
 </code></pre></div>
     </div>

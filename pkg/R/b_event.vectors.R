@@ -62,50 +62,54 @@ event.vectors <- R6::R6Class(
       #'
       #' @param chatty (logical | \code{FALSE}) Verbosity flag
 			configure =	function(..., src_mix = "comb", exclude_mix = list(), chatty = FALSE){
-					if (!rlang::is_empty(exclude_mix) & chatty){
-						cli::cli_alert_info("[{Sys.time()}] Source-mix exlusions detected")
-					}
+				if (!rlang::is_empty(exclude_mix) & chatty){
+					cli::cli_alert_info("[{Sys.time()}] Source-mix exlusions detected")
+				}
 
-					src_defs <- rlang::dots_list(..., .homonyms = "last", .check_assign = TRUE)
-					assertive::assert_is_identical_to_true(!any(names(src_defs) == ""))
-					assertive::assert_all_are_true(sapply(src_defs, \(x) x %isa% Event))
-					contexts <- names(src_defs)
-					private$.params$config <- src_defs
+				src_defs <- rlang::dots_list(..., .homonyms = "last", .check_assign = TRUE)
+				if (any(names(src_defs) == "")){
+					i <- which(names(src_defs) == "")
+					names(src_defs)[i] <- src_defs[i] |> sapply(\(x) x$label)
+					# stop("src_defs contains empty names")
+				}
+				if (!all(vapply(src_defs, inherits, logical(1), "Event"))) stop("All src_defs must be events")
+				contexts <- names(src_defs)
+				private$.params$config <- src_defs
 
-					# @def q_table sets the allowable comparisons before any calculations are done
-					private$q_table <- local({
-						# .temp will be a matrix after this operation
-						.temp <- names(src_defs) |>
-							utils::combn(m = 2) %>%
-							cbind(apply(., 2, rev)) |>
-							t()
+				# @def q_table sets the allowable comparisons before any calculations are done
+				private$q_table <- local({
+					# .temp will be a matrix after this operation
+					.temp <- names(src_defs) |>
+						utils::combn(m = 2) %>%
+						cbind(apply(., 2, rev)) |>
+						t()
 
-						# enforce 'src_mix'
-						if (!grepl("reflex|all", src_mix, ignore.case = TRUE)){
-							.temp <- .temp[.temp[, 1] != .temp[, 2], ]
-							}
-
-						# enforce 'exclude_mix' after converting .temp to a 'data.table' object
-						.temp <- data.table::as.data.table(.temp) |>
-							data.table::setnames(c("from", "to"))
-
-						.temp[!purrr::pmap_lgl(.temp, \(...) list(c(...elt(1), ...elt(2))) %in% exclude_mix)] |>
-							data.table::setkey(from, to)
-						})
-
-					data.table::setattr(private$.params$config, "src_mix", as.character(rlang::enexpr(src_mix)))
-
-					if (!rlang::is_empty(exclude_mix)){
-						data.table::setattr(private$.params$config, "exclude_mix", sapply(exclude_mix, function(i){
-								paste0(if (length(i) == 1){ c(i, i) } else if(length(i) > 2) { i[1:2] } else { i }, collapse = ", ")
-							})) %>%
-							data.table::setattr("jk", {
-								purrr::map(., \(x) x$jk.vec |> rlang::eval_tidy()) |>
-									magrittr::freduce(list(unlist, unique, sort, purrr::set_names))
-								})
-						} else {
-							data.table::setattr(private$.params$config, "exclude_mix", NA)
+					# enforce 'src_mix'
+					if (!grepl("reflex|all", src_mix, ignore.case = TRUE)){
+						.temp <- .temp[.temp[, 1] != .temp[, 2], ]
 						}
+
+					# enforce 'exclude_mix' after converting .temp to a 'data.table' object
+					.temp <- data.table::as.data.table(.temp) |>
+						data.table::setnames(c("from", "to"))
+
+					.temp[!purrr::pmap_lgl(.temp, \(...) list(c(...elt(1), ...elt(2))) %in% exclude_mix)] |>
+						data.table::setkey(from, to)
+					})
+
+				data.table::setattr(private$.params$config, "src_mix", as.character(rlang::enexpr(src_mix)))
+
+				if (!rlang::is_empty(exclude_mix)){
+					data.table::setattr(private$.params$config, "exclude_mix", sapply(exclude_mix, function(i){
+							paste0(if (length(i) == 1){ c(i, i) } else if(length(i) > 2) { i[1:2] } else { i }, collapse = ", ")
+						})) %>%
+						data.table::setattr("jk", {
+							purrr::map(., \(x) x$jk.vec |> rlang::eval_tidy()) |>
+								magrittr::freduce(list(unlist, unique, sort, purrr::set_names))
+							})
+				} else {
+					data.table::setattr(private$.params$config, "exclude_mix", NA)
+				}
 
 				# :: Return
 				invisible(self)
@@ -317,27 +321,24 @@ event.vectors <- R6::R6Class(
 								furrr::future_map(x, f, ..., .options = future_opts)
 							}
 						} else { purrr::imap }
-				
+          
 					map_fun <- \(x, nm, ..., cache_dir = NULL){
-							gc()
-							pid <- Sys.getpid()
+							gc(); pid <- Sys.getpid()
+              
 							if (missing(nm)){
-								nm <- sprintf(
-									"graph_jk_%s_%s"
-									, x
-									, stringi::stri_replace_all_fixed(
-											uuid::UUIDgenerate(TRUE)
-											, '-'
-											, '_'
-											, vectorize_all = FALSE
-											)
-									)
-							}
+                uuid <- stringi::stri_replace_all_fixed(
+                    uuid::UUIDgenerate(TRUE)
+                    , '-'
+                    , '_'
+                    , vectorize_all = FALSE
+                    )
+								nm <- glue::glue("graph_jk_{x}_{uuid}")
+							} else { nm <- tolower(nm)}
 						
 							err_fun <- \(e){
 								cat(sprintf("[Error (%s | %s)", nm, pid), paste(deparse(e), collapse = "\n"), sep = "\n");
 								return(NULL)
-								}
+              }
 
 							tryCatch({
 									g <<- data.table::setcolorder(space, c("from_src", "to_src"))[(jk == x)] |>
@@ -352,12 +353,12 @@ event.vectors <- R6::R6Class(
 
 									if (!rlang::is_empty(cache_dir)){
 											cache <- cachem::cache_disk(dir = cache_dir, destroy_on_finalize = FALSE)
-											cache$set(key = nm, value = g)
+											cache$set(key = janitor::make_clean_names(tolower(nm)), value = g)
 
 											rlang::expr(readRDS(file = !!dir(cache$info()$dir, pattern = paste0(nm, "\\."), full.names = TRUE)))
 									} else { g }
 								}, error = err_fun)
-					}
+            }
 					map_queue <- space[(x_filter), unique(jk)] |>
 							(\(x){
 								nms <- sprintf(

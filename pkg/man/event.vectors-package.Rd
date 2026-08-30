@@ -24,5 +24,10 @@ Useful links:
 \author{
 \strong{Maintainer}: Chionesu George \email{sapienti.Dei@outlook.com}
 
+Authors:
+\itemize{
+  \item Chionesu George \email{sapienti.Dei@outlook.com}
+}
+
 }
 \keyword{intern}
